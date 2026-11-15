@@ -20,3 +20,7 @@ test-host:
 
 check:
     python3 {{root}}/tools/check_pins.py
+
+# Not on the test chain. Needs webkit2gtk-4.1.
+app:
+    cd {{root}}/app/src-tauri && cargo build

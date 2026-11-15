@@ -1,0 +1,15 @@
+{
+  "identifier": "default",
+  "description": "main window commands",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-get-state",
+    "allow-set-connection",
+    "allow-set-key",
+    "allow-select-input",
+    "allow-set-profile",
+    "allow-connect",
+    "allow-disconnect"
+  ]
+}
