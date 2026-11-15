@@ -14,6 +14,8 @@ USB CDC macropad for OBS Studio. The pad does not open a socket and does not sto
 - pcb: 6 tests, OK
 - `cad check skipped: no cad/.venv`
 
+The number check in `cad/obs_case/numbers.py` did run. It checks the 8° wedge, the flush pocket, and the knob clearance. The solid in `cad/obs_case/geometry.py` is one tilted plate. Key wells, the glass pocket, and the USB opening are not cut into a solid yet.
+
 The window was not launched. The PID is not registered. Nothing has been built or flashed.
 
 `just app` was not run. It builds `app/src-tauri` and needs `webkit2gtk-4.1`. This machine does not have that package. A missing WebKit fails `just app` and does not fail `just test`.
