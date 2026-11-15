@@ -1,0 +1,31 @@
+[obs]
+url = "ws://127.0.0.1:4455"
+password = "replace-me"
+allow_non_loopback = false
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"
+
+[[key]]
+action = "scene"

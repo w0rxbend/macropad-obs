@@ -4,10 +4,10 @@ USB CDC macropad for OBS Studio. The pad does not open a socket and does not sto
 
 ## Status
 
-`just test` on 2026-11-15, with gcc ASan, cargo, and python3. This commit is the frame codec.
+`just test` on 2026-11-15, with gcc ASan, cargo, and python3. This commit adds the OBS keymap core.
 
 - `link: all tests pass`
-- host: 6 passed, 0 failed
+- host: 20 passed, 0 failed
 - `check_pins: 6 checks match board.toml`
 
 The window is not in this PR. The PID is not registered. Nothing has been built or flashed.
