@@ -6,7 +6,7 @@ root := justfile_directory()
 default:
     @just --list
 
-test: test-firmware test-host check
+test: test-firmware test-host check pcb-test cad-check
 
 test-firmware:
     mkdir -p {{root}}/.build
@@ -32,6 +32,22 @@ test-host:
 check:
     python3 {{root}}/tools/check_pins.py
 
+pcb-test:
+    cd {{root}}/pcb/gen && python3 -m unittest
+
+cad-check:
+    python3 {{root}}/cad/build.py check
+
+# Not on the test chain. Needs webkit2gtk-4.1. A missing library fails this recipe.
+app:
+    cd {{root}}/app/src-tauri && cargo build
+
+# Not on the test chain. KiCad 9.0.9 in Docker. Does not claim Gerbers exist until this exits 0.
+pcb:
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
+        -v "{{root}}:{{root}}" -w "{{root}}" kicad/kicad:9.0.9 \
+        python3 pcb/gen/build.py place
+
 # Not on the test chain. Ubuntu 24.04 image, pico-sdk commit in firmware/Dockerfile.
 firmware:
     #!/usr/bin/env bash
@@ -40,3 +56,7 @@ firmware:
     docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e PICO_SDK_PATH=/opt/pico-sdk \
         -v "{{root}}:{{root}}" -w {{root}}/firmware macropad-obs-fw \
         bash -lc 'cmake -S . -B .build -DPICO_BOARD=pico && cmake --build .build && mkdir -p dist && cp .build/macropad-obs.uf2 dist/macropad-obs.uf2'
+
+# Geometry only. Needs cad/.venv. Not on the test chain.
+cad:
+    {{root}}/cad/.venv/bin/python {{root}}/cad/build.py geometry
