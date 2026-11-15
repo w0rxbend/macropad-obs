@@ -28,6 +28,7 @@ def main() -> int:
     board = tomllib.loads((ROOT / "board.toml").read_text())
     pins = (ROOT / "firmware" / "pins.h").read_text()
     rust = (ROOT / "host" / "src" / "protocol.rs").read_text()
+    cmake = (ROOT / "firmware" / "CMakeLists.txt").read_text()
     udev = (ROOT / "app" / "udev" / "70-macropad-obs.rules").read_text().strip()
     keys = board["keys"]["gpio"]
     knob = board["knob"]
@@ -69,6 +70,9 @@ def main() -> int:
     bad = [f"{what}: board.toml {want!r}, source {got!r}" for what, (want, got) in expect.items() if want != got]
     if 0 in named or 1 in named:
         bad.append("GP0/GP1 are UART test pads and must not be named in pins.h")
+    for needle in ("PICO_BOOTSEL_VIA_DOUBLE_RESET=1", "PICO_BOOTSEL_VIA_DOUBLE_RESET_TIMEOUT_MS=500"):
+        if needle not in cmake:
+            bad.append(f"CMakeLists.txt missing {needle}")
     rule = 'SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="4f42", TAG+="uaccess", SYMLINK+="macropad-obs"'
     if udev != rule or "plugdev" in udev or "MODE" in udev:
         bad.append(f"udev rule {udev!r}")

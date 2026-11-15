@@ -4,15 +4,28 @@ USB CDC macropad for OBS Studio. The pad does not open a socket and does not sto
 
 ## Status
 
-`just test` on 2026-11-15, with gcc ASan, cargo, and python3. This commit adds the Tauri shell and the in-memory CDC bridge. `just test` does not build `app/src-tauri`.
+`just test` on 2026-11-15, with gcc ASan, cargo, and python3. This commit adds the pad firmware and the display byte traces. `just test` does not build `app/src-tauri` and does not start Docker.
 
 - `link: all tests pass`
+- `input: all tests pass`
+- `st7789: all tests pass`
 - host: 22 passed, 0 failed
 - `check_pins: 6 checks match board.toml`
 
 The window was not launched. The PID is not registered. Nothing has been built or flashed.
 
 `just app` was not run. It builds `app/src-tauri` and needs `webkit2gtk-4.1`. A missing WebKit fails `just app` and does not fail `just test`.
+
+`just firmware` was not run. The image is Ubuntu 24.04 from `firmware/Dockerfile`, with pico-sdk commit `bddd20f928ce76142793bef434d4f75f4af6e433` (tag 2.1.1). There is no UF2.
+
+## Flash
+
+`firmware/CMakeLists.txt` sets both of these:
+
+- `PICO_BOOTSEL_VIA_DOUBLE_RESET=1`
+- `PICO_BOOTSEL_VIA_DOUBLE_RESET_TIMEOUT_MS=500`
+
+Hold BOOT and plug in, or double-tap RESET inside that 500 ms window. The ROM drive is `RPI-RP2`. No firmware has been copied onto a board.
 
 ## udev
 
