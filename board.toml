@@ -1,0 +1,92 @@
+# macropad-obs: pin and mechanical source of truth.
+# tools/check_pins.py binds firmware/pins.h and host/src/protocol.rs to this file.
+# The PCB generator and the case read it too.
+# Nothing has been built. MEASURE tags need a caliper or a sample.
+
+[board]
+name = "macropad-obs"
+mcu = "RP2040"
+flash = "W25Q128JVSIQ"          # 16 MB, SOIC-8 208 mil, LCSC C97521
+usb = { vid = 0x1209, pid = 0x4F42 }  # pid.codes; not submitted yet
+
+[keys]
+gpio = [2, 3, 4, 5, 6, 7, 8, 9, 10]   # row by row, back row first, left to right
+pitch_mm = 19.05
+switch = "MX, hot-swap socket, Kailh CPG151101S11 class"
+
+[knob]
+part = "Alps EC11E18244AU"
+gpio_a = 12
+gpio_b = 13
+gpio_push = 11
+pulses_per_detent = 4           # MEASURE: some EC11 variants give 2
+
+[display]
+part = "Raystar RFJ240M-ALW-DNN"
+driver = "ST7789V"
+interface = "4-wire SPI"
+logic_v = 3.3
+outline_mm = [42.72, 60.26, 2.25]   # datasheet typ; thickness ±0.1
+active_mm = [36.72, 48.96]
+resolution = [240, 320]
+fpc_edge = "near"               # MEASURE on a sample: design assumes FPC exits the near edge
+fpc_pins = 20
+fpc_pitch_mm = 0.5
+gpio_sck = 18                   # SPI0 SCK, panel pin 8 DCX(SCL)
+gpio_mosi = 19                  # SPI0 TX, panel pin 7 SDA
+gpio_cs = 17                    # SPI0 CSn, panel pin 9 CSX, active low
+gpio_dc = 20                    # panel pin 10 WRX(D/CX)
+gpio_reset = 21                 # panel pin 6 RESET, active low
+gpio_bl = 22                    # backlight FET gate, external pulldown, default off
+
+[boot]
+gpio_run = "RUN"                # RESET tact, not a GPIO number
+qspi_ss = "QSPI_SS"             # BOOT tact through 1 k
+
+# PCB frame: origin at the front-left corner, +x right, +y toward the USB edge, mm.
+# The board is flat in this frame. Do not foreshorten the glass by cos(8°).
+
+[pcb]
+width = 88.0
+depth = 150.0
+thickness = 1.6
+corner_radius = 2.0
+layers = 4
+key_x = [20.00, 39.05, 58.10]
+key_y = [62.00, 42.95, 23.90]   # row 0 is the back row
+knob = [79.6, 42.95]
+display_origin = [22.64, 82.0]  # glass left x, near y
+display_size = [42.72, 60.26]
+fpc = [44.0, 73.5]              # FH12 centre, top side
+boot = [12.0, 8.0]              # tact, bottom side
+reset = [76.0, 8.0]             # tact, bottom side
+holes = [[8.0, 18.0], [80.0, 18.0], [8.0, 108.0], [80.0, 108.0]]
+hole_diameter = 2.2
+hole_keepout_diameter = 5.0     # diameter, not radius. Clearance uses radius 2.5
+usb_x = 44.0
+usb_face = "bottom"
+usb_mouth_overhang = 0.5
+usb_centre_from_pcb = 1.6       # along the face normal, below the PCB bottom face
+mx_rotation_deg = 0
+
+[case]
+face_tilt_deg = 8.0             # whole top face from the desk, front low, back high
+material = "6061-T6, bead blast, anodised"
+wall = 3.2
+pcb_clearance = 0.4
+corner_radius = 10.0
+face_front_z = 12.0             # desk frame: top face at the front outer edge
+floor = 2.4
+plate_above_pcb = 5.0          # MX clip height. Do not raise it for the encoder
+plate_web = 1.5
+shadow_gap = 0.8
+pocket_plan = [43.22, 60.76]
+pocket_depth = 2.35
+bushing_hole = 7.4              # MEASURE
+encoder_pocket = [12.4, 12.4]   # MEASURE. Open through the plate
+knob_diameter = 22.0
+knob_lift = 1.8                 # MEASURE. Underside is 0.3 mm above the 6.5 mm body
+keycap = 18.0                   # MEASURE
+switch_housing = 15.6           # MEASURE
+encoder_body = [12.0, 12.0, 6.5] # MEASURE
+tact_body_mm = 2.0              # MEASURE, TS-1187A

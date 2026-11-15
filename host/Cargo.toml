@@ -1,0 +1,16 @@
+[package]
+name = "obs_core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+description = "OBS keymap, paging, and CDC frames for macropad-obs. No socket and no serial port."
+license = "MIT"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = { version = "0.8", default-features = false, features = ["parse", "display"] }
+
+[profile.release]
+lto = true
+strip = true

@@ -1,0 +1,7 @@
+SPDX-License-Identifier: MIT
+
+The firmware/, host/, app/, and tools/ trees are licensed under the MIT License.
+
+https://opensource.org/license/mit
+
+The pcb/ and cad/ trees are not covered by this file. They are licensed under CERN-OHL-S-2.0. See LICENSE.cern-ohl-s.

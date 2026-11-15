@@ -1,0 +1,10 @@
+# Shared CDC vectors. A change here updates link.c, protocol.rs, and docs/protocol.md.
+# CRC-16/MODBUS, low byte first. The KEY line is the locked check vector.
+
+key_3_down a5 01 02 02 00 03 01 b8 82
+bind_loopback a5 01 12 0d 00 03 67 11 09 31 32 37 2e 30 2e 30 2e 31 9e 55
+page_view_empty a5 01 14 15 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 92 e8
+hello a5 01 01 04 00 01 09 00 00 41 7d
+hello_ack a5 01 10 01 00 01 8d 00
+heartbeat a5 01 11 00 00 51 dd
+key_bad_crc a5 01 02 02 00 03 01 b8 7d
