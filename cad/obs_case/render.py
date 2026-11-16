@@ -91,7 +91,8 @@ def _shade(colour: np.ndarray, normal: np.ndarray, light: np.ndarray) -> np.ndar
     if length < 1e-12:
         return colour
     facing = max(float(normal @ light) / length, 0.0)
-    return np.clip(np.rint(colour * facing), 0, 255).astype(np.uint8)
+    shade = 0.45 + 0.55 * facing
+    return np.clip(np.rint(colour * shade), 0, 255).astype(np.uint8)
 
 
 def _paint(axis, parts: list[tuple[trimesh.Trimesh, np.ndarray]], eye: np.ndarray) -> np.ndarray:
