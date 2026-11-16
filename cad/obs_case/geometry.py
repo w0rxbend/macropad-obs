@@ -35,7 +35,9 @@ TOP_CHAMFER_MM = 0.5
 BASE_CHAMFER_MM = 1.7
 DISH_FLOOR_X = (14.95, 70.35)
 DISH_FLOOR_Y = (18.85, 147.61)
+WELL_RADIUS_MM = 11.5  # 23.0 mm well. 0.5 mm ring around the 11 mm knob. Not 12.2.
 WELL_DEPTH_MM = 0.7
+WELL_CUTTER_ABOVE_MM = 0.2
 PLAIN_BAND_MM = 1.6
 GROOVE_COUNT = 36
 GROOVE_DEPTH_MM = 0.35
@@ -180,7 +182,7 @@ def _top(board: dict, span_x: float, span_y: float):
     knob_x, knob_y = board["pcb"]["knob"]
     pocket = case["encoder_pocket"][0]
     plate = _cut(plate, knob_x + grow - pocket / 2, knob_y + grow - pocket / 2, pocket, pocket, case["plate_web"])
-    plate = _keep(plate, "knob well", lambda: plate - _knob_well(board))
+    plate = plate - _knob_well(board)
     return plate
 
 
@@ -214,13 +216,13 @@ def _knob_cylinder(board: dict, height: float, centre_z: float):
 
 
 def _knob_well(board: dict):
-    # 0.7 mm below the key plane, opening upward. Not a 23.1 mm well.
+    # From the top of the 3 mm rim. Floor at z = 2.3. Radius 11.5, not 12.2.
     from build123d import Cylinder, Pos
 
     centre_x, centre_y = _knob_centre(board)
-    radius = board["case"]["knob_diameter"] / 2
-    height = WELL_DEPTH_MM + 0.2
-    return Pos(centre_x, centre_y, -WELL_DEPTH_MM / 2 + 0.1) * Cylinder(radius, height)
+    floor_z = BORDER_MM - WELL_DEPTH_MM
+    height = WELL_DEPTH_MM + WELL_CUTTER_ABOVE_MM
+    return Pos(centre_x, centre_y, floor_z + height / 2) * Cylinder(WELL_RADIUS_MM, height)
 
 
 def _dish():
