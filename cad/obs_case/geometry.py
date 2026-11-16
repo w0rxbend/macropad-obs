@@ -35,7 +35,7 @@ TOP_CHAMFER_MM = 0.5
 BASE_CHAMFER_MM = 1.7
 DISH_FLOOR_X = (14.95, 70.35)
 DISH_FLOOR_Y = (18.85, 147.61)
-WELL_RADIUS_MM = 11.5  # 23.0 mm well. 0.5 mm ring around the 11 mm knob. Not 12.2.
+WELL_RADIUS_MM = 11.9  # 0.9 mm ring. 12.2 would cut the nearest cap.
 WELL_DEPTH_MM = 0.7
 WELL_CUTTER_ABOVE_MM = 0.2
 PLAIN_BAND_MM = 1.6
@@ -243,23 +243,34 @@ def _pocket_origin(board: dict, grow: float) -> tuple[float, float]:
     return glass_x + grow - (pocket_w - glass_w) / 2, glass_y + grow - (pocket_h - glass_h) / 2
 
 
+def _one_keycap(side: float, height: float):
+    """18 mm cap. Vertical edges are rounded. The top is a cylindrical dish."""
+    from build123d import Axis, Box, Cylinder, Pos, Rot, fillet
+
+    body = Pos(side / 2, side / 2, height / 2) * Box(side, side, height)
+    body = fillet(body.edges().filter_by(Axis.Z), 1.2)
+    dish_r = 28.0
+    dish_depth = 1.1
+    scoop = Pos(side / 2, side / 2, height - dish_depth + dish_r) * Rot(0, 90, 0) * Cylinder(
+        dish_r, side + 4
+    )
+    return body - scoop
+
+
 def _keycaps(board: dict):
-    """Nine caps, not fused. Pitch is 19.05 mm, so the 18 mm boxes do not touch.
+    """Nine caps, not fused. Pitch is 19.05 mm, so the 18 mm caps do not touch.
 
     Not cut out of the top. Outer caps overhang the dish floor by 0.35 mm.
     """
-    from build123d import Compound, Pos, Solid
+    from build123d import Compound, Pos
 
     side, _, height = KEYCAP_MM
     grow = _grow(board["case"])
+    cap = _one_keycap(side, height)
     caps = []
     for key_x in board["pcb"]["key_x"]:
         for key_y in board["pcb"]["key_y"]:
-            # make_box grows +x +y +z from the plane origin, so the bottom is z = 0.
-            caps.append(
-                Pos(key_x + grow - side / 2, key_y + grow - side / 2, 0)
-                * Solid.make_box(side, side, height)
-            )
+            caps.append(Pos(key_x + grow - side / 2, key_y + grow - side / 2, 0) * cap)
     return Compound(caps)
 
 

@@ -56,9 +56,18 @@ def _write_3mf(stl_path: Path, dest: Path) -> None:
     mesh.export(dest)
 
 
+def _measured_volume(shape) -> float:
+    """Sum the solids. A compound of compounds reports a short ``volume``."""
+    solids = list(shape.solids())
+    if len(solids) > 1:
+        return sum(solid.volume for solid in solids)
+    return shape.volume
+
+
 def _verify_step(path: Path, original, solids: int) -> int:
     back = import_step(path)
-    volume_error = abs(back.volume - original.volume) / original.volume
+    original_volume = _measured_volume(original)
+    volume_error = abs(back.volume - original_volume) / original_volume
     count = len(back.solids())
     ok = _count_ok(path, back, count, solids) and back.is_valid and volume_error < 1e-3
     print(f"  {path.name}: {count} solids, valid {back.is_valid}, volume off by {volume_error:.1e}")
@@ -84,7 +93,7 @@ def _count_ok(path: Path, back, count: int, solids: int) -> bool:
 
 def _verify_stl(path: Path, original: Part) -> int:
     mesh = trimesh.load_mesh(path)
-    volume_error = abs(mesh.volume - original.volume) / original.volume
+    volume_error = abs(mesh.volume - _measured_volume(original)) / _measured_volume(original)
     ok = mesh.is_watertight and mesh.volume > 0 and volume_error < STL_VOLUME_SHARE
     print(
         f"  {path.name}: {len(mesh.faces)} triangles, watertight {mesh.is_watertight}, "
