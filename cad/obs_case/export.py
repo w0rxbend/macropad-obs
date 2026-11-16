@@ -39,7 +39,8 @@ def _write_part(solid: Part, stem: Path) -> int:
     export_step(solid, step)
     _write_mesh(solid, stl)
     _write_3mf(stl, stem.with_suffix(".3mf"))
-    return _verify_step(step, solid, 1) + _verify_stl(stl, solid)
+    expect = 9 if stem.name == "keycaps" else 1
+    return _verify_step(step, solid, expect) + _verify_stl(stl, solid)
 
 
 def _write_mesh(solid: Part, path: Path) -> None:
@@ -58,9 +59,27 @@ def _write_3mf(stl_path: Path, dest: Path) -> None:
 def _verify_step(path: Path, original, solids: int) -> int:
     back = import_step(path)
     volume_error = abs(back.volume - original.volume) / original.volume
-    ok = len(back.solids()) == solids and back.is_valid and volume_error < 1e-3
-    print(f"  {path.name}: {len(back.solids())} solids, valid {back.is_valid}, volume off by {volume_error:.1e}")
+    count = len(back.solids())
+    ok = _count_ok(path, back, count, solids) and back.is_valid and volume_error < 1e-3
+    print(f"  {path.name}: {count} solids, valid {back.is_valid}, volume off by {volume_error:.1e}")
     return 0 if ok else 1
+
+
+def _count_ok(path: Path, back, count: int, solids: int) -> bool:
+    """keycaps.step is nine solids. The assembly is 13 if that compound flattens, else 5.
+
+    A nested readback still fails when the cap group is present but short of nine.
+    """
+    if path.name == "keycaps.step":
+        return count == 9
+    if path.name != "assembly.step":
+        return count == solids
+    if count == 13:
+        return True
+    if count != 5:
+        return False
+    groups = [len(child.solids()) for child in back.children if len(child.solids()) > 1]
+    return groups in ([], [9])
 
 
 def _verify_stl(path: Path, original: Part) -> int:

@@ -19,6 +19,7 @@ COLOURS = {
     "top": "#d0d1d4",
     "glass": "#1c1c22",
     "knob": "#2a2c30",
+    "keycaps": "#f2f2f4",
 }
 ELEV_DEG = 28.0
 AZIM_DEG = -58.0
@@ -112,10 +113,17 @@ def _paint(axis, parts: list[tuple[trimesh.Trimesh, np.ndarray]], eye: np.ndarra
     return image
 
 
+def _load_mesh(path: Path) -> trimesh.Trimesh:
+    mesh = trimesh.load_mesh(path)
+    if isinstance(mesh, trimesh.Scene):
+        mesh = trimesh.util.concatenate(tuple(mesh.geometry.values()))
+    return mesh
+
+
 def render(folder: Path, png_path: Path) -> None:
-    """folder holds base.stl, top.stl, glass.stl, and knob.stl."""
+    """folder holds base.stl, top.stl, glass.stl, knob.stl, and keycaps.stl."""
     png_path.parent.mkdir(parents=True, exist_ok=True)
-    parts = [(trimesh.load_mesh(folder / f"{name}.stl"), _rgb(colour)) for name, colour in COLOURS.items()]
+    parts = [(_load_mesh(folder / f"{name}.stl"), _rgb(colour)) for name, colour in COLOURS.items()]
     low = np.min([mesh.bounds[0] for mesh, _colour in parts], axis=0)
     high = np.max([mesh.bounds[1] for mesh, _colour in parts], axis=0)
     figure, axis = _view(low, high)

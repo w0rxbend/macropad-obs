@@ -41,6 +41,7 @@ GROOVE_COUNT = 36
 GROOVE_DEPTH_MM = 0.35
 GROOVE_PAST_MM = 0.2  # the V runs past the cylinder so the cut does not kiss it
 POINTER_MM = (0.9, 0.4, 2.0, 6.0)  # width, depth, inner radius, outer radius
+KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
 
 _BUILD_NOTES: list[str] = []
 
@@ -60,7 +61,7 @@ def _spans(board: dict) -> tuple[float, float]:
 
 
 def build_parts(board: dict | None = None) -> dict:
-    """Named solids in the desk frame. Keys are top, base, glass, and knob."""
+    """Named solids in the desk frame. Keys are top, base, glass, knob, and keycaps."""
     from build123d import Pos, Rot
 
     _BUILD_NOTES.clear()
@@ -70,6 +71,7 @@ def build_parts(board: dict | None = None) -> dict:
     top = _top(board, span_x, span_y)
     glass = _glass(board, span_x, span_y)
     knob = _knob(board)
+    keycaps = _keycaps(board)
     place = Pos(0, 0, case["face_front_z"]) * Rot(case["face_tilt_deg"], 0, 0)
     base = _base(board, place * _skin(span_x, span_y, case["plate_web"]))
     for note in _BUILD_NOTES:
@@ -79,6 +81,7 @@ def build_parts(board: dict | None = None) -> dict:
         "base": base,
         "glass": place * glass,
         "knob": place * knob,
+        "keycaps": place * keycaps,
     }
 
 
@@ -236,6 +239,26 @@ def _pocket_origin(board: dict, grow: float) -> tuple[float, float]:
     glass_w, glass_h = board["pcb"]["display_size"]
     pocket_w, pocket_h = board["case"]["pocket_plan"]
     return glass_x + grow - (pocket_w - glass_w) / 2, glass_y + grow - (pocket_h - glass_h) / 2
+
+
+def _keycaps(board: dict):
+    """Nine caps, not fused. Pitch is 19.05 mm, so the 18 mm boxes do not touch.
+
+    Not cut out of the top. Outer caps overhang the dish floor by 0.35 mm.
+    """
+    from build123d import Compound, Pos, Solid
+
+    side, _, height = KEYCAP_MM
+    grow = _grow(board["case"])
+    caps = []
+    for key_x in board["pcb"]["key_x"]:
+        for key_y in board["pcb"]["key_y"]:
+            # make_box grows +x +y +z from the plane origin, so the bottom is z = 0.
+            caps.append(
+                Pos(key_x + grow - side / 2, key_y + grow - side / 2, 0)
+                * Solid.make_box(side, side, height)
+            )
+    return Compound(caps)
 
 
 def _glass(board: dict, span_x: float, span_y: float):
