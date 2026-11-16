@@ -19,7 +19,7 @@ COLOURS = {
     "top": "#d0d1d4",
     "glass": "#1c1c22",
     "knob": "#2a2c30",
-    "keycaps": "#f2f2f4",
+    "keycaps": "#e4e2de",
 }
 ELEV_DEG = 28.0
 AZIM_DEG = -58.0

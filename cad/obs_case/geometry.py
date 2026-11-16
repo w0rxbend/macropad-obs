@@ -44,6 +44,11 @@ GROOVE_DEPTH_MM = 0.35
 GROOVE_PAST_MM = 0.2  # the V runs past the cylinder so the cut does not kiss it
 POINTER_MM = (0.9, 0.4, 2.0, 6.0)  # width, depth, inner radius, outer radius
 KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
+CAP_CORNER_MM = 1.2
+CAP_TOP_CHAMFER_MM = 0.7
+# R 16.1 at 1.6 mm deep opens a 14 mm bowl. The 1.1 mm cylinder did not read.
+CAP_DISH_RADIUS_MM = 16.1
+CAP_DISH_DEPTH_MM = 1.6
 
 _BUILD_NOTES: list[str] = []
 
@@ -216,7 +221,7 @@ def _knob_cylinder(board: dict, height: float, centre_z: float):
 
 
 def _knob_well(board: dict):
-    # From the top of the 3 mm rim. Floor at z = 2.3. Radius 11.5, not 12.2.
+    # From the top of the 3 mm rim. Radius stays 11.9 so the cut misses the nearest cap.
     from build123d import Cylinder, Pos
 
     centre_x, centre_y = _knob_centre(board)
@@ -244,16 +249,14 @@ def _pocket_origin(board: dict, grow: float) -> tuple[float, float]:
 
 
 def _one_keycap(side: float, height: float):
-    """18 mm cap. Vertical edges are rounded. The top is a cylindrical dish."""
-    from build123d import Axis, Box, Cylinder, Pos, Rot, fillet
+    """18 mm cap. Corners are rounded. The top edge is chamfered, then dished."""
+    from build123d import Axis, Box, Pos, Sphere, fillet
 
     body = Pos(side / 2, side / 2, height / 2) * Box(side, side, height)
-    body = fillet(body.edges().filter_by(Axis.Z), 1.2)
-    dish_r = 28.0
-    dish_depth = 1.1
-    scoop = Pos(side / 2, side / 2, height - dish_depth + dish_r) * Rot(0, 90, 0) * Cylinder(
-        dish_r, side + 4
-    )
+    body = fillet(body.edges().filter_by(Axis.Z), CAP_CORNER_MM)
+    body = _chamfer_highest(body, CAP_TOP_CHAMFER_MM)
+    centre_z = height - CAP_DISH_DEPTH_MM + CAP_DISH_RADIUS_MM
+    scoop = Pos(side / 2, side / 2, centre_z) * Sphere(CAP_DISH_RADIUS_MM)
     return body - scoop
 
 
