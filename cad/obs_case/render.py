@@ -11,39 +11,136 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import trimesh
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d import proj3d
 
 
 COLOURS = {
-    "base": "#3a3a3c",
-    "top": "#d8d8dc",
+    "base": "#3a3c40",
+    "top": "#d0d1d4",
     "glass": "#1c1c22",
-    "knob": "#636366",
+    "knob": "#2a2c30",
 }
+ELEV_DEG = 28.0
+AZIM_DEG = -58.0
+# STL facets sit under 25°. Chamfers are 45° and the V grooves are 90°.
+CREASE_DEG = 25.0
+EDGE_COLOUR = "#7a7c80"
+# 10 mm toward the camera is about 0.010 in this projection, so this is ~0.3 mm.
+EDGE_CLOSER_Z = 0.00035
+BACKGROUND = "#141416"
+
+
+def _rgb(hex_colour: str) -> np.ndarray:
+    value = int(hex_colour[1:], 16)
+    return np.array(((value >> 16) & 255, (value >> 8) & 255, value & 255), dtype=np.uint8)
+
+
+def _eye() -> np.ndarray:
+    elev = np.deg2rad(ELEV_DEG)
+    azim = np.deg2rad(AZIM_DEG)
+    return np.array((np.cos(elev) * np.cos(azim), np.cos(elev) * np.sin(azim), np.sin(elev)))
+
+
+def _view(low: np.ndarray, high: np.ndarray):
+    figure = plt.figure(figsize=(9, 7), dpi=140, facecolor=BACKGROUND)
+    axis = figure.add_subplot(111, projection="3d", facecolor=BACKGROUND)
+    axis.set_xlim(low[0], high[0])
+    axis.set_ylim(low[1], high[1])
+    axis.set_zlim(low[2], high[2])
+    axis.view_init(elev=ELEV_DEG, azim=AZIM_DEG)
+    axis.set_axis_off()
+    axis.set_box_aspect(high - low)
+    figure.tight_layout(pad=0)
+    figure.canvas.draw()
+    return figure, axis
+
+
+def _screen(axis, vertices: np.ndarray, height: int) -> np.ndarray:
+    xs, ys, zs = proj3d.proj_transform(vertices[:, 0], vertices[:, 1], vertices[:, 2], axis.get_proj())
+    xy = axis.transData.transform(np.column_stack((xs, ys)))
+    return np.column_stack((xy[:, 0], height - xy[:, 1], zs))
+
+
+def _fill(image: np.ndarray, depth: np.ndarray, triangle: np.ndarray, colour: np.ndarray) -> None:
+    height, width = depth.shape
+    xy = triangle[:, :2]
+    min_x = max(int(np.floor(xy[:, 0].min())), 0)
+    max_x = min(int(np.ceil(xy[:, 0].max())), width - 1)
+    min_y = max(int(np.floor(xy[:, 1].min())), 0)
+    max_y = min(int(np.ceil(xy[:, 1].max())), height - 1)
+    if min_x > max_x or min_y > max_y:
+        return
+    grid_x, grid_y = np.meshgrid(np.arange(min_x, max_x + 1) + 0.5, np.arange(min_y, max_y + 1) + 0.5)
+    first, second, third = xy
+    area = (second[1] - third[1]) * (first[0] - third[0]) + (third[0] - second[0]) * (first[1] - third[1])
+    if abs(area) < 1e-9:
+        return
+    weight_a = ((second[1] - third[1]) * (grid_x - third[0]) + (third[0] - second[0]) * (grid_y - third[1])) / area
+    weight_b = ((third[1] - first[1]) * (grid_x - third[0]) + (first[0] - third[0]) * (grid_y - third[1])) / area
+    weight_c = 1.0 - weight_a - weight_b
+    inside = (weight_a >= 0) & (weight_b >= 0) & (weight_c >= 0)
+    if not np.any(inside):
+        return
+    surface = weight_a * triangle[0, 2] + weight_b * triangle[1, 2] + weight_c * triangle[2, 2]
+    view = depth[min_y : max_y + 1, min_x : max_x + 1]
+    closer = inside & (surface < view)
+    if not np.any(closer):
+        return
+    view[closer] = surface[closer]
+    patch = image[min_y : max_y + 1, min_x : max_x + 1]
+    patch[closer] = colour
+
+
+def _stroke(image: np.ndarray, depth: np.ndarray, start: np.ndarray, end: np.ndarray, colour: np.ndarray) -> None:
+    """One pixel, plus the neighbour, so a crease still reads at 140 dpi."""
+    height, width = depth.shape
+    steps = int(max(abs(end[0] - start[0]), abs(end[1] - start[1]))) + 1
+    if steps < 2 or steps > 4000:
+        return
+    samples = np.linspace(0.0, 1.0, steps)
+    xs = np.rint(start[0] + (end[0] - start[0]) * samples).astype(np.int32)
+    ys = np.rint(start[1] + (end[1] - start[1]) * samples).astype(np.int32)
+    zs = start[2] + (end[2] - start[2]) * samples - EDGE_CLOSER_Z
+    for dx, dy in ((0, 0), (1, 0), (0, 1)):
+        column = xs + dx
+        row = ys + dy
+        inside = (column >= 0) & (column < width) & (row >= 0) & (row < height)
+        column, row, depth_z = column[inside], row[inside], zs[inside]
+        closer = depth_z < depth[row, column]
+        column, row, depth_z = column[closer], row[closer], depth_z[closer]
+        depth[row, column] = depth_z
+        image[row, column] = colour
+
+
+def _paint(axis, parts: list[tuple[trimesh.Trimesh, np.ndarray]], eye: np.ndarray) -> np.ndarray:
+    # Face sort in mplot3d draws the cavity through the top. This buffer keeps the shell.
+    width, height = axis.figure.canvas.get_width_height()
+    image = np.empty((height, width, 3), dtype=np.uint8)
+    image[:] = _rgb(BACKGROUND)
+    depth = np.full((height, width), np.inf)
+    edge = _rgb(EDGE_COLOUR)
+    limit = np.deg2rad(CREASE_DEG)
+    for mesh, colour in parts:
+        triangles = mesh.vertices[mesh.faces]
+        normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
+        front = normals @ eye > 0
+        screen = _screen(axis, mesh.vertices, height)
+        for triangle in screen[mesh.faces[front]]:
+            _fill(image, depth, triangle, colour)
+        keep = (mesh.face_adjacency_angles >= limit) & front[mesh.face_adjacency].any(axis=1)
+        for start, end in mesh.face_adjacency_edges[keep]:
+            _stroke(image, depth, screen[start], screen[end], edge)
+    return image
 
 
 def render(folder: Path, png_path: Path) -> None:
     """folder holds base.stl, top.stl, glass.stl, and knob.stl."""
     png_path.parent.mkdir(parents=True, exist_ok=True)
-    figure = plt.figure(figsize=(9, 7), dpi=140, facecolor="#141416")
-    axis = figure.add_subplot(111, projection="3d", facecolor="#141416")
-    low = np.array([np.inf, np.inf, np.inf])
-    high = np.array([-np.inf, -np.inf, -np.inf])
-    for name, colour in COLOURS.items():
-        mesh = trimesh.load_mesh(folder / f"{name}.stl")
-        collection = Poly3DCollection(mesh.vertices[mesh.faces], linewidths=0.0)
-        collection.set_facecolor(colour)
-        collection.set_edgecolor("none")
-        axis.add_collection3d(collection)
-        low = np.minimum(low, mesh.bounds[0])
-        high = np.maximum(high, mesh.bounds[1])
-    axis.set_xlim(low[0], high[0])
-    axis.set_ylim(low[1], high[1])
-    axis.set_zlim(low[2], high[2])
-    axis.view_init(elev=64, azim=-128)
-    axis.set_axis_off()
-    axis.set_box_aspect(high - low)
-    figure.tight_layout(pad=0)
-    figure.savefig(png_path, facecolor=figure.get_facecolor())
+    parts = [(trimesh.load_mesh(folder / f"{name}.stl"), _rgb(colour)) for name, colour in COLOURS.items()]
+    low = np.min([mesh.bounds[0] for mesh, _colour in parts], axis=0)
+    high = np.max([mesh.bounds[1] for mesh, _colour in parts], axis=0)
+    figure, axis = _view(low, high)
+    image = _paint(axis, parts, _eye())
     plt.close(figure)
+    plt.imsave(png_path, image)
     print(f"rendered {png_path}")
