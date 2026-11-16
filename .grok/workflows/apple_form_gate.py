@@ -39,12 +39,18 @@ def _stop_now(now: datetime) -> bool:
     return now.date().isoformat() == "2026-11-16" and (now.hour > 21 or (now.hour == 21 and now.minute >= 0))
 
 
+def _is_case_run(name: object) -> bool:
+    """Display names are case-apple-form, then case-apple-form-2, and so on."""
+    text = str(name or "")
+    return text == "case-apple-form" or text.startswith("case-apple-form-")
+
+
 def _busy() -> bool:
     if not SESSION.is_dir():
         return False
     for state_path in SESSION.glob("wf_*/state.json"):
         data = json.loads(state_path.read_text(encoding="utf-8")).get("state", {})
-        if data.get("name") != "case-apple-form":
+        if not _is_case_run(data.get("name")):
             continue
         status = str(data.get("status", "")).lower()
         if status not in TERMINAL:
