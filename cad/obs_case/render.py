@@ -22,11 +22,6 @@ COLOURS = {
 }
 ELEV_DEG = 28.0
 AZIM_DEG = -58.0
-# STL facets sit under 25°. Chamfers are 45° and the V grooves are 90°.
-CREASE_DEG = 25.0
-EDGE_COLOUR = "#7a7c80"
-# 10 mm toward the camera is about 0.010 in this projection, so this is ~0.3 mm.
-EDGE_CLOSER_Z = 0.00035
 BACKGROUND = "#141416"
 
 
@@ -91,25 +86,12 @@ def _fill(image: np.ndarray, depth: np.ndarray, triangle: np.ndarray, colour: np
     patch[closer] = colour
 
 
-def _stroke(image: np.ndarray, depth: np.ndarray, start: np.ndarray, end: np.ndarray, colour: np.ndarray) -> None:
-    """One pixel, plus the neighbour, so a crease still reads at 140 dpi."""
-    height, width = depth.shape
-    steps = int(max(abs(end[0] - start[0]), abs(end[1] - start[1]))) + 1
-    if steps < 2 or steps > 4000:
-        return
-    samples = np.linspace(0.0, 1.0, steps)
-    xs = np.rint(start[0] + (end[0] - start[0]) * samples).astype(np.int32)
-    ys = np.rint(start[1] + (end[1] - start[1]) * samples).astype(np.int32)
-    zs = start[2] + (end[2] - start[2]) * samples - EDGE_CLOSER_Z
-    for dx, dy in ((0, 0), (1, 0), (0, 1)):
-        column = xs + dx
-        row = ys + dy
-        inside = (column >= 0) & (column < width) & (row >= 0) & (row < height)
-        column, row, depth_z = column[inside], row[inside], zs[inside]
-        closer = depth_z < depth[row, column]
-        column, row, depth_z = column[closer], row[closer], depth_z[closer]
-        depth[row, column] = depth_z
-        image[row, column] = colour
+def _shade(colour: np.ndarray, normal: np.ndarray, light: np.ndarray) -> np.ndarray:
+    length = float(np.linalg.norm(normal))
+    if length < 1e-12:
+        return colour
+    facing = max(float(normal @ light) / length, 0.0)
+    return np.clip(np.rint(colour * facing), 0, 255).astype(np.uint8)
 
 
 def _paint(axis, parts: list[tuple[trimesh.Trimesh, np.ndarray]], eye: np.ndarray) -> np.ndarray:
@@ -118,18 +100,14 @@ def _paint(axis, parts: list[tuple[trimesh.Trimesh, np.ndarray]], eye: np.ndarra
     image = np.empty((height, width, 3), dtype=np.uint8)
     image[:] = _rgb(BACKGROUND)
     depth = np.full((height, width), np.inf)
-    edge = _rgb(EDGE_COLOUR)
-    limit = np.deg2rad(CREASE_DEG)
+    light = eye / np.linalg.norm(eye)
     for mesh, colour in parts:
         triangles = mesh.vertices[mesh.faces]
         normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
         front = normals @ eye > 0
         screen = _screen(axis, mesh.vertices, height)
-        for triangle in screen[mesh.faces[front]]:
-            _fill(image, depth, triangle, colour)
-        keep = (mesh.face_adjacency_angles >= limit) & front[mesh.face_adjacency].any(axis=1)
-        for start, end in mesh.face_adjacency_edges[keep]:
-            _stroke(image, depth, screen[start], screen[end], edge)
+        for normal, triangle in zip(normals[front], screen[mesh.faces[front]], strict=True):
+            _fill(image, depth, triangle, _shade(colour, normal, light))
     return image
 
 

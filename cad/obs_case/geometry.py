@@ -30,7 +30,7 @@ KNOB_HEIGHT_MM = 16.0
 # are colinear, so curvature is zero where the curve meets the straight.
 # Distances from the corner, along that side. corner_radius is not this.
 CORNER_HANDLES_MM = (10.935, 6.561, 2.187)
-BORDER_MM = 1.5
+BORDER_MM = 3.0
 TOP_CHAMFER_MM = 0.5
 BASE_CHAMFER_MM = 1.7
 DISH_FLOOR_X = (14.95, 70.35)
