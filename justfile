@@ -57,6 +57,6 @@ firmware:
         -v "{{root}}:{{root}}" -w {{root}}/firmware macropad-obs-fw \
         bash -lc 'cmake -S . -B .build -DPICO_BOARD=pico && cmake --build .build && mkdir -p dist && cp .build/macropad-obs.uf2 dist/macropad-obs.uf2'
 
-# Geometry only. Needs cad/.venv. Not on the test chain.
+# Solids, STEP, STL, 3MF, and the README picture. Needs cad/.venv. Not on the test chain.
 cad:
-    {{root}}/cad/.venv/bin/python {{root}}/cad/build.py geometry
+    {{root}}/cad/.venv/bin/python {{root}}/cad/build.py export

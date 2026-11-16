@@ -1,0 +1,13 @@
+[project]
+name = "macropad-obs-case"
+version = "0.1.0"
+description = "8 degree wedge case for the OBS macropad"
+requires-python = ">=3.12"
+dependencies = [
+    "build123d>=0.13",
+    "trimesh>=4.0",
+    "networkx>=3.0",
+    "lxml>=5.0",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+]

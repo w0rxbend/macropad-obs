@@ -4,10 +4,8 @@ firmware/dist/*.uf2
 host/target/
 app/src-tauri/target/
 cad/.venv/
-cad/exports/
-pcb/fab/
-pcb/kicad/
 pcb/.build/
+*.kicad_prl
 __pycache__/
 *.pyc
 .DS_Store

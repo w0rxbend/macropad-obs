@@ -9,9 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def place() -> None:
-    import pcbnew  # noqa: F401
+    from kicad_board import write_board
 
-    raise SystemExit("pcbnew is loaded only inside kicad/kicad:9.0.9 by `just pcb`")
+    write_board()
 
 
 def write_hash(netlist: bytes) -> None:
