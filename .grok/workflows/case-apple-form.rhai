@@ -1,7 +1,7 @@
 let meta = #{
     name: "case-apple-form",
-    description: "Sculpt the wedge toward an Apple unibody desk product, then commit the pass on main",
-    when_to_use: "One brainstorm, review, implement, review cycle. The supervisor relaunches it until 21:00 Europe/Kyiv on 2026-11-16.",
+    description: "Sculpt the wedge in the worxbend/macropad CNC language, then commit the pass on main",
+    when_to_use: "One brainstorm, review, implement, review cycle. Form source is worxbend/macropad. The supervisor relaunches it until 21:00 Europe/Kyiv on 2026-11-16.",
     phases: [
         #{ title: "Brainstorm", detail: "three form moves" },
         #{ title: "Review", detail: "one brief that keeps the mechanical contract" },
@@ -56,19 +56,20 @@ let commit_schema = #{
     },
 };
 
-let prior = "The case is a sharp slab. The base plan is a box under a rounded plate. Holes are square. The knob is a smooth cylinder. Nobody would put this on a desk next to an Apple product.";
+let prior = "Study /home/worxbend/Projects/macropad. Copy its CNC language onto this wedge: continuous-curvature corners, 45 degree chamfers, one key dish, a grooved dial in a well. Do not copy the square plan, the second knob, the light bar, or the lens.";
 if args != () && type_of(args) == "map" && args.critique != () && args.critique != "" {
     prior = args.critique;
 }
 
-let fallback = "Required form, in this order, in cad/obs_case/geometry.py. ";
-fallback += "The base is a sharp box. The top plate is already a rounded rectangle. Make the wedge blank and the shadow-gap inset use that same rounded plan, centred on the outer span, inset by shadow_gap on every side. ";
-fallback += "The rear wall stays vertical. Do not change tilt, spans, key positions, the 14 mm MX cuts, glass size, pocket plan, pocket depth, hole diameters, or board.toml. ";
-fallback += "Then replace the smooth knob with a 22 mm dial: 30 straight flutes about 0.45 mm deep, flat top, one shallow indicator notch. Same axis and height. ";
-fallback += "Then chamfer the top-face lips of the outer profile, the key cuts, and the glass pocket by 0.4 mm. plate_web is 1.5 mm, so do not use a larger chamfer. ";
-fallback += "build123d chamfer(edges, length) is the installed call. Confirm it in cad/.venv before using it. ";
-fallback += "In render.py set the metal to graphite, not a white slab: top #6e7074, base #3a3c40, glass #121316, knob #8a8d92. Draw a thin edge so the radius is visible. ";
-fallback += "No LEDs, no lens, no logo, no paint, no second top surface. ";
+let fallback = "Form source: /home/worxbend/Projects/macropad, the CNC case, not the printed one. ";
+fallback += "Read cad/README.md from the heading What the design is, solids.py case_outline _continuous_outline _corner_curve chamfered_slab, and small_parts.py knob _knob_grooves. Re-derive them on this wedge. Do not import that package. ";
+fallback += "Order: (1) Replace the rounded-rectangle outline with a quintic Bezier corner whose curvature is zero on the straight sides. Reference setback is 10.935 mm and handles are 0.6 and 0.2 of that setback. ";
+fallback += "(2) 45 degree chamfers only, no fillets. 0.5 mm on the outer top rim. 0.3 mm on the lower outer edge of the top. 1.7 mm on the base underside so the base recedes. The 1.5 mm key plate cannot take a 1.7 mm chamfer. ";
+fallback += "(3) One dish, not nine square holes. Flat floor, 45 degree walls up to a raised rim. Keys and the glass stay coplanar on that floor. MX cuts stay 14 mm through the floor. The glass stays flush with the floor. No overlay lens. ";
+fallback += "(4) Knob stays 22 mm. One band of 36 straight 90 degree V grooves, 0.35 mm deep, between two plain bands. Flat top. One radial pointer. A well about 0.7 mm deep. If the well hits a keycap, shrink the well. Do not move the knob. ";
+fallback += "(5) USB mouth gets rounded corners and a 0.3 mm lead-in. The shadow gap stops 2 mm short of the mouth. ";
+fallback += "Keep the 8 degree wedge, the vertical rear wall, the spans, and board.toml. No light bar, no second knob, no SK6812, no engraved worxbend wordmark, no text on the top face. ";
+fallback += "Render graphite metal and a dark knob: top #8d9096, base #4a4c50, glass #121316, knob #2a2c30. ";
 fallback += "Run python3 cad/build.py check and cad/.venv/bin/python cad/build.py export. Both must exit 0. ";
 fallback += "If a later step throws, keep the earlier good step. If the file will not import, git checkout the files you touched. ";
 fallback += "Update docs/design.md only where a shell sentence is now false.";
@@ -82,9 +83,9 @@ fn map_ok(result) {
 
 phase("Brainstorm");
 let axes = [
-    "unibody plan: the base must follow the top radius, with a uniform shadow gap, not a box under a rounded plate",
-    "the knob as one machined metal dial, 30 flutes, no pointer cap and no logo",
-    "opening lips and the USB mouth: a small machined edge break, openings staying at their contract size",
+    "continuous-curvature corners and 45 degree chamfers, with the base receding under a 1.7 mm underside chamfer",
+    "one key dish with 45 degree walls, keys and glass coplanar on the floor, no overlay lens",
+    "one 22 mm dial: 36 V grooves in a single band, plain bands, a radial pointer, and a shallow well",
 ];
 let jobs = [];
 let n = 0;
@@ -94,11 +95,12 @@ for axis in axes {
     bp += "/home/worxbend/Projects/macropad-obs/cad/obs_case/render.py, ";
     bp += "/home/worxbend/Projects/macropad-obs/docs/images/case.png, ";
     bp += "and the Case section of /home/worxbend/Projects/macropad-obs/docs/design.md. ";
-    bp += "Use read_file. Do not edit. Propose one Apple unibody move for this axis only: ";
+    bp += "Also read /home/worxbend/Projects/macropad/cad/README.md, docs/images/cad/hero_aluminium.png, docs/images/cad/knob_detail.png, and docs/images/cad/deck_detail.png. ";
+    bp += "Use read_file. Do not edit. Propose one move for this axis only, taken from that CNC case: ";
     bp += axis;
-    bp += ". Apple here means a quiet graphite aluminum desk object: one deck, continuous plan radius, precise shadow gap, no fastener on the top face, no lamp, no logo. ";
-    bp += "The mechanical contract stays: 8 degree tilt, spans 95.2 by 157.2 mm, flush glass 42.72 by 60.26 in a 43.22 by 60.76 by 2.35 pocket, 14 mm key cuts, 22 mm knob, rear wall vertical. ";
-    bp += "Do not propose LEDs, a lens, paint, a red part, or a board.toml change. ";
+    bp += ". This product stays an 8 degree wedge, 95.2 by 157.2 mm. Do not propose the 90 mm square, a second knob, a light bar, a lens, or a fillet. ";
+    bp += "The glass stays flush with the key plate. Pocket stays 43.22 by 60.76 by 2.35. Knob diameter stays 22 mm. Rear wall stays vertical. ";
+    bp += "Do not propose LEDs, paint, a red part, text on the top face, or a board.toml change. ";
     bp += "Prior critique, JSON: ";
     bp += json_encode(prior);
     jobs.push(#{
@@ -129,7 +131,8 @@ let rp = "Read /home/worxbend/Projects/macropad-obs/cad/obs_case/geometry.py and
 rp += "Pick a buildable brief from these proposals: ";
 rp += packed;
 rp += ". Reject any move that changes tilt, spans, key coordinates, glass size, pocket size, hole diameters, or board.toml. Reject LEDs, a lens, a logo, and paint. ";
-rp += "The brief must name the edit in geometry.py: rounded wedge plan, then the knurled dial, then a 0.4 mm top lip chamfer. ";
+rp += "The brief must name the edit in geometry.py: Bezier outline, 45 degree chamfers, one dish, then the grooved dial in a well. ";
+rp += "Reject a plain RectangleRounded, a fillet, a light bar, a second knob, and a lens. ";
 rp += "If stop_adding is true in the prior critique, the brief may only fix the named defect. Prior critique, JSON: ";
 rp += json_encode(prior);
 rp += ". Return brief and reject. The brief is orders to a CAD editor, not an essay.";
@@ -147,11 +150,12 @@ log("brief chosen");
 
 phase("Implement");
 let ip = "Edit the macropad-obs case in /home/worxbend/Projects/macropad-obs. Read geometry.py, render.py, numbers.py, and the Case section of docs/design.md first. ";
-ip += "Read chamfer and fillet in cad/.venv/lib/python3.12/site-packages/build123d/operations_generic.py and call only signatures that are in that file. ";
+ip += "Read chamfer in cad/.venv/lib/python3.12/site-packages/build123d/operations_generic.py and call only that signature. Do not fillet. ";
+ip += "Read /home/worxbend/Projects/macropad/cad/macropad_case/solids.py and small_parts.py before editing. Re-derive. Do not import them. ";
 ip += "Standing orders: keep the CERN-OHL-S header. Do not edit firmware, host, app, pcb, or board.toml. ";
 ip += "Do not change the numbers.py expectations. python3 cad/build.py check must stay green. ";
-ip += "The base today is a Box inset. Replace that plan with the same rounded rectangle as the top plate, centred, inset by shadow_gap, before you add decoration. ";
-ip += "Chamfer only after the cuts. 0.4 mm on the 1.5 mm plate. Knob flutes are 30 subtracted edge cylinders, about 0.45 mm deep, not a texture image. ";
+ip += "The show outline is a quintic Bezier corner, not RectangleRounded. Chamfers are 45 degrees: 0.5 top, 0.3 lower top edge, 1.7 on the base underside only. ";
+ip += "One dish with 45 degree walls. Its floor holds the keys and the flush glass. Knob grooves are 36 V cuts in one band, as in small_parts.py _knob_grooves, on the 22 mm knob. ";
 ip += "If a later operation throws, keep the last importing solid and say so. If the module will not import, git checkout -- cad/obs_case docs/images/case.png docs/design.md. ";
 ip += "Run python3 cad/build.py check, then cad/.venv/bin/python cad/build.py export. Both exit 0, or ok is false. ";
 ip += "Quote the last line of each command in evidence. Do not commit. Do not push. ";
@@ -173,9 +177,9 @@ if map_ok(built) {
 phase("Critique");
 let cp = "Judge the macropad-obs case after this edit. Read the diff with git diff, read docs/images/case.png, and read cad/obs_case/geometry.py. ";
 cp += "You may run python3 cad/build.py check. Do not edit files. Do not commit. ";
-cp += "accept is true only when the check would pass, the base plan is rounded with the top, and at least one of knurl or lip chamfer is in the solid. ";
-cp += "A colour-only render change is accept false. ";
-cp += "done is true only when the picture reads as a machined graphite desk product: rounded body, shadow gap, machined dial, broken opening lips, and no new greeble left to add. ";
+cp += "accept is true only when the check would pass, the outline is not a plain rounded rectangle, the keys sit in one dish, and the knob has one grooved band between plain bands. ";
+cp += "A colour-only render change is accept false. A light bar or a lens is accept false. ";
+cp += "done is true only when the picture reads as the macropad CNC case stretched into this wedge: continuous corners, receding base, one dish, grooved dial, and no light bar. ";
 cp += "stop_adding is true when another feature would make it busier than an Apple desk object. ";
 cp += "critique names the single next fix, or says no further change helps. ";
 cp += "Implement evidence, JSON: ";
