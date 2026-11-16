@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print LAUNCH, SKIP, or STOP for the Apple case supervisor.
 
-STOP at 21:00 Europe/Kyiv on 2026-11-16, and on any later date.
+STOP at 21:00 Europe/Kyiv on 2026-11-17, and on any later date.
 SKIP while a case-apple-form run is still active, or for three minutes
 after a launch lock is taken. LAUNCH takes that lock.
 """
@@ -34,9 +34,9 @@ LOCK_SECONDS = 180
 
 
 def _stop_now(now: datetime) -> bool:
-    if now.date().isoformat() > "2026-11-16":
+    if now.date().isoformat() > "2026-11-17":
         return True
-    return now.date().isoformat() == "2026-11-16" and (now.hour > 21 or (now.hour == 21 and now.minute >= 0))
+    return now.date().isoformat() == "2026-11-17" and now.hour >= 21
 
 
 def _is_case_run(name: object) -> bool:
