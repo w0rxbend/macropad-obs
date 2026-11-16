@@ -39,6 +39,7 @@ WELL_RADIUS_MM = 11.9  # 0.9 mm ring. 12.2 would cut the nearest cap.
 WELL_DEPTH_MM = 0.7
 WELL_CUTTER_ABOVE_MM = 0.2
 PLAIN_BAND_MM = 1.6
+KNOB_CHAMFER_MM = 0.5  # both rims. Stays inside the plain bands.
 GROOVE_COUNT = 36
 GROOVE_DEPTH_MM = 0.35
 GROOVE_PAST_MM = 0.2  # the V runs past the cylinder so the cut does not kiss it
@@ -198,11 +199,19 @@ def _border(span_x: float, span_y: float):
 
 
 def _chamfer_highest(solid, length: float):
+    return _chamfer_z(solid, length, -1, "no top edges")
+
+
+def _chamfer_lowest(solid, length: float):
+    return _chamfer_z(solid, length, 0, "no bottom edges")
+
+
+def _chamfer_z(solid, length: float, band: int, empty: str):
     from build123d import Axis, chamfer
 
-    edges = list(solid.edges().group_by(Axis.Z)[-1])
+    edges = list(solid.edges().group_by(Axis.Z)[band])
     if not edges:
-        raise RuntimeError("no top edges")
+        raise RuntimeError(empty)
     return chamfer(edges, length, angle=45)
 
 
@@ -297,6 +306,8 @@ def _knob(board: dict):
     radius = case["knob_diameter"] / 2
     foot = case["knob_lift"]
     body = Pos(0, 0, foot + KNOB_HEIGHT_MM / 2) * Cylinder(radius, KNOB_HEIGHT_MM)
+    body = _chamfer_highest(body, KNOB_CHAMFER_MM)
+    body = _chamfer_lowest(body, KNOB_CHAMFER_MM)
     body = _keep(body, "knob grooves", lambda: body - _knob_grooves(radius, foot))
     body = _keep(body, "knob pointer", lambda: body - _knob_pointer(foot))
     return Pos(centre_x, centre_y, 0) * body
