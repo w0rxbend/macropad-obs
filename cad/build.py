@@ -35,6 +35,7 @@ def main(argv: list[str]) -> int:
 
     faults = export_all(EXPORTS)
     render(EXPORTS, ROOT / "docs" / "images" / "case.png")
+    render(EXPORTS, ROOT / "docs" / "images" / "underside.png", elev=-55, azim=-70)
     return faults
 
 

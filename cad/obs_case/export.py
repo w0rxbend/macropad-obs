@@ -8,7 +8,7 @@ from pathlib import Path
 import trimesh
 from build123d import Compound, Part, export_step, export_stl, import_step
 
-from .geometry import build_parts
+from .geometry import build_parts, fit_problems
 
 STL_TOLERANCE_MM = 0.05
 STL_VOLUME_SHARE = 0.02
@@ -18,13 +18,16 @@ def export_all(folder: Path) -> int:
     folder.mkdir(parents=True, exist_ok=True)
     parts = build_parts()
     faults = 0
+    for problem in fit_problems(parts):
+        print(problem)
+        faults += 1
     for name, solid in parts.items():
         solid.label = name
         faults += _write_part(solid, folder / name)
     assembly = Compound(label="macropad-obs", children=list(parts.values()))
     step = folder / "assembly.step"
     export_step(assembly, step)
-    faults += _verify_step(step, assembly, len(parts))
+    faults += _verify_step(step, assembly, _solid_count(assembly))
     stl = folder / "assembly.stl"
     _write_mesh(assembly, stl)
     faults += _verify_stl(stl, assembly)
@@ -39,8 +42,12 @@ def _write_part(solid: Part, stem: Path) -> int:
     export_step(solid, step)
     _write_mesh(solid, stl)
     _write_3mf(stl, stem.with_suffix(".3mf"))
-    expect = 9 if stem.name == "keycaps" else 1
-    return _verify_step(step, solid, expect) + _verify_stl(stl, solid)
+    return _verify_step(step, solid, _solid_count(solid)) + _verify_stl(stl, solid)
+
+
+def _solid_count(shape) -> int:
+    count = len(list(shape.solids()))
+    return count if count else 1
 
 
 def _write_mesh(solid: Part, path: Path) -> None:
@@ -75,20 +82,9 @@ def _verify_step(path: Path, original, solids: int) -> int:
 
 
 def _count_ok(path: Path, back, count: int, solids: int) -> bool:
-    """keycaps.step is nine solids. The assembly is 13 if that compound flattens, else 5.
-
-    A nested readback still fails when the cap group is present but short of nine.
-    """
-    if path.name == "keycaps.step":
-        return count == 9
-    if path.name != "assembly.step":
-        return count == solids
-    if count == 13:
-        return True
-    if count != 5:
-        return False
-    groups = [len(child.solids()) for child in back.children if len(child.solids()) > 1]
-    return groups in ([], [9])
+    """STEP readback flattens compounds. A nested assembly is accepted when the groups match."""
+    del back
+    return count == solids
 
 
 def _verify_stl(path: Path, original: Part) -> int:

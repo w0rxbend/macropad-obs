@@ -20,6 +20,11 @@ COLOURS = {
     "glass": "#1c1c22",
     "knob": "#2a2c30",
     "keycaps": "#e4e2de",
+    "screws": "#c5c8cc",
+    "pcb": "#1c4f32",
+    "usb": "#b7b8b4",
+    "encoder": "#242628",
+    "switches": "#4a403c",
 }
 ELEV_DEG = 28.0
 AZIM_DEG = -58.0
@@ -31,19 +36,19 @@ def _rgb(hex_colour: str) -> np.ndarray:
     return np.array(((value >> 16) & 255, (value >> 8) & 255, value & 255), dtype=np.uint8)
 
 
-def _eye() -> np.ndarray:
-    elev = np.deg2rad(ELEV_DEG)
-    azim = np.deg2rad(AZIM_DEG)
+def _eye(elev: float = ELEV_DEG, azim: float = AZIM_DEG) -> np.ndarray:
+    elev = np.deg2rad(elev)
+    azim = np.deg2rad(azim)
     return np.array((np.cos(elev) * np.cos(azim), np.cos(elev) * np.sin(azim), np.sin(elev)))
 
 
-def _view(low: np.ndarray, high: np.ndarray):
+def _view(low: np.ndarray, high: np.ndarray, elev: float, azim: float):
     figure = plt.figure(figsize=(9, 7), dpi=140, facecolor=BACKGROUND)
     axis = figure.add_subplot(111, projection="3d", facecolor=BACKGROUND)
     axis.set_xlim(low[0], high[0])
     axis.set_ylim(low[1], high[1])
     axis.set_zlim(low[2], high[2])
-    axis.view_init(elev=ELEV_DEG, azim=AZIM_DEG)
+    axis.view_init(elev=elev, azim=azim)
     axis.set_axis_off()
     axis.set_box_aspect(high - low)
     figure.tight_layout(pad=0)
@@ -120,14 +125,14 @@ def _load_mesh(path: Path) -> trimesh.Trimesh:
     return mesh
 
 
-def render(folder: Path, png_path: Path) -> None:
-    """folder holds base.stl, top.stl, glass.stl, knob.stl, and keycaps.stl."""
+def render(folder: Path, png_path: Path, elev: float = ELEV_DEG, azim: float = AZIM_DEG) -> None:
+    """folder holds one stl per COLOURS key."""
     png_path.parent.mkdir(parents=True, exist_ok=True)
     parts = [(_load_mesh(folder / f"{name}.stl"), _rgb(colour)) for name, colour in COLOURS.items()]
     low = np.min([mesh.bounds[0] for mesh, _colour in parts], axis=0)
     high = np.max([mesh.bounds[1] for mesh, _colour in parts], axis=0)
-    figure, axis = _view(low, high)
-    image = _paint(axis, parts, _eye())
+    figure, axis = _view(low, high, elev, azim)
+    image = _paint(axis, parts, _eye(elev, azim))
     plt.close(figure)
     plt.imsave(png_path, image)
     print(f"rendered {png_path}")

@@ -9,6 +9,32 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+# One ISO 10642 M2x10 at every hole. The head seat is this far below the PCB
+# top along the face normal, so the tip stops after M2_THREAD_MM in the standoff.
+# A head on the outer skin cannot be one length: the back mouth is much farther.
+M2_LENGTH_MM = 10.0
+M2_THREAD_MM = 3.0
+M2_CLEARANCE_MM = 2.4
+M2_TAP_MM = 1.6
+M2_TAP_DEPTH_MM = 3.5
+M2_DRILL_POINT_MM = 0.48  # 118 degree point on the 1.6 mm tap drill
+BOSS_DIAMETER_MM = 4.6  # neck inside the keep-out, up to the PCB
+BOSS_ROOT_MM = 8.0  # below the head seat, so the 5 mm access leaves a wall
+STANDOFF_DIAMETER_MM = 4.0
+COUNTERSINK_DIAMETER_MM = 4.0
+COUNTERSINK_RECESS_MM = 1.1
+COUNTERSINK_SEAT_MM = 0.8  # 90 degrees, dia 4.0 down to the 2.4 clearance
+ACCESS_DIAMETER_MM = 5.0
+FOOT_DIAMETER_MM = 8.4  # MEASURE, 8 mm bumper
+FOOT_DEPTH_MM = 0.6
+FOOT_EDGE_MM = 8.0
+FOOT_SPAN_MM = 44.0
+USB_OPENING_MM = (14.0, 7.0)  # MEASURE, clears a 12.4 x 6.5 plug
+USB_RECEPTACLE_MM = (8.94, 7.35, 3.26)  # width, length, height. MEASURE
+MIN_THREAD_MM = 2.0
+MIN_WALL_MM = 1.0
+MIN_SKIN_MM = 1.0  # metal left under the key plane past the screw tip
+
 
 def load_board() -> dict:
     return tomllib.loads((ROOT / "board.toml").read_text())
@@ -54,6 +80,50 @@ def metrics(board: dict) -> dict:
         "pocket": (case["pocket_plan"][0], case["pocket_plan"][1], case["pocket_depth"]),
         "coplanar": glass_tilt == key_tilt == tilt_deg,
     }
+
+
+def screw_plan(board: dict) -> list[dict]:
+    """Face-frame seat for each M2. ``mouth`` is where the axis meets the desk."""
+    case = board["case"]
+    pcb = board["pcb"]
+    grow = case["wall"] + case["pcb_clearance"]
+    tilt = math.radians(case["face_tilt_deg"])
+    pcb_top = -case["plate_above_pcb"]
+    seat = pcb_top - (M2_LENGTH_MM - M2_THREAD_MM)
+    rows = []
+    for hole_x, hole_y in pcb["holes"]:
+        y = hole_y + grow
+        mouth = -(case["face_front_z"] + y * math.sin(tilt)) / math.cos(tilt)
+        rows.append(
+            {
+                "x": hole_x + grow,
+                "y": y,
+                "mouth": mouth,
+                "seat": seat,
+                "tip": seat + M2_LENGTH_MM,
+                "pcb_top": pcb_top,
+                "pcb_bottom": pcb_top - pcb["thickness"],
+            }
+        )
+    return rows
+
+
+def foot_plan(board: dict) -> list[tuple[float, float]]:
+    """Desk-frame centres. The pockets are vertical, because the base is flat."""
+    case = board["case"]
+    pcb = board["pcb"]
+    grow = case["wall"] + case["pcb_clearance"]
+    span_x = pcb["width"] + 2 * grow
+    span_y = pcb["depth"] + 2 * grow
+    desk = span_y * math.cos(math.radians(case["face_tilt_deg"]))
+    middle = span_x / 2
+    xs = (middle - FOOT_SPAN_MM / 2, middle + FOOT_SPAN_MM / 2)
+    ys = (FOOT_EDGE_MM, desk - FOOT_EDGE_MM)
+    return [(x, y) for y in ys for x in xs]
+
+
+def _mouth_desk(row: dict, tilt: float) -> tuple[float, float]:
+    return (row["x"], row["y"] * math.cos(tilt) - row["mouth"] * math.sin(tilt))
 
 
 def check(board: dict | None = None) -> list[str]:
@@ -120,4 +190,41 @@ def check(board: dict | None = None) -> list[str]:
     header = (ROOT / "firmware" / "st7789.h").read_text()
     if "MADCTL" not in header or "MEASURE" not in header:
         problems.append("MADCTL MEASURE")
+    problems.extend(_fastener_problems(board))
+    return problems
+
+
+def _fastener_problems(board: dict) -> list[str]:
+    case = board["case"]
+    pcb = board["pcb"]
+    problems = []
+    keepout = pcb["hole_keepout_diameter"]
+    if BOSS_DIAMETER_MM >= keepout or STANDOFF_DIAMETER_MM >= keepout:
+        problems.append("boss or standoff leaves the keep-out")
+    boss_wall = (BOSS_DIAMETER_MM - M2_CLEARANCE_MM) / 2
+    root_wall = (BOSS_ROOT_MM - ACCESS_DIAMETER_MM) / 2
+    standoff_wall = (STANDOFF_DIAMETER_MM - M2_TAP_MM) / 2
+    if min(boss_wall, root_wall, standoff_wall) < MIN_WALL_MM:
+        problems.append(f"fastener wall {boss_wall:.2f} / {root_wall:.2f} / {standoff_wall:.2f}")
+    if len(pcb["holes"]) != 4:
+        problems.append("screw count")
+    tilt = math.radians(case["face_tilt_deg"])
+    need = FOOT_DIAMETER_MM / 2 + ACCESS_DIAMETER_MM / 2 + 1.0
+    feet = foot_plan(board)
+    for row in screw_plan(board):
+        engagement = row["tip"] - row["pcb_top"]
+        skin = -row["tip"]
+        if engagement < MIN_THREAD_MM or skin < MIN_SKIN_MM:
+            problems.append(f"screw at y {row['y']:.1f} engagement {engagement:.2f} skin {skin:.2f}")
+        if row["seat"] <= row["mouth"]:
+            problems.append("screw seat is outside the case")
+        mouth = _mouth_desk(row, tilt)
+        for foot in feet:
+            gap = math.hypot(mouth[0] - foot[0], mouth[1] - foot[1])
+            if gap < need:
+                problems.append(f"foot hits a screw access ({gap:.2f})")
+    opening_w, opening_h = USB_OPENING_MM
+    plug_w, plug_h = 12.4, 6.5
+    if opening_w <= plug_w or opening_h <= plug_h:
+        problems.append("usb opening does not clear the plug")
     return problems
