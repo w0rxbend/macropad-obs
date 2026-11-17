@@ -17,7 +17,8 @@ from mpl_toolkits.mplot3d import proj3d
 COLOURS = {
     "base": "#3a3c40",
     "top": "#d0d1d4",
-    "glass": "#1c1c22",
+    "glass": "#4a4c52",
+    "display": "#07080c",
     "knob": "#2a2c30",
     "keycaps": "#e4e2de",
     "screws": "#c5c8cc",
@@ -28,7 +29,7 @@ COLOURS = {
 }
 ELEV_DEG = 28.0
 AZIM_DEG = -58.0
-BACKGROUND = "#141416"
+BACKGROUND = "#c4c0ba"
 
 
 def _rgb(hex_colour: str) -> np.ndarray:

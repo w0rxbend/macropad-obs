@@ -48,7 +48,7 @@ KNOB_HEIGHT_MM = 16.0
 # are colinear, so curvature is zero where the curve meets the straight.
 # Distances from the corner, along that side. corner_radius is not this.
 CORNER_HANDLES_MM = (10.935, 6.561, 2.187)
-BORDER_MM = 3.0
+BORDER_MM = 1.2  # lip above the key plane. 3 mm sank the glass into a tray.
 TOP_CHAMFER_MM = 0.5
 BASE_CHAMFER_MM = 1.7
 DISH_FLOOR_X = (14.95, 70.35)
@@ -64,10 +64,11 @@ GROOVE_PAST_MM = 0.2  # the V runs past the cylinder so the cut does not kiss it
 POINTER_MM = (0.9, 0.4, 2.0, 6.0)  # width, depth, inner radius, outer radius
 KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
 CAP_CORNER_MM = 1.2
-CAP_TOP_CHAMFER_MM = 0.7
-# R 16.1 at 1.6 mm deep opens a 14 mm bowl. The 1.1 mm cylinder did not read.
-CAP_DISH_RADIUS_MM = 16.1
-CAP_DISH_DEPTH_MM = 1.6
+CAP_DRAFT_DEG = 8.0
+# Cylinder along the row. A sphere left a round dimple in a flat top.
+CAP_DISH_RADIUS_MM = 28.0
+CAP_DISH_DEPTH_MM = 1.15
+ACTIVE_RECESS_MM = 0.2
 
 _BUILD_NOTES: list[str] = []
 
@@ -113,6 +114,7 @@ def build_parts(board: dict | None = None) -> dict:
         "usb": place * _usb_jack(board),
         "encoder": place * _encoder(board),
         "switches": place * _switches(board),
+        "display": place * _display(board),
     }
 
 
@@ -129,6 +131,8 @@ CLEAR_PAIRS = (
     ("switches", "top"),
     ("pcb", "base"),
     ("pcb", "top"),
+    ("display", "glass"),
+    ("display", "top"),
 )
 
 
@@ -280,7 +284,7 @@ def _knob_cylinder(board: dict, height: float, centre_z: float):
 
 
 def _knob_well(board: dict):
-    # From the top of the 3 mm rim. Radius stays 11.9 so the cut misses the nearest cap.
+    # From the top of the lip. Radius stays 11.9 so the cut misses the nearest cap.
     from build123d import Cylinder, Pos
 
     centre_x, centre_y = _knob_centre(board)
@@ -308,14 +312,14 @@ def _pocket_origin(board: dict, grow: float) -> tuple[float, float]:
 
 
 def _one_keycap(side: float, height: float):
-    """18 mm cap. Corners are rounded. The top edge is chamfered, then dished."""
-    from build123d import Axis, Box, Pos, Sphere, fillet
+    """18 mm base, drafted, with one cylindrical dish across the row."""
+    from build123d import Cylinder, Pos, Rectangle, Rot, extrude, fillet
 
-    body = Pos(side / 2, side / 2, height / 2) * Box(side, side, height)
-    body = fillet(body.edges().filter_by(Axis.Z), CAP_CORNER_MM)
-    body = _chamfer_highest(body, CAP_TOP_CHAMFER_MM)
+    sketch = fillet(Rectangle(side, side).vertices(), CAP_CORNER_MM)
+    # Positive taper shrinks along +Z in this build123d. The 18 mm base stays on the plate.
+    body = Pos(side / 2, side / 2, 0) * extrude(sketch, amount=height, taper=CAP_DRAFT_DEG)
     centre_z = height - CAP_DISH_DEPTH_MM + CAP_DISH_RADIUS_MM
-    scoop = Pos(side / 2, side / 2, centre_z) * Sphere(CAP_DISH_RADIUS_MM)
+    scoop = Pos(side / 2, side / 2, centre_z) * Rot(0, 90, 0) * Cylinder(CAP_DISH_RADIUS_MM, side + 4)
     return body - scoop
 
 
@@ -336,6 +340,19 @@ def _keycaps(board: dict):
     return Compound(caps)
 
 
+def _active_box(board: dict, grow: float):
+    """Active area centered in the glass. The datasheet does not give an offset."""
+    origin_x, origin_y = board["pcb"]["display_origin"]
+    width, height = board["pcb"]["display_size"]
+    active_w, active_h = board["display"]["active_mm"]
+    return (
+        origin_x + grow + (width - active_w) / 2,
+        origin_y + grow + (height - active_h) / 2,
+        active_w,
+        active_h,
+    )
+
+
 def _glass(board: dict, span_x: float, span_y: float):
     from build123d import Box, Pos
 
@@ -343,9 +360,24 @@ def _glass(board: dict, span_x: float, span_y: float):
     grow = _grow(board["case"])
     origin_x, origin_y = board["pcb"]["display_origin"]
     width, height = board["pcb"]["display_size"]
-    return Pos(origin_x + grow + width / 2, origin_y + grow + height / 2, -GLASS_THICK_MM / 2) * Box(
+    glass = Pos(origin_x + grow + width / 2, origin_y + grow + height / 2, -GLASS_THICK_MM / 2) * Box(
         width, height, GLASS_THICK_MM
     )
+    left, near, active_w, active_h = _active_box(board, grow)
+    recess = Pos(left + active_w / 2, near + active_h / 2, ACTIVE_RECESS_MM / 2) * Box(
+        active_w, active_h, ACTIVE_RECESS_MM + 0.4
+    )
+    return glass - recess
+
+
+def _display(board: dict):
+    """Black active area, just below the glass face, so the bezel stays visible."""
+    from build123d import Box, Pos
+
+    left, near, active_w, active_h = _active_box(board, _grow(board["case"]))
+    thickness = 0.12
+    top = -0.04
+    return Pos(left + active_w / 2, near + active_h / 2, top - thickness / 2) * Box(active_w, active_h, thickness)
 
 
 def _knob(board: dict):
