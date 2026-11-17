@@ -85,9 +85,9 @@ KNOB_CHAMFER_MM = 0.5  # both rims. Stays inside the plain bands.
 KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
 CAP_CORNER_MM = 2.0
 CAP_DRAFT_DEG = 8.0
-# Deep row scoop. R 28 at 1.15 mm shaded as a flat top.
-CAP_DISH_RADIUS_MM = 13.0
-CAP_DISH_DEPTH_MM = 2.4
+# Spherical dish. Radius 8.5 at 3.0 mm deep stays inside the drafted top.
+CAP_DISH_RADIUS_MM = 8.5
+CAP_DISH_DEPTH_MM = 3.0
 # Moat in the deck, wider than the cap, so each key has a shadow line.
 KEY_REVEAL_MM = 0.45
 KEY_REVEAL_SIDE_MM = 18.5
@@ -351,14 +351,15 @@ def _key_reveal(centre_x: float, centre_y: float):
 
 
 def _one_keycap(side: float, height: float):
-    """18 mm base, drafted, with one cylindrical dish across the row."""
-    from build123d import Cylinder, Pos, Rectangle, Rot, extrude, fillet
+    """18 mm base, drafted, with one spherical dish and a rim."""
+    from build123d import Pos, Rectangle, Sphere, extrude, fillet
 
     sketch = fillet(Rectangle(side, side).vertices(), CAP_CORNER_MM)
     # Positive taper shrinks along +Z in this build123d. The 18 mm base stays on the plate.
     body = Pos(side / 2, side / 2, 0) * extrude(sketch, amount=height, taper=CAP_DRAFT_DEG)
+    # Centre is one radius above the dish floor, so the cut is CAP_DISH_DEPTH_MM.
     centre_z = height - CAP_DISH_DEPTH_MM + CAP_DISH_RADIUS_MM
-    scoop = Pos(side / 2, side / 2, centre_z) * Rot(0, 90, 0) * Cylinder(CAP_DISH_RADIUS_MM, side + 4)
+    scoop = Pos(side / 2, side / 2, centre_z) * Sphere(CAP_DISH_RADIUS_MM)
     return body - scoop
 
 
