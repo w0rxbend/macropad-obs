@@ -16,8 +16,13 @@ from pathlib import Path
 
 from .numbers import (
     ACCESS_DIAMETER_MM,
+    BORE_CLEARANCE_MM,
     BOSS_DIAMETER_MM,
     BOSS_ROOT_MM,
+    BUSHING_DIAMETER_MM,
+    BUSHING_POCKET_EXTRA_MM,
+    BUSHING_ROOM_MM,
+    BUSHING_TOP_ABOVE_PCB_MM,
     COUNTERSINK_DIAMETER_MM,
     COUNTERSINK_RECESS_MM,
     COUNTERSINK_SEAT_MM,
@@ -27,14 +32,25 @@ from .numbers import (
     GROOVE_DEPTH_MM,
     GROOVE_HALF_MM,
     GROOVE_PAST_MM,
+    KNOB_CAP_MM,
+    KNOB_FLAT_MARGIN_MM,
     M2_CLEARANCE_MM,
     M2_DRILL_POINT_MM,
     M2_TAP_DEPTH_MM,
     M2_TAP_MM,
+    POINTER_DOWN_MM,
+    POINTER_INNER_MM,
+    POINTER_WIDTH_MM,
     SCOOP_DEPTH_MM,
     SCOOP_LENGTH_MM,
     SCOOP_RADIUS_MM,
     SCOOP_Z_MM,
+    SETSCREW_FROM_TOP_MM,
+    SETSCREW_HOLE_MM,
+    SHAFT_DIAMETER_MM,
+    SHAFT_END_ABOVE_PCB_MM,
+    SHAFT_FLAT_LENGTH_MM,
+    SHAFT_FLAT_MM,
     STANDOFF_DIAMETER_MM,
     USB_LEAD_MM,
     USB_OPENING_MM,
@@ -52,8 +68,6 @@ MX_CUT_MM = 14.0
 GLASS_THICK_MM = 2.25  # datasheet typical. The pocket depth is the maximum.
 ACTIVE_MM = (36.72, 48.96)
 BUTTON_HOLE_MM = 4.0
-KNOB_HEIGHT_MM = 16.0
-
 # Quintic corner of the 95.2 by 157.2 box. The first three controls on a side
 # are colinear, so curvature is zero where the curve meets the straight.
 # Distances from the corner, along that side. corner_radius is not this.
@@ -68,7 +82,6 @@ WELL_DEPTH_MM = 0.7
 WELL_CUTTER_ABOVE_MM = 0.2
 PLAIN_BAND_MM = 1.6
 KNOB_CHAMFER_MM = 0.5  # both rims. Stays inside the plain bands.
-POINTER_MM = (0.9, 0.4, 2.0, 6.0)  # width, depth, inner radius, outer radius
 KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
 CAP_CORNER_MM = 2.0
 CAP_DRAFT_DEG = 8.0
@@ -409,6 +422,13 @@ def _display(board: dict):
     return Pos(left + active_w / 2, near + active_h / 2, top - thickness / 2) * Box(active_w, active_h, thickness)
 
 
+def _knob_height(board: dict) -> float:
+    """Cap sits KNOB_CAP_MM above the shaft end. A 16 mm blank left the shaft proud."""
+    case = board["case"]
+    shaft_end = -case["plate_above_pcb"] + SHAFT_END_ABOVE_PCB_MM
+    return shaft_end + KNOB_CAP_MM - case["knob_lift"]
+
+
 def _knob(board: dict):
     from build123d import Cylinder, Pos
 
@@ -416,21 +436,40 @@ def _knob(board: dict):
     centre_x, centre_y = _knob_centre(board)
     radius = case["knob_diameter"] / 2
     foot = case["knob_lift"]
-    body = Pos(0, 0, foot + KNOB_HEIGHT_MM / 2) * Cylinder(radius, KNOB_HEIGHT_MM)
+    height = _knob_height(board)
+    body = Pos(0, 0, foot + height / 2) * Cylinder(radius, height)
     body = _chamfer_highest(body, KNOB_CHAMFER_MM)
     body = _chamfer_lowest(body, KNOB_CHAMFER_MM)
-    body = _keep(body, "knob grooves", lambda: body - _knob_grooves(radius, foot))
-    body = _keep(body, "knob pointer", lambda: body - _knob_pointer(foot))
+    body = body - _knob_seat(board, foot)
+    body = _keep(body, "knob grooves", lambda: body - _knob_grooves(radius, foot, height))
+    body = body - _knob_pointer(foot, height, radius)
+    body = body - _knob_setscrew(foot, height, radius)
     return Pos(centre_x, centre_y, 0) * body
 
 
-def _knob_grooves(radius: float, foot: float):
+def _knob_seat(board: dict, foot: float):
+    """Bushing pocket, round bore, then a D over the shaft flat. The flat faces +y."""
+    case = board["case"]
+    pcb_top = -case["plate_above_pcb"]
+    shaft_end = pcb_top + SHAFT_END_ABOVE_PCB_MM
+    bushing_top = pcb_top + BUSHING_TOP_ABOVE_PCB_MM
+    roof = bushing_top + BUSHING_ROOM_MM
+    bore = SHAFT_DIAMETER_MM + BORE_CLEARANCE_MM
+    flat = SHAFT_FLAT_MM + BORE_CLEARANCE_MM
+    d_start = shaft_end - SHAFT_FLAT_LENGTH_MM + KNOB_FLAT_MARGIN_MM
+    pocket_r = (BUSHING_DIAMETER_MM + BUSHING_POCKET_EXTRA_MM) / 2
+    pocket = _face_cylinder(0, 0, foot - 0.4, roof, pocket_r)
+    round_bore = _face_cylinder(0, 0, foot - 0.2, d_start, bore / 2)
+    return pocket + round_bore + _d_solid(bore, flat, d_start, shaft_end)
+
+
+def _knob_grooves(radius: float, foot: float, height: float):
     """36 flutes in one band. Width is fixed at the cylinder so the lands stay."""
     from build123d import Polygon, Pos, Rot, extrude
 
     depth, past, half = GROOVE_DEPTH_MM, GROOVE_PAST_MM, GROOVE_HALF_MM
     start = foot + PLAIN_BAND_MM
-    height = KNOB_HEIGHT_MM - 2 * PLAIN_BAND_MM
+    band = height - 2 * PLAIN_BAND_MM
     outer = radius + past
     outer_half = half * (depth + past) / depth
     vee = Polygon(
@@ -438,7 +477,7 @@ def _knob_grooves(radius: float, foot: float):
         (outer, -outer_half),
         (outer, outer_half),
     )
-    groove = Pos(0, 0, start) * extrude(vee, amount=height)
+    groove = Pos(0, 0, start) * extrude(vee, amount=band)
     step = 360 / GROOVE_COUNT
     # Half a step off, so a land and not a groove lines up with the pointer.
     grooves = [Rot(0, 0, (index + 0.5) * step) * groove for index in range(GROOVE_COUNT)]
@@ -448,13 +487,40 @@ def _knob_grooves(radius: float, foot: float):
     return cutter
 
 
-def _knob_pointer(foot: float):
-    from build123d import Pos, Rectangle, extrude
+def _knob_pointer(foot: float, height: float, radius: float):
+    """Index on the flat side. It breaks the top rim, so the hero shows it."""
+    from build123d import Box, Pos
 
-    width, depth, inner, outer = POINTER_MM
-    top = foot + KNOB_HEIGHT_MM
-    line = Pos(0, (inner + outer) / 2) * Rectangle(width, outer - inner)
-    return Pos(0, 0, top - depth) * extrude(line, amount=depth + 0.2)
+    top = foot + height
+    length = radius + 0.4 - POINTER_INNER_MM
+    centre_y = POINTER_INNER_MM + length / 2
+    return Pos(0, centre_y, top - POINTER_DOWN_MM / 2 + 0.1) * Box(
+        POINTER_WIDTH_MM, length, POINTER_DOWN_MM + 0.2
+    )
+
+
+def _knob_setscrew(foot: float, height: float, radius: float):
+    """M3 radial hole onto the flat. One side only, below the index."""
+    from build123d import Cylinder, Pos, Rot
+
+    bore_r = (SHAFT_DIAMETER_MM + BORE_CLEARANCE_MM) / 2
+    outer = radius + 0.3
+    inner = bore_r - 0.2
+    length = outer - inner
+    centre_y = (outer + inner) / 2
+    centre_z = foot + height - SETSCREW_FROM_TOP_MM
+    hole = Rot(90, 0, 0) * Cylinder(SETSCREW_HOLE_MM / 2, length)
+    return Pos(0, centre_y, centre_z) * hole
+
+
+def _d_solid(diameter: float, across: float, z0: float, z1: float):
+    """D extrusion. The flat is +y, same side as the index and the set screw."""
+    from build123d import Circle, Pos, Rectangle, extrude
+
+    radius = diameter / 2
+    flat_offset = across - radius
+    keep = Pos(0, (flat_offset - radius) / 2) * Rectangle(diameter, flat_offset + radius)
+    return Pos(0, 0, z0) * extrude(Circle(radius) & keep, amount=z1 - z0)
 
 
 def _base(board: dict, skin):
@@ -727,13 +793,21 @@ def _switches(board: dict):
 
 
 def _encoder(board: dict):
-    """EC11 body on the PCB top. The plate pocket is larger, and the knob clears the top."""
+    """EC11 body, the 7 mm bushing, and the D shaft the knob seats on."""
     from build123d import Box, Pos
 
     case = board["case"]
     pcb = board["pcb"]
     grow = _grow(case)
     body_x, body_y, body_z = case["encoder_body"]
-    top = -case["plate_above_pcb"]
+    pcb_top = -case["plate_above_pcb"]
     knob_x, knob_y = pcb["knob"]
-    return Pos(knob_x + grow, knob_y + grow, top + body_z / 2) * Box(body_x, body_y, body_z)
+    x, y = knob_x + grow, knob_y + grow
+    body = Pos(x, y, pcb_top + body_z / 2) * Box(body_x, body_y, body_z)
+    bushing_top = pcb_top + BUSHING_TOP_ABOVE_PCB_MM
+    shaft_end = pcb_top + SHAFT_END_ABOVE_PCB_MM
+    flat_start = shaft_end - SHAFT_FLAT_LENGTH_MM
+    bushing = _face_cylinder(x, y, pcb_top + body_z, bushing_top, BUSHING_DIAMETER_MM / 2)
+    round_shaft = _face_cylinder(x, y, bushing_top, flat_start, SHAFT_DIAMETER_MM / 2)
+    flat = Pos(x, y, 0) * _d_solid(SHAFT_DIAMETER_MM, SHAFT_FLAT_MM, flat_start, shaft_end)
+    return body + bushing + round_shaft + flat

@@ -41,6 +41,23 @@ GROOVE_COUNT = 36
 GROOVE_DEPTH_MM = 0.7
 GROOVE_HALF_MM = 0.65  # at the 22 mm cylinder. A 90 degree V at this depth erases the lands.
 GROOVE_PAST_MM = 0.2  # the flute runs past the cylinder so the cut does not kiss it
+# EC11E18244AU drawing No. 2, heights from the PCB mounting face. MEASURE.
+SHAFT_END_ABOVE_PCB_MM = 24.5
+BUSHING_TOP_ABOVE_PCB_MM = 11.5  # shoulder at 4.5, bushing 7.0 above that shoulder
+SHAFT_DIAMETER_MM = 6.0
+SHAFT_FLAT_MM = 4.5
+SHAFT_FLAT_LENGTH_MM = 10.0
+BUSHING_DIAMETER_MM = 7.0
+KNOB_CAP_MM = 2.0  # solid left above the shaft end
+KNOB_FLAT_MARGIN_MM = 1.0  # D bore starts this far above the shaft flat
+BORE_CLEARANCE_MM = 0.2
+BUSHING_POCKET_EXTRA_MM = 1.0
+BUSHING_ROOM_MM = 1.4  # pocket roof above the bushing, for the press
+POINTER_WIDTH_MM = 1.2
+POINTER_DOWN_MM = 1.6  # through the top chamfer, stops at the knurl
+POINTER_INNER_MM = 1.5
+SETSCREW_HOLE_MM = 3.0  # M3 major, so the hole reads. The tap drill is 2.5.
+SETSCREW_FROM_TOP_MM = 5.5  # onto the flat, clear of the index
 MIN_THREAD_MM = 2.0
 MIN_WALL_MM = 1.0
 MIN_SKIN_MM = 1.0  # metal left under the key plane past the screw tip
@@ -277,4 +294,32 @@ def _silhouette_problems(board: dict) -> list[str]:
     pitch = 2 * math.pi * (case["knob_diameter"] / 2) / GROOVE_COUNT
     if GROOVE_DEPTH_MM <= 0 or 2 * GROOVE_HALF_MM + 0.4 >= pitch:
         problems.append("knob flutes erase the lands")
+    problems.extend(_knob_problems(board))
+    return problems
+
+
+def _knob_problems(board: dict) -> list[str]:
+    """The dial has to cover the shaft, clear the bushing, and keep an index off the set screw."""
+    case = board["case"]
+    problems = []
+    pcb_top = -case["plate_above_pcb"]
+    shaft_end = pcb_top + SHAFT_END_ABOVE_PCB_MM
+    bushing_top = pcb_top + BUSHING_TOP_ABOVE_PCB_MM
+    foot = case["knob_lift"]
+    top = shaft_end + KNOB_CAP_MM
+    if top - foot <= KNOB_CAP_MM or foot >= bushing_top:
+        problems.append("knob does not cover the shaft")
+    if bushing_top + BUSHING_ROOM_MM >= shaft_end - SHAFT_FLAT_LENGTH_MM:
+        problems.append("bushing pocket reaches the shaft flat")
+    if POINTER_DOWN_MM >= KNOB_CAP_MM + 0.5:
+        problems.append("index opens the bore")
+    screw_top = SETSCREW_FROM_TOP_MM - SETSCREW_HOLE_MM / 2
+    if screw_top <= POINTER_DOWN_MM:
+        problems.append("set screw meets the index")
+    screw_z = top - SETSCREW_FROM_TOP_MM
+    flat_start = shaft_end - SHAFT_FLAT_LENGTH_MM
+    if not flat_start < screw_z < shaft_end:
+        problems.append("set screw misses the flat")
+    if SHAFT_FLAT_MM >= SHAFT_DIAMETER_MM or BORE_CLEARANCE_MM <= 0:
+        problems.append("shaft flat is not a D")
     return problems
