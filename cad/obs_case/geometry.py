@@ -63,11 +63,15 @@ GROOVE_DEPTH_MM = 0.35
 GROOVE_PAST_MM = 0.2  # the V runs past the cylinder so the cut does not kiss it
 POINTER_MM = (0.9, 0.4, 2.0, 6.0)  # width, depth, inner radius, outer radius
 KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
-CAP_CORNER_MM = 1.2
+CAP_CORNER_MM = 2.0
 CAP_DRAFT_DEG = 8.0
-# Cylinder along the row. A sphere left a round dimple in a flat top.
-CAP_DISH_RADIUS_MM = 28.0
-CAP_DISH_DEPTH_MM = 1.15
+# Deep row scoop. R 28 at 1.15 mm shaded as a flat top.
+CAP_DISH_RADIUS_MM = 13.0
+CAP_DISH_DEPTH_MM = 2.4
+# Moat in the deck, wider than the cap, so each key has a shadow line.
+KEY_REVEAL_MM = 0.45
+KEY_REVEAL_SIDE_MM = 18.5
+KEY_REVEAL_RADIUS_MM = 1.2
 ACTIVE_RECESS_MM = 0.2
 
 _BUILD_NOTES: list[str] = []
@@ -236,6 +240,12 @@ def _top(board: dict, span_x: float, span_y: float):
                 MX_CUT_MM,
                 case["plate_web"],
             )
+            centre_x, centre_y = key_x + grow, key_y + grow
+            plate = _keep(
+                plate,
+                "key reveal",
+                lambda plate=plate, centre_x=centre_x, centre_y=centre_y: plate - _key_reveal(centre_x, centre_y),
+            )
     pocket_x, pocket_y = _pocket_origin(board, grow)
     pocket_w, pocket_h = case["pocket_plan"]
     plate = _cut(plate, pocket_x, pocket_y, pocket_w, pocket_h, case["pocket_depth"])
@@ -309,6 +319,15 @@ def _pocket_origin(board: dict, grow: float) -> tuple[float, float]:
     glass_w, glass_h = board["pcb"]["display_size"]
     pocket_w, pocket_h = board["case"]["pocket_plan"]
     return glass_x + grow - (pocket_w - glass_w) / 2, glass_y + grow - (pocket_h - glass_h) / 2
+
+
+def _key_reveal(centre_x: float, centre_y: float):
+    """0.45 mm pocket. The 1.5 mm web keeps more than 1 mm under the floor."""
+    from build123d import Axis, Box, Pos, fillet
+
+    height = KEY_REVEAL_MM + 0.5
+    block = Pos(centre_x, centre_y, 0.25 - KEY_REVEAL_MM / 2) * Box(KEY_REVEAL_SIDE_MM, KEY_REVEAL_SIDE_MM, height)
+    return fillet(block.edges().filter_by(Axis.Z), KEY_REVEAL_RADIUS_MM)
 
 
 def _one_keycap(side: float, height: float):
