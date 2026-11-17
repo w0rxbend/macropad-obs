@@ -31,6 +31,16 @@ FOOT_EDGE_MM = 8.0
 FOOT_SPAN_MM = 44.0
 USB_OPENING_MM = (14.0, 7.0)  # MEASURE, clears a 12.4 x 6.5 plug
 USB_RECEPTACLE_MM = (8.94, 7.35, 3.26)  # width, length, height. MEASURE
+USB_LEAD_MM = (18.0, 9.2, 2.2)  # wider mouth, same axis. Depth stays outside the tunnel.
+USB_TUNNEL_MM = 10.0
+SCOOP_RADIUS_MM = 6.0
+SCOOP_DEPTH_MM = 1.0  # bite past the shadow-gap wall. Leaves the 3.2 mm cavity wall.
+SCOOP_LENGTH_MM = 56.0
+SCOOP_Z_MM = 9.0  # desk frame. The cylinder stays above the 2.4 mm floor.
+GROOVE_COUNT = 36
+GROOVE_DEPTH_MM = 0.7
+GROOVE_HALF_MM = 0.65  # at the 22 mm cylinder. A 90 degree V at this depth erases the lands.
+GROOVE_PAST_MM = 0.2  # the flute runs past the cylinder so the cut does not kiss it
 MIN_THREAD_MM = 2.0
 MIN_WALL_MM = 1.0
 MIN_SKIN_MM = 1.0  # metal left under the key plane past the screw tip
@@ -227,4 +237,44 @@ def _fastener_problems(board: dict) -> list[str]:
     plug_w, plug_h = 12.4, 6.5
     if opening_w <= plug_w or opening_h <= plug_h:
         problems.append("usb opening does not clear the plug")
+    problems.extend(_silhouette_problems(board))
+    return problems
+
+
+def _silhouette_problems(board: dict) -> list[str]:
+    """Scoops, the USB mouth, and the dial lands. No solids."""
+    case = board["case"]
+    pcb = board["pcb"]
+    problems = []
+    grow = case["wall"] + case["pcb_clearance"]
+    span_y = pcb["depth"] + 2 * grow
+    cavity_x = case["wall"]
+    reach = case["shadow_gap"] + SCOOP_DEPTH_MM
+    # Both long sides match. The cavity starts at x = wall.
+    side_wall = cavity_x - reach
+    if side_wall < MIN_WALL_MM:
+        problems.append(f"scoop leaves {side_wall:.2f} mm of side wall")
+    if SCOOP_Z_MM - SCOOP_RADIUS_MM <= case["floor"]:
+        problems.append("scoop breaks the floor")
+    desk = span_y * math.cos(math.radians(case["face_tilt_deg"]))
+    centre_y = desk * 0.52
+    half = SCOOP_LENGTH_MM / 2
+    for foot_x, foot_y in foot_plan(board):
+        if abs(foot_y - centre_y) < half + FOOT_DIAMETER_MM / 2:
+            problems.append(f"scoop hits a foot at y {foot_y:.1f}")
+        if foot_x - FOOT_DIAMETER_MM / 2 < reach:
+            problems.append("scoop hits a foot in x")
+    boss_x = min(hole[0] for hole in pcb["holes"]) + grow - BOSS_ROOT_MM / 2
+    if boss_x - reach < MIN_WALL_MM:
+        problems.append(f"scoop meets a boss ({boss_x - reach:.2f} mm)")
+    lead_w, lead_h, lead_d = USB_LEAD_MM
+    opening_w, opening_h = USB_OPENING_MM
+    if lead_w <= opening_w or lead_h <= opening_h or lead_d >= USB_TUNNEL_MM or lead_d <= 0:
+        problems.append("usb lead-in is not a shallow mouth")
+    centre_z = -(case["plate_above_pcb"] + pcb["thickness"] + pcb["usb_centre_from_pcb"])
+    if centre_z + lead_h / 2 >= -case["plate_web"]:
+        problems.append("usb lead-in opens the plate")
+    pitch = 2 * math.pi * (case["knob_diameter"] / 2) / GROOVE_COUNT
+    if GROOVE_DEPTH_MM <= 0 or 2 * GROOVE_HALF_MM + 0.4 >= pitch:
+        problems.append("knob flutes erase the lands")
     return problems

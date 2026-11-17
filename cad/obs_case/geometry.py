@@ -23,13 +23,23 @@ from .numbers import (
     COUNTERSINK_SEAT_MM,
     FOOT_DEPTH_MM,
     FOOT_DIAMETER_MM,
+    GROOVE_COUNT,
+    GROOVE_DEPTH_MM,
+    GROOVE_HALF_MM,
+    GROOVE_PAST_MM,
     M2_CLEARANCE_MM,
     M2_DRILL_POINT_MM,
     M2_TAP_DEPTH_MM,
     M2_TAP_MM,
+    SCOOP_DEPTH_MM,
+    SCOOP_LENGTH_MM,
+    SCOOP_RADIUS_MM,
+    SCOOP_Z_MM,
     STANDOFF_DIAMETER_MM,
+    USB_LEAD_MM,
     USB_OPENING_MM,
     USB_RECEPTACLE_MM,
+    USB_TUNNEL_MM,
     foot_plan,
     screw_plan,
 )
@@ -49,7 +59,7 @@ KNOB_HEIGHT_MM = 16.0
 # Distances from the corner, along that side. corner_radius is not this.
 CORNER_HANDLES_MM = (10.935, 6.561, 2.187)
 BORDER_MM = 1.2  # lip above the key plane. 3 mm sank the glass into a tray.
-TOP_CHAMFER_MM = 0.5
+TOP_CHAMFER_MM = 0.8
 BASE_CHAMFER_MM = 1.7
 DISH_FLOOR_X = (14.95, 70.35)
 DISH_FLOOR_Y = (18.85, 147.61)
@@ -58,9 +68,6 @@ WELL_DEPTH_MM = 0.7
 WELL_CUTTER_ABOVE_MM = 0.2
 PLAIN_BAND_MM = 1.6
 KNOB_CHAMFER_MM = 0.5  # both rims. Stays inside the plain bands.
-GROOVE_COUNT = 36
-GROOVE_DEPTH_MM = 0.35
-GROOVE_PAST_MM = 0.2  # the V runs past the cylinder so the cut does not kiss it
 POINTER_MM = (0.9, 0.4, 2.0, 6.0)  # width, depth, inner radius, outer radius
 KEYCAP_MM = (18.0, 18.0, 8.0)  # plan, plan, height. Bottom sits on the key plane.
 CAP_CORNER_MM = 2.0
@@ -72,7 +79,7 @@ CAP_DISH_DEPTH_MM = 2.4
 KEY_REVEAL_MM = 0.45
 KEY_REVEAL_SIDE_MM = 18.5
 KEY_REVEAL_RADIUS_MM = 1.2
-ACTIVE_RECESS_MM = 0.2
+ACTIVE_RECESS_MM = 0.6
 
 _BUILD_NOTES: list[str] = []
 
@@ -383,8 +390,11 @@ def _glass(board: dict, span_x: float, span_y: float):
         width, height, GLASS_THICK_MM
     )
     left, near, active_w, active_h = _active_box(board, grow)
-    recess = Pos(left + active_w / 2, near + active_h / 2, ACTIVE_RECESS_MM / 2) * Box(
-        active_w, active_h, ACTIVE_RECESS_MM + 0.4
+    # Floor at -ACTIVE_RECESS_MM. Centering the box on z = recess/2 only nicks the face.
+    floor = -ACTIVE_RECESS_MM
+    over = 0.2
+    recess = Pos(left + active_w / 2, near + active_h / 2, (floor + over) / 2) * Box(
+        active_w, active_h, over - floor
     )
     return glass - recess
 
@@ -415,16 +425,18 @@ def _knob(board: dict):
 
 
 def _knob_grooves(radius: float, foot: float):
-    """36 straight 90° V cuts in one band. Ends are square, as a turned band would be."""
+    """36 flutes in one band. Width is fixed at the cylinder so the lands stay."""
     from build123d import Polygon, Pos, Rot, extrude
 
-    depth, past = GROOVE_DEPTH_MM, GROOVE_PAST_MM
+    depth, past, half = GROOVE_DEPTH_MM, GROOVE_PAST_MM, GROOVE_HALF_MM
     start = foot + PLAIN_BAND_MM
     height = KNOB_HEIGHT_MM - 2 * PLAIN_BAND_MM
+    outer = radius + past
+    outer_half = half * (depth + past) / depth
     vee = Polygon(
         (radius - depth, 0),
-        (radius + past, -(depth + past)),
-        (radius + past, depth + past),
+        (outer, -outer_half),
+        (outer, outer_half),
     )
     groove = Pos(0, 0, start) * extrude(vee, amount=height)
     step = 360 / GROOVE_COUNT
@@ -458,8 +470,26 @@ def _base(board: dict, skin):
     base = base - cavity
     base = _usb_slot(base, board, grow)
     base = _keep(base, "base chamfer", lambda: _chamfer_underside(base, BASE_CHAMFER_MM))
+    base = _keep(base, "side scoops", lambda: base - _side_scoops(board, span_x, face_y))
     base = _fasten_base(base, board)
     return base
+
+
+def _side_scoops(board: dict, span_x: float, face_y: float):
+    """One finger scoop on each long side. Desk frame, after the underside chamfer."""
+    import math
+
+    from build123d import Cylinder, Pos, Rot
+
+    case = board["case"]
+    desk = face_y * math.cos(math.radians(case["face_tilt_deg"]))
+    gap = case["shadow_gap"]
+    radius = SCOOP_RADIUS_MM
+    left_x = gap - radius + SCOOP_DEPTH_MM
+    right_x = span_x - gap + radius - SCOOP_DEPTH_MM
+    cutter = Rot(90, 0, 0) * Cylinder(radius, SCOOP_LENGTH_MM)
+    centre_y = desk * 0.52
+    return Pos(left_x, centre_y, SCOOP_Z_MM) * cutter + Pos(right_x, centre_y, SCOOP_Z_MM) * cutter
 
 
 def _chamfer_underside(solid, length: float):
@@ -529,10 +559,13 @@ def _usb_slot(base, board: dict, grow: float):
     pcb = board["pcb"]
     span_y = _spans(board)[1]
     width, height = USB_OPENING_MM
+    lead_w, lead_h, lead_d = USB_LEAD_MM
     centre_z = -(case["plate_above_pcb"] + pcb["thickness"] + pcb["usb_centre_from_pcb"])
-    mouth = _slot_along_y(pcb["usb_x"] + grow, span_y + 0.6, centre_z, width, height, 10.0)
-    placed = _on_face(board, mouth)
-    return base - placed
+    x = pcb["usb_x"] + grow
+    mouth_y = span_y + 0.6
+    tunnel = _slot_along_y(x, mouth_y, centre_z, width, height, USB_TUNNEL_MM)
+    lead = _slot_along_y(x, mouth_y, centre_z, lead_w, lead_h, lead_d)
+    return base - _on_face(board, tunnel + lead)
 
 
 def _face_cylinder(x: float, y: float, z0: float, z1: float, radius: float):
