@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 //! OBS keymap core. The shell does the websocket and the serial port.
 
-mod bridge;
 mod config;
 mod keymap;
 mod obs;
 mod paging;
 mod profile;
-mod protocol;
+pub mod protocol;
 mod volume;
 
-pub use bridge::{Bridge, MemPort, Port};
 pub use config::{connect_target, default_config_path, load, parse, save, Config, ConfigError, KeyAction, Secret};
 pub use obs::{output_is_on, CoreError, Effect, EventBurst, InputState, ObsRequest, ObsSnapshot};
-pub use protocol::{Link, PadEvent, PageView, USB_PID, USB_VID};
+pub use protocol::{LinkRx, PadEvent, PageView, USB_PID, USB_VID};
 pub use volume::round_db;
 
 use keymap::{scene_count, scene_slot, INPUT_CAP, KEYS, PROFILE_CAP, SCENE_CAP};

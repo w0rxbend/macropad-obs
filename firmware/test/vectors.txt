@@ -1,10 +1,127 @@
-# Shared CDC vectors. A change here updates link.c, protocol.rs, and docs/protocol.md.
-# CRC-16/MODBUS, low byte first. The KEY line is the locked check vector.
+# Shared CDC vectors, protocol v2. A change here updates link.c, protocol.rs, and docs/protocol.md.
+# CRC-16/MODBUS, low byte first. Each line is a name and the bytes in hex.
+# A `refuse_<x>` line is refused: the codec answers with the frame on the `reply_<x>` line.
+# Every other line is a good frame: the codec decodes it, and encoding it again gives the same bytes.
+# No line carries a real credential. The `cred_` lines hold dummy strings.
 
-key_3_down a5 01 02 02 00 03 01 b8 82
-bind_loopback a5 01 12 0d 00 03 67 11 09 31 32 37 2e 30 2e 30 2e 31 9e 55
-page_view_empty a5 01 14 15 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 92 e8
-hello a5 01 01 04 00 01 09 00 00 41 7d
-hello_ack a5 01 10 01 00 01 8d 00
-heartbeat a5 01 11 00 00 51 dd
-key_bad_crc a5 01 02 02 00 03 01 b8 7d
+empty_payload a5 02 01 2a 00 00 7d f4
+payload_3 a5 02 7f 09 03 00 01 02 03 1b 2d
+
+# CRC high byte inverted. RESULT bad_crc, id 9.
+refuse_bad_crc a5 02 7f 09 03 00 01 02 03 1b d2
+reply_bad_crc a5 02 81 09 05 00 03 00 00 00 00 6c f1
+
+# A header that claims 241 payload bytes. RESULT too_big, id 7.
+refuse_too_big a5 02 7f 07 f1 00
+reply_too_big a5 02 81 07 05 00 04 00 00 00 00 58 bd
+
+# The v1 KEY frame. NOTICE "protocol v2 only", id 0.
+refuse_v1_key a5 01 02 02 00 03 01 b8 82
+reply_v1_key a5 02 80 00 10 00 70 72 6f 74 6f 63 6f 6c 20 76 32 20 6f 6e 6c 79 81 84
+
+# Typed messages (spec 8.2, docs/protocol.md "Messages"). A `msg_<x>` line decodes into its
+# fields, and encoding the fields again gives the same bytes. The tests name the fields.
+# The document bytes are `{"schema":1,"seq":7}`: 20 bytes, CRC-32 0xCA7AE782.
+# App to pad: INFO_GET, CFG_READ, CFG_BEGIN (store, then try only), CFG_CHUNK, CFG_COMMIT.
+msg_info_get a5 02 01 10 00 00 5d f9
+msg_cfg_read a5 02 02 11 03 00 00 00 e8 a5 1d
+msg_cfg_begin a5 02 03 12 0b 00 07 00 00 00 14 00 82 e7 7a ca 00 03 af
+msg_cfg_begin_try a5 02 03 13 0b 00 07 00 00 00 14 00 82 e7 7a ca 01 c2 ae
+msg_cfg_chunk a5 02 04 14 16 00 00 00 7b 22 73 63 68 65 6d 61 22 3a 31 2c 22 73 65 71 22 3a 37 7d 42 c8
+msg_cfg_commit a5 02 05 15 00 00 4c c8
+
+# Pad to app: INFO (OBS password set, then Wi-Fi key set: one bit each), CFG_DATA, RESULT.
+msg_info a5 02 82 10 27 00 02 01 01 00 01 00 00 40 09 04 03 40 01 e0 01 8e 00 ac 01 00 00 00 00 01 00 c0 ff ee 02 00 00 00 00 01 30 2e 32 2e 30 84 b9
+msg_info_wifi_psk a5 02 82 10 27 00 02 02 01 00 01 00 00 40 09 04 03 40 01 e0 01 8e 00 ac 01 00 00 00 00 01 00 c0 ff ee 02 00 00 00 00 01 30 2e 32 2e 30 34 a3
+msg_cfg_data a5 02 83 11 1c 00 07 00 00 00 14 00 00 00 7b 22 73 63 68 65 6d 61 22 3a 31 2c 22 73 65 71 22 3a 37 7d cb bc
+msg_cfg_data_empty a5 02 83 11 08 00 00 00 00 00 00 00 00 00 d3 05
+msg_result_ok a5 02 81 15 05 00 00 08 00 00 00 2b c8
+msg_result_busy a5 02 81 12 05 00 01 00 00 00 00 55 8e
+msg_result_stale_seq a5 02 81 12 05 00 02 09 00 00 00 12 12
+msg_result_invalid a5 02 81 15 0c 00 05 07 00 00 00 6f 62 73 2e 75 72 6c 10 ab
+
+# A `bad_<x>` line is a good frame with a payload that breaks its type's rules. The codec
+# delivers it, and the typed decoder refuses it.
+bad_info_get_payload a5 02 01 20 01 00 00 66 39
+bad_cfg_read_short a5 02 02 21 02 00 00 00 84 9d
+bad_cfg_read_len_0 a5 02 02 22 03 00 00 00 00 a0 90
+bad_cfg_read_len_233 a5 02 02 23 03 00 00 00 e9 60 cf
+bad_cfg_begin_short a5 02 03 24 0a 00 07 00 00 00 14 00 82 e7 7a ca 21 f7
+bad_cfg_begin_flag a5 02 03 25 0b 00 07 00 00 00 14 00 82 e7 7a ca 02 b4 99
+bad_cfg_chunk_empty a5 02 04 26 02 00 00 00 31 3b
+bad_cfg_commit_payload a5 02 05 27 01 00 00 96 8d
+bad_info_short a5 02 82 28 21 00 02 01 01 00 01 00 00 40 09 04 03 40 01 e0 01 8e 00 ac 01 00 00 00 00 01 00 c0 ff ee 02 00 00 00 00 73 f7
+bad_info_flag a5 02 82 29 27 00 02 04 01 00 01 00 00 40 09 04 03 40 01 e0 01 8e 00 ac 01 00 00 00 00 01 00 c0 ff ee 02 00 00 00 00 01 30 2e 32 2e 30 31 f3
+bad_info_version a5 02 82 2a 26 00 02 01 01 00 01 00 00 40 09 04 03 40 01 e0 01 8e 00 ac 01 00 00 00 00 01 00 c0 ff ee 02 00 00 00 00 01 30 2e 32 7f 79 1d
+bad_info_version_long a5 02 82 2b 43 00 02 01 01 00 01 00 00 40 09 04 03 40 01 e0 01 8e 00 ac 01 00 00 00 00 01 00 c0 ff ee 02 00 00 00 00 01 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 76 aa ea
+bad_cfg_data_short a5 02 83 2c 07 00 00 00 00 00 00 00 00 dc 26
+bad_result_short a5 02 81 2d 04 00 00 00 00 00 26 ba
+bad_result_code a5 02 81 2e 05 00 06 00 00 00 00 e3 0f
+bad_result_path a5 02 81 2f 0c 00 05 07 00 00 00 6f 62 73 0a 75 72 6c a0 48
+bad_result_path_long a5 02 81 30 36 00 05 07 00 00 00 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 30 3d
+
+# Provisioning (spec 8.2, task 1.8). Every credential on these lines is a dummy string, never a
+# real secret. A `cred_<status>_<x>` line is a SET_CREDENTIAL (0x06) or CLEAR_CREDENTIALS (0x07)
+# frame, and <status> is the CRED_STATUS code the pad answers: ok, bad_kind, bad_len or bad_value.
+# The typed decoder takes the `cred_ok_` lines and refuses the rest.
+# OBS password "dummy-obs-password", then one of 239 bytes: the most a payload holds.
+cred_ok_obs a5 02 06 40 13 00 01 64 75 6d 6d 79 2d 6f 62 73 2d 70 61 73 73 77 6f 72 64 29 4c
+cred_ok_obs_239 a5 02 06 41 f0 00 01 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 70 52 77
+# Wi-Fi passphrase: 8 bytes, 63 bytes, and 64 hex digits (the raw PSK).
+cred_ok_wifi_8 a5 02 06 42 09 00 02 64 75 6d 6d 79 2d 70 77 04 da
+cred_ok_wifi_63 a5 02 06 43 40 00 02 64 75 6d 6d 79 2d 77 69 66 69 2d 70 61 73 73 70 68 72 61 73 65 2d 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 e9 b4
+cred_ok_wifi_hex64 a5 02 06 44 41 00 02 30 31 32 33 34 35 36 37 38 39 61 62 63 64 65 66 41 42 43 44 45 46 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 73 a9
+# One reject line per rule: no payload, a kind with no bytes, kind 0, kind 3.
+cred_bad_len_empty a5 02 06 45 00 00 4c 9d
+cred_bad_len_no_bytes a5 02 06 46 01 00 01 0c b1
+cred_bad_kind_0 a5 02 06 47 09 00 00 64 75 6d 6d 79 2d 70 77 11 b6
+cred_bad_kind_3 a5 02 06 48 09 00 03 64 75 6d 6d 79 2d 70 77 11 52
+# Wi-Fi: 7 bytes, 65 bytes, 63 bytes with one 0x7f, 64 bytes that end in "g".
+cred_bad_len_wifi_7 a5 02 06 49 08 00 02 64 75 6d 6d 79 2d 70 25 64
+cred_bad_len_wifi_65 a5 02 06 4a 42 00 02 64 75 6d 6d 79 2d 77 69 66 69 2d 70 61 73 73 70 68 72 61 73 65 2d 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 63 82
+cred_bad_value_wifi_63 a5 02 06 4b 40 00 02 64 75 6d 6d 79 2d 77 69 66 69 2d 70 61 73 73 70 68 72 61 73 65 2d 78 78 78 78 78 78 78 78 7f 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 78 4e 15
+cred_bad_value_wifi_hex64 a5 02 06 4c 41 00 02 30 31 32 33 34 35 36 37 38 39 61 62 63 64 65 66 41 42 43 44 45 46 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 67 d3 ee
+# CLEAR_CREDENTIALS: no payload is ok, one payload byte is bad_len.
+cred_ok_clear a5 02 07 4d 00 00 cc a3
+cred_bad_len_clear a5 02 07 4e 01 00 00 f2 d1
+
+# An OBS password of 240 bytes needs a 241-byte payload. The header alone is refused: RESULT too_big.
+refuse_cred_240 a5 02 06 4f f1 00
+reply_cred_240 a5 02 81 4f 05 00 04 00 00 00 00 5d 2b
+
+# App to pad: OBS_LIST (scenes, item 0), FACTORY_RESET (magic "WIPE"), BOOTLOADER (magic "BOOT").
+msg_obs_list a5 02 08 50 03 00 01 00 00 51 82
+msg_factory_reset a5 02 09 51 04 00 57 49 50 45 ae ea
+msg_bootloader a5 02 0a 52 04 00 42 4f 4f 54 f1 ce
+
+# Pad to app: CRED_STATUS (ok, store_fail), STATUS (all up at -52 dBm and 192.168.1.50, then no
+# SSID), OBS_ITEM (scene 0 of 2 named "Caméra", then an empty transition list), INPUT (key 4
+# down, knob 2 one detent back).
+msg_cred_status_ok a5 02 84 53 01 00 00 b1 63
+msg_cred_status_store_fail a5 02 84 54 01 00 04 b1 d4
+msg_status_up a5 02 85 55 07 00 04 04 cc c0 a8 01 32 79 5b
+msg_status_no_ssid a5 02 85 56 07 00 00 00 00 00 00 00 00 e0 a5
+msg_obs_item a5 02 86 57 1c 00 01 00 00 02 00 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 43 61 6d c3 a9 72 61 6b b9
+msg_obs_item_none a5 02 86 58 15 00 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 d9 dc
+msg_input_key a5 02 87 59 03 00 01 04 01 ec d3
+msg_input_turn a5 02 87 5a 03 00 04 02 ff 7e c1
+
+# Refused by the typed decoder. A wrong magic: one bit off, then the other message's magic.
+bad_factory_reset_magic a5 02 09 5b 04 00 56 49 50 45 05 16
+bad_factory_reset_short a5 02 09 5c 03 00 57 49 50 96 32
+bad_bootloader_magic a5 02 0a 5d 04 00 57 49 50 45 22 ff
+bad_bootloader_empty a5 02 0a 5e 00 00 3f ca
+bad_obs_list_0 a5 02 08 5f 03 00 00 00 00 00 bd
+bad_obs_list_4 a5 02 08 60 03 00 04 00 00 44 73
+bad_obs_list_short a5 02 08 61 02 00 01 00 84 68
+bad_cred_status_code a5 02 84 62 01 00 05 7f 9c
+bad_cred_status_long a5 02 84 63 02 00 00 00 e3 34
+bad_status_obs_state a5 02 85 64 07 00 05 04 cc c0 a8 01 32 38 a1
+bad_status_wifi_state a5 02 85 65 07 00 04 05 cc c0 a8 01 32 78 75
+bad_status_short a5 02 85 66 06 00 04 04 cc c0 a8 01 68 04
+bad_obs_item_list a5 02 86 67 15 00 00 00 00 02 00 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff c7 4e
+bad_obs_item_short a5 02 86 68 14 00 01 00 00 02 00 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee fb 6a
+bad_input_source_0 a5 02 87 69 03 00 00 04 01 b8 e3
+bad_input_source_5 a5 02 87 6a 03 00 05 04 01 a8 d1
+bad_input_key_value_2 a5 02 87 6b 03 00 01 04 02 a8 c0
+bad_input_turn_0 a5 02 87 6c 03 00 04 02 00 3b 17

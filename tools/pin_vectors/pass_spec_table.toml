@@ -1,0 +1,40 @@
+# Pass vector: the pin budget table of docs/spec/spec-v2.md section 7, 30 of 36 pads.
+# tools/test_check_pins.py checks that board.toml carries the same two tables.
+
+[gpio]
+BOOT = 0
+CC1 = 1
+CC2 = 2
+ROW0 = 4
+ROW1 = 5
+ROW2 = 6
+ROW3 = 7
+ENC1_A = 8
+ENC1_B = 9
+LCD_CS_BIG = 10
+LCD_MOSI = 11
+LCD_SCK = 12
+LCD_CS_STRIP = 13
+LCD_DC = 14
+COL0 = 15
+COL1 = 16
+COL2 = 17
+COL3 = 18
+USB_DM = 19
+USB_DP = 20
+LCD_RESET = 21
+ENC2_A = 38
+ENC2_B = 39
+ENC3_A = 40
+ENC3_B = 41
+STRIP_TE = 42
+UART0_TX = 43
+UART0_RX = 44
+BL_BIG = 47
+BL_STRIP = 48
+
+[strapping]
+IO0 = "BOOT"
+IO3 = ""
+IO45 = ""
+IO46 = ""

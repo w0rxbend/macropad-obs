@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
-"""STEP, STL, and 3MF for the wedge. Each mesh is read back."""
+"""STEP, STL, and 3MF for the case parts. Each mesh is read back."""
 
 from __future__ import annotations
 
@@ -8,19 +8,13 @@ from pathlib import Path
 import trimesh
 from build123d import Compound, Part, export_step, export_stl, import_step
 
-from .geometry import build_parts, fit_problems
-
 STL_TOLERANCE_MM = 0.05
 STL_VOLUME_SHARE = 0.02
 
 
-def export_all(folder: Path) -> int:
+def export_all(folder: Path, parts: dict[str, Part]) -> int:
     folder.mkdir(parents=True, exist_ok=True)
-    parts = build_parts()
     faults = 0
-    for problem in fit_problems(parts):
-        print(problem)
-        faults += 1
     for name, solid in parts.items():
         solid.label = name
         faults += _write_part(solid, folder / name)

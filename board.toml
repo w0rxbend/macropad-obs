@@ -1,92 +1,296 @@
 # macropad-obs: pin and mechanical source of truth.
-# tools/check_pins.py binds firmware/pins.h and host/src/protocol.rs to this file.
-# The PCB generator and the case read it too.
-# Nothing has been built. MEASURE tags need a caliper or a sample.
+# tools/check_pins.py binds firmware/esp32s3/main/pins.h and host/obs_core/src/protocol.rs to this file.
+# docs/spec/layout-v2.toml feeds the geometry: every table from [body] down is layout rev 3,
+# word for word, and tools/check_numbers.py fails if a value or a MEASURE line differs.
+# Change the layout first, then this file.
+# Frame: PCB frame, origin at the PCB front-left corner, +x right, +y toward the back edge,
+# millimetres, top view. Rectangles are [x, y] of the front-left corner plus [w, h]. Points are
+# centres. z = 0 is the PCB top face.
+# Tags: "datasheet" = read in a drawing by reports 06/07/08 (verified there).
+# "design" = a layout choice made here, free to change. MEASURE = needs a caliper,
+# a sample or a print coupon before it is final.
+# Reports are in docs/research/. Nothing has been built.
+
+layout_revision = 3
 
 [board]
 name = "macropad-obs"
-mcu = "RP2040"
-flash = "W25Q128JVSIQ"          # 16 MB, SOIC-8 208 mil, LCSC C97521
-usb = { vid = 0x1209, pid = 0x4F42 }  # pid.codes; not submitted yet
+usb = { vid = 0x1209, pid = 0x4F42 }  # pending pid.codes: not submitted yet
 
-[keys]
-gpio = [2, 3, 4, 5, 6, 7, 8, 9, 10]   # row by row, back row first, left to right
-pitch_mm = 19.05
-switch = "MX, hot-swap socket, Kailh CPG151101S11 class"
+# ESP32-S3-WROOM-1-N16R2 pads, net = IO number. Source: docs/spec/spec-v2.md section 7 pin budget
+# (report 18 section 2). 30 of 36 pads; IO35 to IO37 are spare. EN (RESET) is not a GPIO.
+# `python3 tools/check_pins.py --write` generates firmware/esp32s3/main/pins.h from this table.
+[gpio]
+BOOT = 0            # button to GND, 10 k pull-up, no large C
+CC1 = 1             # ADC1, 100 k
+CC2 = 2
+ROW0 = 4            # matrix drive
+ROW1 = 5
+ROW2 = 6
+ROW3 = 7
+ENC1_A = 8          # RC filter, PCNT unit 0
+ENC1_B = 9
+LCD_CS_BIG = 10     # SPI2 IO_MUX
+LCD_MOSI = 11
+LCD_SCK = 12
+LCD_CS_STRIP = 13
+LCD_DC = 14         # shared by both panels
+COL0 = 15           # 4.7 k pull-ups
+COL1 = 16
+COL2 = 17
+COL3 = 18
+USB_DM = 19         # native USB, 22 ohm footprints
+USB_DP = 20
+LCD_RESET = 21      # shared by both panels
+ENC2_A = 38         # PCNT unit 1
+ENC2_B = 39
+ENC3_A = 40         # PCNT unit 2
+ENC3_B = 41
+STRIP_TE = 42       # optional; the big panel has no TE
+UART0_TX = 43       # debug JST, boot log
+UART0_RX = 44
+BL_BIG = 47         # LEDC PWM, 100 k pull-down
+BL_STRIP = 48
 
-[knob]
-part = "Alps EC11E18244AU"
-gpio_a = 12
-gpio_b = 13
-gpio_push = 11
-pulses_per_detent = 4           # MEASURE: some EC11 variants give 2
+# Strapping allow-list: the one net each strapping pin may carry, "" = left open.
+# tools/check_pins.py rejects any other net on these pads and any change to this table.
+[strapping]
+IO0 = "BOOT"
+IO3 = ""
+IO45 = ""
+IO46 = ""
 
-[display]
-part = "Raystar RFJ240M-ALW-DNN"
-driver = "ST7789V"
-interface = "4-wire SPI"
-logic_v = 3.3
-outline_mm = [42.72, 60.26, 2.25]   # datasheet typ; thickness ±0.1
-active_mm = [36.72, 48.96]
-resolution = [240, 320]
-fpc_edge = "near"               # MEASURE on a sample: design assumes FPC exits the near edge
-fpc_pins = 20
-fpc_pitch_mm = 0.5
-gpio_sck = 18                   # SPI0 SCK, panel pin 8 DCX(SCL)
-gpio_mosi = 19                  # SPI0 TX, panel pin 7 SDA
-gpio_cs = 17                    # SPI0 CSn, panel pin 9 CSX, active low
-gpio_dc = 20                    # panel pin 10 WRX(D/CX)
-gpio_reset = 21                 # panel pin 6 RESET, active low
-gpio_bl = 22                    # backlight FET gate, external pulldown, default off
+# Layout rev 3 from here down.
 
-[boot]
-gpio_run = "RUN"                # RESET tact, not a GPIO number
-qspi_ss = "QSPI_SS"             # BOOT tact through 1 k
-
-# PCB frame: origin at the front-left corner, +x right, +y toward the USB edge, mm.
-# The board is flat in this frame. Do not foreshorten the glass by cos(8°).
+[body]
+# Case outer outline in the top view. Wall 2.5 (report 11) + 0.4 PCB clearance.
+outline = [-2.9, -2.9, 97.4, 173.5]   # design. 97.4 x 173.5 mm, flat slab
+corner_radius = 6.9                   # design: concentric with the PCB corner R 4.0
+wall = 2.5                            # design, report 11 (CNC: walls >= 2.0)
+pcb_clearance = 0.4                   # design, report 11
 
 [pcb]
-width = 88.0
-depth = 150.0
+width = 91.6                          # design
+depth = 167.7                         # design (rev 1: 162.4)
 thickness = 1.6
-corner_radius = 2.0
-layers = 4
-key_x = [20.00, 39.05, 58.10]
-key_y = [62.00, 42.95, 23.90]   # row 0 is the back row
-knob = [79.6, 42.95]
-display_origin = [22.64, 82.0]  # glass left x, near y
-display_size = [42.72, 60.26]
-fpc = [44.0, 73.5]              # FH12 centre, top side
-boot = [12.0, 8.0]              # tact, bottom side
-reset = [76.0, 8.0]             # tact, bottom side
-holes = [[8.0, 18.0], [80.0, 18.0], [8.0, 108.0], [80.0, 108.0]]
-hole_diameter = 2.2
-hole_keepout_diameter = 5.0     # diameter, not radius. Clearance uses radius 2.5
-usb_x = 44.0
-usb_face = "bottom"
-usb_mouth_overhang = 0.5
-usb_centre_from_pcb = 1.6       # along the face normal, below the PCB bottom face
-mx_rotation_deg = 0
+layers = 4                            # owner: "4layers or more"
+corner_radius = 4.0                   # design: matches the R 4.0 cavity corner (report 11)
+hole_diameter = 2.2                   # M2 clearance, as board.toml
+hole_keepout_diameter = 5.0           # boss / screw head, as board.toml; both PCB faces
+# Corners, the web between the key block and the big display, and one beside E2.
+# No hole fits under the displays or between switches (3.45 mm gap between housings).
+holes = [
+  [3.0, 3.0], [88.6, 3.0],            # front corners
+  [3.0, 75.5], [88.6, 75.5],          # middle: keep-out 73.0..78.0, K1 cap top 71.7, pocket 79.0
+  [88.6, 41.1],                       # E2 support: keep-out from x 86.1, EC11 lug pads ~83.0 MEASURE
+  [3.3, 166.0],                       # back-left: 1.0 web to the big pocket corner (3.15, 162.5)
+]
+# Rev 2c: the back-right hole (88.3, 166.0) sat inside [antenna] board_cut and is dropped (6 holes).
+# Back-corner drills sit 0.6 from the back edge and 0.5 from the R 4.0 arc. Every boss
+# is merged into the wall with an R 1.0 fillet, so no slot narrower than a cutter is left.
+boss_merge_fillet = 1.0               # design
+top_keepout = "every [display_carrier] outer rectangle"   # top face; rule text in [display_carrier]
+board_slots = [                       # FPC tails pass through to connectors on the bottom face
+  [19.9, 76.1, 21.5, 1.5],            # big tail (20.50 wide): 1.68 in front of the panel edge
+  [72.75, 88.7, 6.5, 1.5],            # bar tail (5.50 wide): x waits on the tail offset, MEASURE
+]
 
-[case]
-face_tilt_deg = 8.0             # whole top face from the desk, front low, back high
-material = "6061-T6, bead blast, anodised"
-wall = 3.2
-pcb_clearance = 0.4
-corner_radius = 10.0
-face_front_z = 12.0             # desk frame: top face at the front outer edge
-floor = 2.4
-plate_above_pcb = 5.0          # MX clip height. Do not raise it for the encoder
-plate_web = 1.5
-shadow_gap = 0.8
-pocket_plan = [43.22, 60.76]
-pocket_depth = 2.35
-bushing_hole = 7.4              # MEASURE
-encoder_pocket = [12.4, 12.4]   # MEASURE. Open through the plate
-knob_diameter = 22.0
-knob_lift = 1.8                 # MEASURE. Underside is 0.3 mm above the 6.5 mm body
-keycap = 18.0                   # MEASURE
-switch_housing = 15.6           # MEASURE
-encoder_body = [12.0, 12.0, 6.5] # MEASURE
-tact_body_mm = 2.0              # MEASURE, TS-1187A
+[bottom_plate]
+# Under the board. Report 11: board floats 4.0 above the plate's inside face (z -5.6).
+standoffs = { diameter = 5.0, height = 4.0, at = "every [pcb] hole" }   # design
+encoder_posts = { diameter = 4.0, height = 4.0, at = [[76.0, 67.6], [76.0, 41.1], [76.0, 14.6]] }
+# Report 08: 6 N (+2.5/-2) per push, no panel nut. Keep a 5.0 circle at each post free of
+# parts and copper on the bottom face; the centre lies between the EC11 terminal rows.
+encoder_post_keepout = 5.0
+key_ribs = { width = 1.5, height = 4.0, y = [34.1, 53.2], x = [2.1, 59.2] }
+# Ribs under the gaps between key rows, between the hot-swap socket pads, so the board does
+# not flex while a switch is pressed into its socket. Check against MX_Hotswap pads (MEASURE).
+pinholes = { diameter = 2.0, at = [[40.0, 155.3], [52.0, 155.3]] }   # reach BOOT (IO0) and RESET (EN)
+# No metal under the antenna: the plate is cut here and the [antenna] insert's tongue fills it.
+antenna_relief = [58.6, 161.7, 33.4, 6.4]   # design: board_cut to the wall inside faces (y 168.1, x 92.0)
+usb_notch = { width = 12.6, depth = 1.1 }   # see [usb]; listed in the plate drawing
+
+[big_display]
+part = "Focus LCDs E35GH-I-RW300-N"   # 3.5 in, 320x480 IPS, ST7796U, 4-wire SPI
+outline = [3.42, 79.28, 54.46, 82.94] # datasheet size; position design
+active = [6.17, 86.43, 48.96, 73.44]  # datasheet: 2.75 from long edges, 7.15 from tail edge
+lens_opening = [5.77, 86.03, 49.76, 74.24]  # active + 0.4 a side (window rule below)
+pocket = [3.15, 79.00, 55.0, 83.5]    # report 06, fits Focus and Winstar
+pocket_tail_notch = [19.9, 77.5, 21.5, 1.5]  # pocket runs forward over the tail so it can fold
+thickness = 2.15                      # datasheet
+fpc_edge = "front"                    # tail edge faces the keys (report 06, 07)
+tail_width = 20.50                    # datasheet
+tail_offset_x = 0.0                   # MEASURE: drawn centred, not dimensioned
+
+[narrow_display]
+part = "Wisevision N279-1428KIWIG01-C10"  # 2.79 in, 142x428 IPS, NV3007, 4-wire SPI
+outline = [63.81, 91.84, 24.38, 69.43]    # datasheet size; position design
+active = [65.36, 95.73, 21.28, 64.14]     # datasheet: 1.55 long edges, 3.89 FPC edge
+lens_opening = [64.96, 95.33, 22.08, 64.94]  # active + 0.4 a side (as report 11)
+pocket = [63.51, 91.54, 24.98, 70.03]     # outline + 0.3 a side
+pocket_tail_notch = [72.75, 90.1, 6.5, 1.44]  # x MEASURE with the tail offset
+thickness = 2.1                           # datasheet
+fpc_edge = "front"                        # faces the knobs; MEASURE on a sample
+tail_width = 5.50                         # datasheet, off centre, offset MEASURE
+# Active tops level with the big display (159.87), as report 07 did. The sketch ends both
+# displays level at the bottom; this moves the bar 9.3 mm up so E1 does not hide its
+# bottom strip. Top edge 161.27: 0.95 below the big module, 4.7 clear of the (88.3, 166) hole.
+
+[window]
+# One rule for both displays (reports 07 and 11 differed: +0.3 vs +0.4).
+margin = 0.4                          # design: lens opening = active + 0.4 a side
+lens_recess_depth = 1.2               # report 11
+lens_recess_corner_radius = 2.1       # report 11
+window_corner_radius = 0.8            # design: R 2.1 on the window would clip ~0.45 of pixels
+
+[stack]
+# z above the PCB top face (z = 0), mm. Report 11 section 2, except where marked.
+deck_top = 8.0                 # design (report 11): show face, 3.0 mm key well
+lens_top = 7.93                # report 11: 1.0 lens on 0.13 tape in a 1.2 recess
+lens_recess_floor = 6.8        # deck_top - [window] lens_recess_depth
+deck_underside = 6.0           # design (report 11): 2.0 deck, 0.8 lens ledge
+panel_face = 5.6               # = deck_underside - [foam_frame] installed. Report 11 had 5.5
+mx_plate_top = 5.0             # datasheet (Cherry, report 08)
+mx_plate_underside = 3.5       # mx_plate_top - 1.5 plate
+ec11_body_top = 4.5            # datasheet (Alps, report 08)
+b3f_body_top = 3.4             # datasheet (Omron, report 08)
+pocket_skirt_bottom = 2.0      # design: the pocket walls reach down to here (see [display_carrier])
+pcb_top = 0.0
+pcb_bottom = -1.6
+bottom_plate_inside = -5.6     # MEASURE (report 11): 4.0 for sockets and leads
+
+[foam_frame]
+# Black foam between the deck underside and each panel face. Closed ring, no glue (report 11 s5).
+thickness = 0.5                # design; stock thickness MEASURE on the bought sheet
+installed = 0.4                # design: 20 % compression. Rogers: above 25 % speeds stress relaxation
+outer = "module outline"       # [big_display].outline, [narrow_display].outline
+inner = "lens_opening"         # never over the active area
+# Ring widths that follow: big 2.35 long sides, 6.75 tail edge, 1.95 far edge;
+# narrow 1.15 long sides, 3.49 tail edge, 1.00 far edge. The 1.0 mm strips are cut by laser (MEASURE).
+
+[display_carrier]
+# A printed ring that stands on the PCB top face and holds the panel up against the foam.
+# Located sideways by the pocket walls, which reach down to stack.pocket_skirt_bottom.
+# Height = stack.panel_face - panel thickness. Calipered panel thickness replaces the nominal one
+# (narrow 2.1 +/- 0.1 per the drawing): MEASURE.
+clearance = 0.15               # design: carrier outer = pocket - 0.15 a side
+wall = 2.0                     # design: 5 perimeters at 0.4
+big = { outer = [3.30, 79.15, 54.70, 83.20], inner = [5.30, 81.15, 50.70, 79.20], height = 3.45, tail_gap = [19.9, 79.15, 21.5, 2.0] }   # height MEASURE: 5.6 - calipered panel
+narrow = { outer = [63.66, 91.69, 24.68, 69.73], inner = [65.66, 93.69, 20.68, 65.73], height = 3.50, tail_gap = [72.75, 91.69, 6.5, 2.0] }   # height MEASURE; tail_gap x MEASURE, as the tail offset
+# Top-face keep-out = each carrier outer rectangle, z 0 to its height: no part, no THT lead,
+# no hole or hole keep-out, no slot, no test pad. Copper, vias and silkscreen under solder mask are fine.
+# Pocket skirt: a 1.0 band outside each pocket, from z 2.0 up. Top-face parts there stay under 2.0.
+
+[keys]
+part = "MX 5-pin in Kailh CPG151101S11-1 hot-swap socket"
+pitch = 19.05                         # datasheet
+x = [11.60, 30.65, 49.70]             # design; centre column on the big display centre
+y = [62.70, 43.65, 24.60]             # row 0 is the back row, as board.toml
+keycap = 18.0                         # drawn size; DSA base is 18.4 (report 08), seat MEASURE
+plate_hole = 14.0                     # datasheet, +/-0.05; print coupon MEASURE
+housing = 15.6                        # datasheet
+well_clearance = 0.7                  # design: deck key well = cap + 0.7, top edge y 72.4
+
+[buttons]
+part = "Omron B3F-1060 (B3F-1050 square stem as alternate), 6x6 through-hole"
+x = [11.60, 24.30, 37.00, 49.70]      # design: 12.7 pitch, outer two on the key columns
+y = 5.60                              # design
+cap = [9.5, 6.0]                      # design: web 3.0 (cnc) / 2.6 (print); MEASURE fit on the stem
+cap_flange = [9.5, 8.0]               # 1.0 flange front and back only; 1.35 clear of the (3, 3) boss
+body = 6.0                            # datasheet, +/-0.2
+footprint = "Button_Switch_THT:SW_TH_Tactile_Omron_B3F-100x"
+# Cap back edge 8.6, front keycap edge 15.6: gap 7.0. Deeper caps would close that gap.
+
+[knobs]
+part = "Alps EC11E18244AU, push, 6 mm flat shaft"
+x = 76.0                              # design: on the bar's centre line; do not move right
+y = [67.60, 41.10, 14.60]             # design: top to bottom, 26.5 pitch
+diameter = 18.0                       # design; 16.0 if the pinch coupon touches a keycap (MEASURE)
+encoder_body = [11.7, 12.0]           # datasheet (Alps drawing No. 2, report 08)
+bushing_hole = 7.4                    # report 08; MEASURE on a coupon
+footprint = "Rotary_Encoder:RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm"
+# Laser-engraved fixed indices left of each knob, the digits the strips show (report 14).
+index_marks = { height = 2.5, at = [[64.0, 67.6], [64.0, 41.1], [64.0, 14.6]], text = ["1", "2", "3"] }
+
+[usb]
+part = "GCT USB4216-03-A, USB 2.0 Type-C, 16 pin, top mount, SMT shell tabs"   # UNVERIFIED LCSC
+# Source: GCT drawing USB4216 rev A2, 2025-07-28, https://gct.co/Files/Drawings/USB4216.pdf
+# (read 2026-11-18, verified): 4 SMT shell pads, 2 x 0.65 peg holes, no shell slot.
+x = 45.8                              # design: centre of the back edge
+edge = "back"
+face = "bottom"
+body = [8.94, 6.50]                   # datasheet: shell 8.94 wide, 6.50 deep; 11.14 over the tabs
+height = 3.16                         # datasheet
+mouth_overhang = 1.0                  # design: shell front 1.0 past the PCB edge, into the wall opening; MEASURE
+# Pads from the drawing's recommended layout, shifted by mouth_overhang: front pads 2.10 behind the
+# shell front, rear pads 3.925 further, 10.19 over the pad outsides (x +/- 4.32).
+shell_pads = [                        # datasheet; centre x, y, then w, h; all on the bottom face
+  [41.48, 166.60, 1.55, 1.50], [50.12, 166.60, 1.55, 1.50],   # front pair, 0.35 from the PCB edge
+  [41.48, 162.68, 1.55, 1.25], [50.12, 162.68, 1.55, 1.25],   # rear pair, SMT, under the big carrier: allowed
+]
+peg_holes = { diameter = 0.65, at = [[42.8, 163.30], [48.8, 163.30]] }   # datasheet; edge 0.63 clear of the big carrier (162.35)
+# Mouth centre ~z -3.2 (1.6 board + 1.58 half shell). A ~12.5 x 7.0 overmold
+# (MEASURE) needs an opening from z -6.7 to +0.3, 1.1 into the bottom plate (inside z -5.6).
+opening = [12.6, 7.0]                 # design, centred on the mouth
+split = "notch"                       # 1.1 notch in the plate edge; alternative: plate face to z -7.2
+back_wall_thinned = { to = 1.0, area = [15.0, 9.0] }  # from outside; receptacle face 0.4 behind the thinned face
+# Test on a print coupon with the owner's cables.
+
+[fpc.big]
+part = "Hirose FH12-40S-0.5SH(55) class"   # 40 pin, 0.5 mm; FH12 or FH12A by tail face, MEASURE
+centre = [30.65, 92.30]               # MEASURE once the tail's contact face and fold are known
+body = [25.0, 5.5]                    # MEASURE: approximate envelope
+face = "bottom"                       # report 12: all SMT on the bottom face
+
+[fpc.narrow]
+part = "Hirose FH12-10S-0.5SH(55) class"   # 10 pin, 0.5 mm, UNVERIFIED
+centre = [76.0, 104.9]                # MEASURE: tail length and fold not known
+body = [10.0, 5.5]                    # MEASURE: approximate envelope
+face = "bottom"
+
+[mcu]
+# ESP32-S3-WROOM-1/1U datasheet v1.8 (verified): table 1-1 (N16R2, -40 to 85 C), figure 10-1.
+radio = "ESP32-S3-WROOM-1-N16R2, Wi-Fi 2.4 GHz, on-module PCB antenna"
+part = "ESP32-S3-WROOM-1-N16R2"
+face = "bottom"
+outline = [60.6, 142.2, 18.0, 25.5]   # datasheet size 18.0 x 25.5; position design; antenna end flush with the back edge
+height = 3.1                          # datasheet; over max_part_height 2.5: 0.9 to the plate, no pocket (MEASURE stack)
+
+[antenna]
+# On-module PCB antenna behind a non-metal back-wall insert (D7). Keep-out per the Espressif figure
+# in the header: antenna area 6 deep at the board edge, no board within it, board allowed at most 2
+# beyond the feed side, at least 15 clear beyond the far side. On the bottom face the module is
+# mirrored, so its feed point sits on the left in this top view: check against the footprint, MEASURE.
+part = "on-module PCB antenna, ESP32-S3-WROOM-1"
+area = [60.6, 161.7, 18.0, 6.0]       # datasheet: last 6.0 of the module (figure 10-1)
+board_cut = [58.6, 161.7, 33.0, 6.0]  # Espressif: feed side 2.0; far side runs off the PCB edge (13.0 + air)
+# Web behind the carriers: narrow 0.28 (161.42), big 0.60 (x 58.00). Cut corners R 0.5, design.
+insert = { outline = [56.0, 168.1, 31.6, 2.5], material = "black PC or POM", height = "full wall" }   # design
+# The insert replaces the back wall from x 56.0 to the corner arc (87.6) and carries a tongue that
+# fills [bottom_plate] antenna_relief. Metal distances from the antenna area (arithmetic, PCB frame):
+# left wall 4.6, right corner 9.0, deck underside about 7.6 above, narrow panel 0.4 in front.
+# Espressif asks >= 15 in all directions: not met; checked by the spike RSSI test (spec section 14).
+
+[regulator]
+part = "TI TLV62569DBV buck + 2.2 uH inductor, 4.7 uF in, 22 uF + 0.1 uF at the module"   # report 10
+face = "bottom"
+zone = [24.0, 148.0, 12.0, 8.0]       # design: near the USB VBUS entry; inductor height MEASURE
+
+[bottom_side]
+# Approximate. All SMT on the bottom face (report 12). Parts here are at most 2.5 tall
+# (4.0 gap, report 11), except the [mcu] module (3.1). Diodes beside each
+# socket under the key block.
+max_part_height = 2.5
+mcu_zone = [10.0, 100.0, 62.0, 42.0]  # support parts: backlight sinks, encoder RC; module in [mcu], buck in [regulator]
+usb_support_radius = 5.0              # ESD and CC resistors within 5 of the USB
+boot = [40.0, 155.3]                  # SMD switch >= 2.5 tall, under a plate pinhole
+reset = [52.0, 155.3]
+debug_uart = { at = [16.0, 155.3], part = "JST SM03B-SRSS-TB side entry, UART0 IO43/IO44, plate off" }
+
+[ui_mirror]
+# Big-display key cells, fixed in the template so the app editor cannot drift them.
+# 0.153 mm/px from the active left edge (x 6.17). Rows cannot line up: cell pitch < key pitch.
+key_cells_x = [0, 112, 224]           # 96 px wide: centres x 13.51 / 30.65 / 47.79 mm
+key_cell_w = 96
+legend_cells_x = [0, 83, 166, 249]    # 71 px wide: centres px 35.5 / 118.5 / 201.5 / 284.5,
+legend_cell_w = 71                    # over B1..B4 (report 14 used x 0,81,162,243 w 77)

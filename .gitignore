@@ -9,3 +9,4 @@ pcb/.build/
 __pycache__/
 *.pyc
 .DS_Store
+app/src-tauri/gen/

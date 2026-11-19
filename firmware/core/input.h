@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Debounce, quadrature, knob-push page split, and the backlight gate.
-// No SDK headers. firmware/src samples GPIO and calls input_step.
+// No SDK headers. The platform layer samples GPIO and calls input_step.
 #pragma once
 
 #include <stdbool.h>

@@ -1,0 +1,91 @@
+# Config vectors, schema 1. Rules: docs/config.md. One line per file in this directory:
+#   <file> valid | too_big | invalid [path]
+# `invalid` with no path means the empty path: the bytes are not one JSON object.
+# The pad range for every vector is schema min 1, max 1. No vector holds a secret.
+valid_full.json                     valid
+valid_minimal.json                  valid
+valid_unknown_fields.json           valid
+valid_url_10.json                   valid
+valid_url_172_16.json               valid
+valid_url_172_31.json               valid
+valid_seq_max.json                  valid
+valid_widgets_share_an_edge.json    valid
+valid_sixteen_widgets.json          valid
+valid_16384_bytes.json              valid
+too_big_16385_bytes.json            too_big
+not_json.json                       invalid
+not_utf8.json                       invalid
+root_is_a_list.json                 invalid
+trailing_bytes.json                 invalid
+schema_missing.json                 invalid schema
+schema_too_old.json                 invalid schema
+schema_too_new.json                 invalid schema
+schema_is_a_string.json             invalid schema
+schema_has_a_fraction.json          invalid schema
+seq_missing.json                    invalid seq
+seq_negative.json                   invalid seq
+seq_above_u32.json                  invalid seq
+obs_missing.json                    invalid obs
+url_missing.json                    invalid obs.url
+url_loopback.json                   invalid obs.url
+url_public.json                     invalid obs.url
+url_wss.json                        invalid obs.url
+url_userinfo.json                   invalid obs.url
+url_path.json                       invalid obs.url
+url_query.json                      invalid obs.url
+url_fragment.json                   invalid obs.url
+url_host_name.json                  invalid obs.url
+url_link_local.json                 invalid obs.url
+url_172_15.json                     invalid obs.url
+url_172_32.json                     invalid obs.url
+url_leading_zero.json               invalid obs.url
+url_ipv6.json                       invalid obs.url
+url_port_zero.json                  invalid obs.url
+url_port_65536.json                 invalid obs.url
+url_port_empty.json                 invalid obs.url
+url_port_leading_zero.json          invalid obs.url
+url_port_sign.json                  invalid obs.url
+url_http.json                       invalid obs.url
+url_empty.json                      invalid obs.url
+auth_mode_unknown.json              invalid obs.auth_mode
+ssid_33_bytes.json                  invalid wifi.ssid
+valid_ssid_32_bytes.json            valid
+keys_eight.json                     invalid keys
+key_unknown_action.json             invalid keys[2].do
+key_scene_without_uuid.json         invalid keys[0].uuid
+key_uuid_37_bytes.json              invalid keys[0].uuid
+key_uuid_with_a_space.json          invalid keys[0].uuid
+key_label_49_bytes.json             invalid keys[1].label
+valid_key_label_48_bytes.json       valid
+key_mute_without_uuid.json          invalid keys[4].uuid
+buttons_five.json                   invalid buttons
+button_is_a_string.json             invalid buttons[3].do
+knobs_two.json                      invalid knobs
+knob_input_missing.json             invalid knobs[2].input
+knob_input_without_label.json       invalid knobs[0].input.label
+knob_step_zero.json                 invalid knobs[1].step_db
+knob_step_above_6.json              invalid knobs[1].step_db
+knob_push_unknown.json              invalid knobs[0].push.do
+widgets_overlap.json                invalid main_display.widgets[1]
+widgets_overlap_on_the_strip.json   invalid strip_display.widgets[2]
+widget_outside_the_panel.json       invalid strip_display.widgets[0]
+widget_below_the_panel.json         invalid main_display.widgets[6]
+widget_too_narrow.json              invalid main_display.widgets[0].w
+widget_too_short.json               invalid main_display.widgets[0].h
+widget_x_negative.json              invalid main_display.widgets[1].x
+widget_unknown_kind.json            invalid main_display.widgets[0].kind
+widgets_seventeen.json              invalid main_display.widgets
+widgets_missing.json                invalid strip_display.widgets
+widget_key_twice.json               invalid main_display.widgets[2]
+widget_key_9.json                   invalid main_display.widgets[1].key
+widget_legend_4.json                invalid main_display.widgets[5].button
+widget_knob_twice.json              invalid strip_display.widgets[1]
+widget_text_33_bytes.json           invalid main_display.widgets[6].text
+widget_status_field_unknown.json    invalid main_display.widgets[0].fields[1]
+widget_status_field_twice.json      invalid main_display.widgets[0].fields[2]
+widget_status_no_fields.json        invalid main_display.widgets[0].fields
+widget_strip_part_unknown.json      invalid strip_display.widgets[0].parts[1]
+widget_scene_line_size_unknown.json invalid main_display.widgets[3].size
+ui_missing.json                     invalid ui
+brightness_101.json                 invalid ui.brightness
+first_of_two_errors.json            invalid obs.url

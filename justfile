@@ -1,23 +1,23 @@
 # macropad-obs: `just` lists the recipes.
-# `just test` is gcc, cargo, and python3. It does not build the window, the PCB, or the UF2.
+# `just test` is gcc, cargo, and python3. It does not build the window or the PCB.
 
 root := justfile_directory()
 
 default:
     @just --list
 
-test: test-firmware test-host check pcb-test cad-check
+test: test-firmware test-host check numbers
 
 test-firmware:
     mkdir -p {{root}}/.build
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
-        -I{{root}}/firmware -DVECTORS='"{{root}}/firmware/test/vectors.txt"' \
-        {{root}}/firmware/link.c {{root}}/firmware/test/test_link.c \
+        -I{{root}}/firmware/core -DVECTORS='"{{root}}/firmware/test/vectors.txt"' \
+        {{root}}/firmware/core/link.c {{root}}/firmware/test/test_link.c \
         -o {{root}}/.build/test_link
     {{root}}/.build/test_link
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
-        -I{{root}}/firmware \
-        {{root}}/firmware/input.c {{root}}/firmware/test/test_input.c \
+        -I{{root}}/firmware/core \
+        {{root}}/firmware/core/input.c {{root}}/firmware/test/test_input.c \
         -o {{root}}/.build/test_input
     {{root}}/.build/test_input
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
@@ -31,32 +31,27 @@ test-host:
 
 check:
     python3 {{root}}/tools/check_pins.py
+    python3 {{root}}/tools/test_check_pins.py
+    python3 {{root}}/tools/test_docs.py
 
-pcb-test:
-    cd {{root}}/pcb/gen && python3 -m unittest
+numbers:
+    python3 {{root}}/tools/check_numbers.py
+    python3 {{root}}/tools/test_check_numbers.py
+    python3 {{root}}/tools/test_check_measure.py
 
-cad-check:
-    python3 {{root}}/cad/build.py check
+# Not on the test chain. Board-order gate (spec 9 step 6): exits 1 while board.toml carries an
+# open MEASURE on a gated entry. No board order while it exits 1.
+gate:
+    python3 {{root}}/tools/check_measure.py
 
 # Not on the test chain. Needs webkit2gtk-4.1. A missing library fails this recipe.
+# Fails until task 3.6: task 1.6a deleted the v1 bridge that src/session.rs still imports.
 app:
     cd {{root}}/app/src-tauri && cargo build
 
 # Not on the test chain. KiCad 9.0.9 in Docker. Does not claim Gerbers exist until this exits 0.
+# Fails until task 5.6: task 1.4b retired pcb/gen with the old wedge.
 pcb:
     docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
         -v "{{root}}:{{root}}" -w "{{root}}" kicad/kicad:9.0.9 \
         python3 pcb/gen/build.py place
-
-# Not on the test chain. Ubuntu 24.04 image, pico-sdk commit in firmware/Dockerfile.
-firmware:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    docker build -t macropad-obs-fw -f {{root}}/firmware/Dockerfile {{root}}/firmware
-    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e PICO_SDK_PATH=/opt/pico-sdk \
-        -v "{{root}}:{{root}}" -w {{root}}/firmware macropad-obs-fw \
-        bash -lc 'cmake -S . -B .build -DPICO_BOARD=pico && cmake --build .build && mkdir -p dist && cp .build/macropad-obs.uf2 dist/macropad-obs.uf2'
-
-# Solids, STEP, STL, 3MF, and the README picture. Needs cad/.venv. Not on the test chain.
-cad:
-    {{root}}/cad/.venv/bin/python {{root}}/cad/build.py export

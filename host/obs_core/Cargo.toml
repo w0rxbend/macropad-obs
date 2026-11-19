@@ -10,7 +10,4 @@ publish = false
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 toml = { version = "0.8", default-features = false, features = ["parse", "display"] }
-
-[profile.release]
-lto = true
-strip = true
+serde_json = { version = "1", default-features = false, features = ["std"] }
