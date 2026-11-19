@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="502" height="806" viewBox="0 0 501.60 806.00">
+<rect width="100%" height="100%" fill="#fff"/>
+<rect x="56.00" y="56.00" width="389.60" height="694.00" rx="27.60" style="fill:#f4f4f2;stroke:#222;stroke-width:2.4"/>
+<rect x="67.60" y="67.60" width="366.40" height="670.80" rx="16.00" style="fill:#dfeee0;stroke:#2a7a3a;stroke-width:1.4;stroke-dasharray:8 4"/>
+<rect x="302.00" y="67.60" width="132.00" height="24.00" rx="0.00" style="fill:#f4f4f2;stroke:#b33;stroke-width:1.2"/>
+<rect x="310.00" y="67.60" width="72.00" height="24.00" rx="0.00" style="fill:none;stroke:#444;stroke-width:1.2;stroke-dasharray:4 2"/>
+<text x="346.00" y="79.60" font-family="sans-serif" font-size="7.20" fill="#111" text-anchor="middle" dominant-baseline="middle">PCB antenna</text>
+<rect x="291.60" y="56.00" width="126.40" height="10.00" rx="0.00" style="fill:#f2c14e;stroke:#7a5a00;stroke-width:1.2"/>
+<text x="354.80" y="61.00" font-family="sans-serif" font-size="7.20" fill="#111" text-anchor="middle" dominant-baseline="middle">non-metal insert</text>
+<rect x="80.20" y="88.40" width="220.00" height="334.00" rx="0.00" style="fill:none;stroke:#557;stroke-width:0.6"/>
+<rect x="80.80" y="89.00" width="218.80" height="332.80" rx="0.00" style="fill:none;stroke:#7b3fa0;stroke-width:1"/>
+<rect x="81.28" y="89.52" width="217.84" height="331.76" rx="0.00" style="fill:#c8ccd4;stroke:#333;stroke-width:1.4"/>
+<rect x="92.28" y="98.92" width="195.84" height="293.76" rx="0.00" style="fill:#1f2a44;stroke:none"/>
+<rect x="90.68" y="97.32" width="199.04" height="296.96" rx="0.00" style="fill:none;stroke:#e08a00;stroke-width:1;stroke-dasharray:4 2.4"/>
+<text x="190.20" y="233.80" font-family="sans-serif" font-size="12.00" fill="#fff" text-anchor="middle" dominant-baseline="middle">BIG 3.5in 320x480</text>
+<text x="190.20" y="251.80" font-family="sans-serif" font-size="8.00" fill="#cfd6e6" text-anchor="middle" dominant-baseline="middle">active 48.96 x 73.44</text>
+<text x="190.20" y="265.80" font-family="sans-serif" font-size="8.00" fill="#cfd6e6" text-anchor="middle" dominant-baseline="middle">module 54.46 x 82.94</text>
+<rect x="321.64" y="92.12" width="99.92" height="280.12" rx="0.00" style="fill:none;stroke:#557;stroke-width:0.6"/>
+<rect x="322.24" y="92.72" width="98.72" height="278.92" rx="0.00" style="fill:none;stroke:#7b3fa0;stroke-width:1"/>
+<rect x="322.84" y="93.32" width="97.52" height="277.72" rx="0.00" style="fill:#c8ccd4;stroke:#333;stroke-width:1.4"/>
+<rect x="329.04" y="98.92" width="85.12" height="256.56" rx="0.00" style="fill:#1f2a44;stroke:none"/>
+<rect x="327.44" y="97.32" width="88.32" height="259.76" rx="0.00" style="fill:none;stroke:#e08a00;stroke-width:1;stroke-dasharray:4 2.4"/>
+<text x="371.60" y="215.20" font-family="sans-serif" font-size="12.00" fill="#fff" text-anchor="middle" dominant-baseline="middle">BAR 2.79in</text>
+<text x="371.60" y="233.20" font-family="sans-serif" font-size="8.00" fill="#cfd6e6" text-anchor="middle" dominant-baseline="middle">active 21.28 x 64.14</text>
+<text x="371.60" y="247.20" font-family="sans-serif" font-size="8.00" fill="#cfd6e6" text-anchor="middle" dominant-baseline="middle">module 24.38 x 69.43</text>
+<rect x="140.20" y="358.20" width="100.00" height="22.00" rx="0.00" style="fill:#e9c46a;stroke:#8a6d1d;stroke-width:1;stroke-dasharray:4 2;opacity:0.6"/>
+<text x="190.20" y="369.20" font-family="sans-serif" font-size="5.60" fill="#111" text-anchor="middle" dominant-baseline="middle">FPC big</text>
+<rect x="351.60" y="307.80" width="40.00" height="22.00" rx="0.00" style="fill:#e9c46a;stroke:#8a6d1d;stroke-width:1;stroke-dasharray:4 2;opacity:0.6"/>
+<text x="371.60" y="318.80" font-family="sans-serif" font-size="5.60" fill="#111" text-anchor="middle" dominant-baseline="middle">FPC narrow</text>
+<rect x="147.20" y="428.00" width="86.00" height="6.00" rx="0.00" style="fill:#333;stroke:none"/>
+<rect x="358.60" y="377.60" width="26.00" height="6.00" rx="0.00" style="fill:#333;stroke:none"/>
+<rect x="78.00" y="451.60" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="86.00" y="459.60" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="114.00" y="487.60" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K1</text>
+<rect x="154.20" y="451.60" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="162.20" y="459.60" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="190.20" y="487.60" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K2</text>
+<rect x="230.40" y="451.60" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="238.40" y="459.60" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="266.40" y="487.60" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K3</text>
+<rect x="78.00" y="527.80" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="86.00" y="535.80" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="114.00" y="563.80" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K4</text>
+<rect x="154.20" y="527.80" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="162.20" y="535.80" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="190.20" y="563.80" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K5</text>
+<rect x="230.40" y="527.80" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="238.40" y="535.80" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="266.40" y="563.80" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K6</text>
+<rect x="78.00" y="604.00" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="86.00" y="612.00" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="114.00" y="640.00" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K7</text>
+<rect x="154.20" y="604.00" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="162.20" y="612.00" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="190.20" y="640.00" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K8</text>
+<rect x="230.40" y="604.00" width="72.00" height="72.00" rx="6.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<rect x="238.40" y="612.00" width="56.00" height="56.00" rx="0.00" style="fill:none;stroke:#999;stroke-width:0.8"/>
+<text x="266.40" y="640.00" font-family="sans-serif" font-size="10.40" fill="#111" text-anchor="middle" dominant-baseline="middle">K9</text>
+<rect x="95.00" y="704.00" width="38.00" height="24.00" rx="4.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<text x="114.00" y="716.00" font-family="sans-serif" font-size="8.00" fill="#111" text-anchor="middle" dominant-baseline="middle">B1</text>
+<rect x="145.80" y="704.00" width="38.00" height="24.00" rx="4.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<text x="164.80" y="716.00" font-family="sans-serif" font-size="8.00" fill="#111" text-anchor="middle" dominant-baseline="middle">B2</text>
+<rect x="196.60" y="704.00" width="38.00" height="24.00" rx="4.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<text x="215.60" y="716.00" font-family="sans-serif" font-size="8.00" fill="#111" text-anchor="middle" dominant-baseline="middle">B3</text>
+<rect x="247.40" y="704.00" width="38.00" height="24.00" rx="4.00" style="fill:#ffffff;stroke:#111;stroke-width:1.6"/>
+<text x="266.40" y="716.00" font-family="sans-serif" font-size="8.00" fill="#111" text-anchor="middle" dominant-baseline="middle">B4</text>
+<circle cx="371.60" cy="468.00" r="36.00" style="fill:#555;stroke:#111;stroke-width:1.6"/>
+<circle cx="371.60" cy="468.00" r="12.00" style="fill:#888;stroke:#222;stroke-width:0.8"/>
+<text x="371.60" y="468.00" font-family="sans-serif" font-size="8.80" fill="#fff" text-anchor="middle" dominant-baseline="middle">E1</text>
+<circle cx="371.60" cy="574.00" r="36.00" style="fill:#555;stroke:#111;stroke-width:1.6"/>
+<circle cx="371.60" cy="574.00" r="12.00" style="fill:#888;stroke:#222;stroke-width:0.8"/>
+<text x="371.60" y="574.00" font-family="sans-serif" font-size="8.80" fill="#fff" text-anchor="middle" dominant-baseline="middle">E2</text>
+<circle cx="371.60" cy="680.00" r="36.00" style="fill:#555;stroke:#111;stroke-width:1.6"/>
+<circle cx="371.60" cy="680.00" r="12.00" style="fill:#888;stroke:#222;stroke-width:0.8"/>
+<text x="371.60" y="680.00" font-family="sans-serif" font-size="8.80" fill="#fff" text-anchor="middle" dominant-baseline="middle">E3</text>
+<text x="323.60" y="468.00" font-family="sans-serif" font-size="10.00" fill="#a33" text-anchor="middle" dominant-baseline="middle">1</text>
+<text x="323.60" y="574.00" font-family="sans-serif" font-size="10.00" fill="#a33" text-anchor="middle" dominant-baseline="middle">2</text>
+<text x="323.60" y="680.00" font-family="sans-serif" font-size="10.00" fill="#a33" text-anchor="middle" dominant-baseline="middle">3</text>
+<circle cx="371.60" cy="468.00" r="10.00" style="fill:none;stroke:#2a5db0;stroke-width:0.8;stroke-dasharray:2.4 1.6"/>
+<circle cx="371.60" cy="574.00" r="10.00" style="fill:none;stroke:#2a5db0;stroke-width:0.8;stroke-dasharray:2.4 1.6"/>
+<circle cx="371.60" cy="680.00" r="10.00" style="fill:none;stroke:#2a5db0;stroke-width:0.8;stroke-dasharray:2.4 1.6"/>
+<circle cx="79.60" cy="726.40" r="10.00" style="fill:none;stroke:#b33;stroke-width:0.8;stroke-dasharray:3.2 2"/>
+<circle cx="79.60" cy="726.40" r="4.40" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<circle cx="422.00" cy="726.40" r="10.00" style="fill:none;stroke:#b33;stroke-width:0.8;stroke-dasharray:3.2 2"/>
+<circle cx="422.00" cy="726.40" r="4.40" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<circle cx="79.60" cy="436.40" r="10.00" style="fill:none;stroke:#b33;stroke-width:0.8;stroke-dasharray:3.2 2"/>
+<circle cx="79.60" cy="436.40" r="4.40" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<circle cx="422.00" cy="436.40" r="10.00" style="fill:none;stroke:#b33;stroke-width:0.8;stroke-dasharray:3.2 2"/>
+<circle cx="422.00" cy="436.40" r="4.40" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<circle cx="422.00" cy="574.00" r="10.00" style="fill:none;stroke:#b33;stroke-width:0.8;stroke-dasharray:3.2 2"/>
+<circle cx="422.00" cy="574.00" r="4.40" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<circle cx="80.80" cy="74.40" r="10.00" style="fill:none;stroke:#b33;stroke-width:0.8;stroke-dasharray:3.2 2"/>
+<circle cx="80.80" cy="74.40" r="4.40" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<rect x="232.92" y="63.60" width="35.76" height="26.00" rx="0.00" style="fill:#9ab;stroke:#234;stroke-width:1.2;stroke-dasharray:4 2;opacity:0.7"/>
+<rect x="230.42" y="69.00" width="6.20" height="6.00" rx="0.00" style="fill:none;stroke:#b33;stroke-width:1;stroke-dasharray:2.4 1.6"/>
+<rect x="264.98" y="69.00" width="6.20" height="6.00" rx="0.00" style="fill:none;stroke:#b33;stroke-width:1;stroke-dasharray:2.4 1.6"/>
+<rect x="230.42" y="85.18" width="6.20" height="5.00" rx="0.00" style="fill:none;stroke:#b33;stroke-width:1;stroke-dasharray:2.4 1.6"/>
+<rect x="264.98" y="85.18" width="6.20" height="5.00" rx="0.00" style="fill:none;stroke:#b33;stroke-width:1;stroke-dasharray:2.4 1.6"/>
+<circle cx="238.80" cy="85.20" r="1.30" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<circle cx="262.80" cy="85.20" r="1.30" style="fill:#fff;stroke:#b33;stroke-width:1.2"/>
+<text x="250.80" y="49.60" font-family="sans-serif" font-size="8.80" fill="#111" text-anchor="middle" dominant-baseline="middle">USB-C</text>
+<rect x="310.00" y="67.60" width="72.00" height="102.00" rx="0.00" style="fill:none;stroke:#444;stroke-width:1.2;stroke-dasharray:4 2"/>
+<text x="346.00" y="130.60" font-family="sans-serif" font-size="7.20" fill="#111" text-anchor="middle" dominant-baseline="middle">ESP32-S3 module</text>
+<rect x="163.60" y="114.40" width="48.00" height="32.00" rx="0.00" style="fill:none;stroke:#444;stroke-width:1.2;stroke-dasharray:4 2"/>
+<text x="187.60" y="130.40" font-family="sans-serif" font-size="7.20" fill="#111" text-anchor="middle" dominant-baseline="middle">buck</text>
+<line x1="56.00" y1="778.00" x2="96.00" y2="778.00" style="stroke:#111;stroke-width:2.40"/>
+<line x1="56.00" y1="782.00" x2="56.00" y2="774.00" style="stroke:#111;stroke-width:1.20"/>
+<line x1="96.00" y1="782.00" x2="96.00" y2="774.00" style="stroke:#111;stroke-width:1.20"/>
+<text x="76.00" y="788.00" font-family="sans-serif" font-size="9.60" fill="#111" text-anchor="middle" dominant-baseline="middle">10 mm</text>
+<text x="445.60" y="778.00" font-family="sans-serif" font-size="9.60" fill="#111" text-anchor="end" dominant-baseline="middle">body 97.4 x 173.5 mm, PCB 91.6 x 167.7</text>
+<text x="250.80" y="32.00" font-family="sans-serif" font-size="12.00" fill="#111" text-anchor="middle" dominant-baseline="middle">macropad-obs layout v2 rev 3 - top view, back edge up; dashed parts sit under the board</text>
+</svg>
