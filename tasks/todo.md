@@ -190,7 +190,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
 
 ## Phase 2: Firmware core (SDK-free, `firmware/core/`, gcc ASan/UBSan in `just test`)
 
-- [ ] **2.1 fw-crypto (S) [P, lane A].** SHA-1, SHA-256, base64.
+- [x] **2.1 fw-crypto (S) [P, lane A].** SHA-1, SHA-256, base64.
   - Accept: the NIST vectors pass. The R05 obs-websocket auth example gives the published string.
   - Verify: `just test-firmware`. Deps: 1.2. Files: `core/crypto.[ch]`, `test/test_crypto.c`.
 - [ ] **2.2 fw-json (M) [P, lane B].** Vendor LwJSON v1.10.1 (MIT; **new dependency, ask first**).

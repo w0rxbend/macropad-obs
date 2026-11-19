@@ -17,6 +17,11 @@ test-firmware:
     {{root}}/.build/test_link
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core \
+        {{root}}/firmware/core/crypto.c {{root}}/firmware/test/test_crypto.c \
+        -o {{root}}/.build/test_crypto
+    {{root}}/.build/test_crypto
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core \
         {{root}}/firmware/core/input.c {{root}}/firmware/test/test_input.c \
         -o {{root}}/.build/test_input
     {{root}}/.build/test_input
