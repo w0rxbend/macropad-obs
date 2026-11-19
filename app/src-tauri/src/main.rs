@@ -5,7 +5,7 @@ mod pad;
 mod session;
 
 use session::Cmd;
-use tauri::State;
+use tauri::{Manager, State};
 use tokio::sync::{mpsc, oneshot};
 
 struct Shell {

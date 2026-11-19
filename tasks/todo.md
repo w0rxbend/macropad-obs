@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: 1.9 (config schema and vectors); 3.1 runs beside it.
+Next action: 1.9 (config schema and vectors).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -331,7 +331,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
 
 ## Phase 3: App
 
-- [ ] **3.1 app-shell build defects (M) [P with Phase 1].** `build.rs` declares the commands
+- [x] **3.1 app-shell build defects (M) [P with Phase 1].** `build.rs` declares the commands
   through `AppManifest::commands`. `main.rs` imports `tauri::Manager`. The icons are RGBA.
   - Accept: the `macropad-obs` build script raises no ACL error. Today it raises "Permission
     allow-get-state not found" (reproduced in review).
