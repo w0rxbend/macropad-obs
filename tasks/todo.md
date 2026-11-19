@@ -204,7 +204,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: ghosting cases, debounce, and 2 turns/s with bounce all pass. Holding 5.0 s raises the
     clear event; 4.9 s does not.
   - Verify: `just test-firmware`. Deps: 1.3. Files: `core/input.[ch]`, `test/test_input.c`.
-- [ ] **2.4 fw-wifi state machine (S) [P, lane D].** States, backoff, and one strip line per
+- [x] **2.4 fw-wifi state machine (S) [P, lane D].** States, backoff, and one strip line per
   failure. No IDF headers.
   - Accept: every state and backoff step runs on a fake event feed. Each failure maps to its line.
     No line holds a secret.

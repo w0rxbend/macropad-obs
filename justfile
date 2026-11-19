@@ -21,6 +21,11 @@ test-firmware:
         -o {{root}}/.build/test_input
     {{root}}/.build/test_input
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core \
+        {{root}}/firmware/core/wifi.c {{root}}/firmware/test/test_wifi.c \
+        -o {{root}}/.build/test_wifi
+    {{root}}/.build/test_wifi
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware \
         {{root}}/firmware/st7789.c {{root}}/firmware/font8x16.c {{root}}/firmware/test/test_st7789.c \
         -o {{root}}/.build/test_st7789
