@@ -21,3 +21,12 @@ D1 = W changes the spec: the MCU moves from RP2350B to an ESP32-S3 module, and t
 | USB-C | The rear stakes of the USB-C socket sit under the big display carrier | **Use a socket with surface-mount shell tabs.** |
 | Spec | Approve spec v2 and start? | **Approved: plan and build.** |
 | G-rules | May `CLAUDE.md` be rewritten with rules R1 to R6 of spec section 12? | **Approved, all six** (2026-11-19). |
+
+## Third round, 2026-11-19
+
+| Id | Question | Answer |
+|---|---|---|
+| G-deps | New dependencies: LwJSON v1.10.1 (vendored), `espflash` 4.7.0, `cc`, `serialport`, a 4 bpp font source | **Approved, all.** |
+| G-docker | Pull `espressif/idf:v6.1.1` (4.2 GB); build the `app-check` image from the local `kicad/kicad:10.0.7` with apt packages | **Approved, both.** |
+| G-git | How is the work committed? | **Always commit and push to `main`.** |
+| G-parallel | How many agents at once? | **8.** |
