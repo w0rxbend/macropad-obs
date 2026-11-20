@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: 3.7 (UI: mapping editor), then 3.8 and 3.9.
+Next action: 3.7 (UI: mapping editor), then 3.8.
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -394,19 +394,17 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     command layer, and a look after D6).
   - Verify: `just test`; after 3.9, `just app-check`. Deps: 3.7. Files: `ui/display.js`,
     `ui/wifi.js`, `ui/update.js`, `host/app_core/src/forms.rs`.
-- [ ] **3.9 app-check and udev (S).** A `just app-check` image built from the local
+- [x] **3.9 app-check and udev (S).** A `just app-check` image built from the local
   `kicad/kicad:10.0.7` with Tauri's Debian list (**apt packages: ask first**), and `xvfb-run`. Add
   the 303a:1001 ROM port to the udev rule (check_pins is not touched).
   - Accept: the 3.1 shell compiles and the window "macropad-obs" is visible within 10 s and alive
     for 5 s.
   - Verify: `just app-check`. Deps: 3.1. Files: `app/check/Dockerfile`, `justfile`,
     `app/udev/70-macropad-obs.rules`.
-  - Status: image, `app/check/window.sh`, recipe and udev line are in. Open until 3.6: `just
-    app-check` stops at `session.rs` (v1 `Bridge`, `Port`). A scratch copy with a stub `session.rs`
-    builds in the image and passes the window check. `check_pins.py` had to learn the second line,
-    because it compares the whole rule file. Rechecked 2026-11-20: same stop, same stub pass. The
-    image is approved (G-docker), so 3.6 is unblocked; 3.9 ticks when 3.6 makes `just app-check`
-    exit 0.
+  - Status: image, `app/check/window.sh`, recipe and udev line are in (9e5adc2). After 3.6 (3ffe849)
+    `just app-check` exits 0 on the real tree: `cargo build --locked` in the image, then "window
+    visible within 10 s, alive 5 s later" under Xvfb. `check_pins.py` learned the second udev line,
+    because it compares the whole rule file. Under Xvfb only; not a look on a desktop, no pad.
 
 ### Checkpoint 3
 - [ ] `just test` includes 4b and 4c.
