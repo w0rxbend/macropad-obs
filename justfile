@@ -17,6 +17,11 @@ test-firmware:
     {{root}}/.build/test_link
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core \
+        {{root}}/firmware/core/link.c {{root}}/firmware/core/link_tx.c {{root}}/firmware/test/test_link_tx.c \
+        -o {{root}}/.build/test_link_tx
+    {{root}}/.build/test_link_tx
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core \
         {{root}}/firmware/core/crypto.c {{root}}/firmware/test/test_crypto.c \
         -o {{root}}/.build/test_crypto
     {{root}}/.build/test_crypto
@@ -217,6 +222,8 @@ app-check:
 firmware:
     python3 {{root}}/tools/check_partitions.py
     mkdir -p {{root}}/.build/esp32s3 {{root}}/.build/idf-home
+    # idf.py applies sdkconfig.defaults only to a new sdkconfig: drop the old one when they change.
+    if [ {{root}}/firmware/esp32s3/sdkconfig.defaults -nt {{root}}/.build/esp32s3/sdkconfig ]; then rm -f {{root}}/.build/esp32s3/sdkconfig; fi
     docker run --rm -u "$(id -u):$(id -g)" -e HOME={{root}}/.build/idf-home \
         -v "{{root}}:{{root}}" -w "{{root}}/firmware/esp32s3" espressif/idf:v6.1.1 \
         idf.py -B {{root}}/.build/esp32s3 -D SDKCONFIG={{root}}/.build/esp32s3/sdkconfig \

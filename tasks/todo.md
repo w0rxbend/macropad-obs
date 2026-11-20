@@ -408,13 +408,16 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: `just firmware` writes a merged image. The partition table is checked against the spec.
   - Verify: `just firmware`. Deps: Checkpoint 2, approval. Files: `esp32s3/CMakeLists.txt`,
     `main/CMakeLists.txt`, `sdkconfig.defaults`, `partitions.csv`, `main/idf_component.yml`.
-- [ ] **4.2 USB CDC port and BOOTLOADER (M) [P].** One CDC-ACM port. Writes block on back-pressure.
+- [x] **4.2 USB CDC port and BOOTLOADER (M) [P].** One CDC-ACM port. Writes block on back-pressure.
   A pull read feeds the link. The serial number comes from the MAC. The BOOTLOADER register
   sequence follows spec 8.2. `cred` is erased first.
   - Accept: it builds. The register names match the IDF v6.1.1 headers. A host test covers the
     write loop's back-pressure path.
   - Verify: `just firmware`; `just test`. Deps: 4.1. Files: `main/usb_port.c`, `main/boot_dl.c`,
     `core/link_tx.c`, `test/test_link_tx.c`.
+  - Status: builds; not wired yet. 4.7 calls `usb_port_start`, `usb_port_feed`, `usb_port_send`,
+    and `boot_dl_enter` after the BOOTLOADER reply. A write blocks only while DTR is set; with the
+    port closed it drops the frame. Not run on hardware.
 - [ ] **4.3 Wi-Fi, stream and cred port (M) [P].** `esp_wifi` STA with `WIFI_STORAGE_RAM` set after
   init and before `set_config`. The PSK loads from `cred` on each boot. An lwIP socket `stream`.
   `cred_nvs.c` owns `nvs_flash_init_partition("cred")` and `nvs_flash_erase_partition("cred")`.

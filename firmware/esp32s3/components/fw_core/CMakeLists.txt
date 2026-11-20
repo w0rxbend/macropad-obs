@@ -6,7 +6,7 @@ set(lwjson ${core}/third_party/lwjson)
 idf_component_register(
     SRCS ${core}/actions.c ${core}/config.c ${core}/crypto.c ${core}/device.c
          ${core}/font_noto14.c ${core}/font_noto20.c ${core}/font_noto28.c ${core}/input.c
-         ${core}/json.c ${core}/link.c ${core}/obs.c ${core}/obs_state.c ${core}/panels.c
+         ${core}/json.c ${core}/link.c ${core}/link_tx.c ${core}/obs.c ${core}/obs_state.c ${core}/panels.c
          ${core}/render.c ${core}/store.c ${core}/ui.c ${core}/wifi.c ${core}/ws.c
          ${lwjson}/src/lwjson/lwjson_stream.c
     INCLUDE_DIRS ${core} ${lwjson} ${lwjson}/src/include)
