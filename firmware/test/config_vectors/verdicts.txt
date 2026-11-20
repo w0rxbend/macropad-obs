@@ -57,6 +57,8 @@ key_uuid_37_bytes.json              invalid keys[0].uuid
 key_uuid_with_a_space.json          invalid keys[0].uuid
 key_label_49_bytes.json             invalid keys[1].label
 valid_key_label_48_bytes.json       valid
+valid_label_48_escaped_bytes.json   valid
+label_49_escaped_bytes.json         invalid knobs[1].input.label
 key_mute_without_uuid.json          invalid keys[4].uuid
 buttons_five.json                   invalid buttons
 button_is_a_string.json             invalid buttons[3].do
@@ -89,3 +91,7 @@ widget_scene_line_size_unknown.json invalid main_display.widgets[3].size
 ui_missing.json                     invalid ui
 brightness_101.json                 invalid ui.brightness
 first_of_two_errors.json            invalid obs.url
+duplicate_member_last_wins.json     valid
+duplicate_member_last_is_bad.json   invalid ui.brightness
+duplicate_object_replaces_the_first.json invalid obs.url
+number_out_of_range.json            invalid

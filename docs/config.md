@@ -2,13 +2,13 @@
 
 Schema 1 (spec 8.2, `docs/spec/spec-v2.md`). One document describes the whole pad. It lives on the pad. The app reads it with `CFG_READ`, edits it and writes it back with `CFG_BEGIN`, `CFG_CHUNK` and `CFG_COMMIT` (`docs/protocol.md`).
 
-Four files hold this contract and change together (R3): `firmware/core/config.c`, `host/obs_core/src/document.rs`, `firmware/test/config_vectors/` and this file. Until task 2.9, `firmware/core/config.c` is a stub that answers `unimplemented`; the Rust validator is the only one that runs the rules.
+Four files hold this contract and change together (R3): `firmware/core/config.c`, `host/obs_core/src/document.rs`, `firmware/test/config_vectors/` and this file. Both validators run the same rules in the same order and give the same verdict and path for every vector.
 
 The document carries no secret. The OBS password and the Wi-Fi passphrase go only in `SET_CREDENTIAL` (R1).
 
 ## Form
 
-Compact UTF-8 JSON, one object, at most 16384 bytes (16 KiB, spec 8.2). A longer document gets `RESULT too_big`. Bytes that are not one JSON object get `RESULT invalid` with an empty path.
+Compact UTF-8 JSON, one object, at most 16384 bytes (16 KiB, spec 8.2). A longer document gets `RESULT too_big`. Bytes that are not one JSON object get `RESULT invalid` with an empty path. So does a number too large for a double, such as `1e400`, wherever it sits. A member name that appears twice in one object: the last one counts, and nothing of the first is kept.
 
 ```json
 {"schema":1,"seq":17,
@@ -153,9 +153,9 @@ Spec 8.2 and R13 differ on when a try-only draft ends (`docs/research/gap-3.md`,
 
 `firmware/test/config_vectors/` holds one file per case, the raw bytes of a document. `verdicts.txt` in that directory lists each file with its verdict: `valid`, `too_big`, or `invalid` and the path (no path means the empty path). The pad range for every vector is min 1, max 1.
 
-The Rust test gives every file to the validator and compares the verdict and the path. A second Rust test fails when a file is missing from `verdicts.txt` or listed there without a file. The C test does the same against the stub and expects `unimplemented` for every file; task 2.9 replaces the stub and that test.
+The Rust test gives every file to the validator and compares the verdict and the path. A second Rust test fails when a file is missing from `verdicts.txt` or listed there without a file. The C test (`firmware/test/test_config.c`) holds `firmware/core/config.c` to the same table.
 
 ## Open points
 
-- A member name that appears twice in one object: schema 1 does not say which wins. Task 2.9 fixes it with a vector.
+- Two limits of the pad's JSON reader (`firmware/core/json.h`) are not rules of the Rust validator: a number literal longer than 32 bytes and nesting deeper than 16 stack entries make the pad answer `invalid` with the empty path. No document the app writes comes near either; the owner decides whether `document.rs` adopts them.
 - `uuid` takes any 1..36 printable bytes because criterion 4c uses `U_B`, while `OBS_ITEM` carries 16 raw UUID bytes. The owner picks one form before task 2.12.

@@ -49,9 +49,12 @@ test-firmware:
         -o {{root}}/.build/test_wifi
     {{root}}/.build/test_wifi
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
-        -I{{root}}/firmware/core -DCONFIG_VECTORS='"{{root}}/firmware/test/config_vectors"' \
-        {{root}}/firmware/core/config.c {{root}}/firmware/test/test_config.c \
-        -o {{root}}/.build/test_config
+        -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        -DCONFIG_VECTORS='"{{root}}/firmware/test/config_vectors"' \
+        {{root}}/firmware/core/config.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c \
+        {{root}}/firmware/test/test_config.c -o {{root}}/.build/test_config
     {{root}}/.build/test_config
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware \

@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.9 (fw-config) once 2.2 lands.
+Next action: Checkpoint 1 owner review, then 2.10 (fw-store) and 2.13 (fw-ui model), which the C config validator unblocks.
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -236,7 +236,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     the state.
   - Verify: `just test`. Deps: 2.7. Files: `core/obs_state.[ch]`, `test/test_obs_state.c`,
     `host/obs_core/src/obs.rs` (delete), `host/obs_core/src/lib.rs`.
-- [ ] **2.9 fw-config (M).** The C document codec and validator over `fw-json`. Replaces the 1.9
+- [x] **2.9 fw-config (M).** The C document codec and validator over `fw-json`. Replaces the 1.9
   stub and its `unimplemented` test.
   - Accept: every `config_vectors/` file gives the same verdict as Rust (1.9), and the same first
     bad path.
