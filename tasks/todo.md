@@ -500,7 +500,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     measured them.
   - Verify: `just pcb-test`; `just gate` lists fewer items. Deps: S.3, 5.3a. Files:
     `pcb/lib/macropad-obs.pretty/FPC_*`, `pcb/lib/SOURCES.txt`, `board.toml`.
-- [ ] **5.4 Netlist: power, MCU and USB (M).** Module, TLV62569 buck, USB4216, ESD, PPTC, 5.1 k
+- [x] **5.4 Netlist: power, MCU and USB (M).** Module, TLV62569 buck, USB4216, ESD, PPTC, 5.1 k
   CC resistors, CC sense, BOOT/RESET, debug JST, BCR421 x2.
   - Accept: the self-check finds no open pin and every IC power pin tied. LCSC cells stay
     UNVERIFIED. No SK6812. The rule tests from `git show d3f75a2:pcb/gen/test_circuit.py` are
