@@ -432,9 +432,13 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     `wifi_port_act` with each fw-wifi action, `wifi_port_next_event` into `wifi_on_event`, and
     `stream_lwip_init` for fw-ws. Unreferenced, so the linker drops them until then. Not run on
     hardware.
-- [ ] **4.4 Config slot port (S).** `esp_partition` backend for `cfg_a`/`cfg_b` behind the
+- [x] **4.4 Config slot port (S).** `esp_partition` backend for `cfg_a`/`cfg_b` behind the
   `fw-store` NOR seam. Calls the 4.3 cred erase; does not edit `cred_nvs.c`.
   - Verify: `just firmware`. Deps: 4.3. Files: `main/store_flash.c`.
+  - Status: builds with no warning; not wired yet. 4.7 calls `cred_nvs_init`, then
+    `store_flash_bind(&port, &slots, &cred)`, which fills `device_port_t` `cred`, `flash`,
+    `slot_a`, `slot_b`, so device.c's wipe runs `cred_nvs` erase before the slots. Not run on
+    hardware.
 - [ ] **4.5 Input port (S) [P].** A matrix GPIO scan task. PCNT units 0-2 with glitch filter on the
   spec's pins.
   - Verify: `just firmware`; `just check` (pins from `pins.h`). Deps: 4.1. Files:
