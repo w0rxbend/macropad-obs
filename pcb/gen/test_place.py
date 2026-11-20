@@ -252,11 +252,47 @@ class PlacedBoardTest(unittest.TestCase):
             contract.check_antenna(board)
             self.assertEqual(contract.copper_in(board, route.antenna_keepout()), wanted)
 
+    def test_contract_finds_a_bottom_part_on_an_encoder_post(self) -> None:
+        board = self._saved_board(place.board_parts())
+        board.FindFootprintByReference("R24").SetPosition(layout.point(*_encoder_post(0)))
+        with self.assertRaisesRegex(AssertionError, "R24 courtyard .*encoder post"):
+            contract.check_encoder_posts(board)
+
+    def test_contract_finds_bottom_copper_on_an_encoder_post(self) -> None:
+        board = self._saved_board(place.board_parts())
+        x, y = _encoder_post(1)
+        track = pcbnew.PCB_TRACK(board)
+        track.SetLayer(pcbnew.B_Cu)
+        track.SetStart(layout.point(x - 3.0, y))
+        track.SetEnd(layout.point(x + 3.0, y))
+        track.SetWidth(layout.mm(layout.TRACK_WIDTH))
+        board.Add(track)
+        with self.assertRaisesRegex(AssertionError, "PCB_TRACK .*encoder post"):
+            contract.check_encoder_posts(board)
+
+    def test_encoder_post_keepouts_cover_each_post_on_the_bottom_copper_only(self) -> None:
+        board = layout.build_board(self.board_path, place.board_parts(), {})
+        layout.add_encoder_post_keepouts(board)
+        areas = [zone for zone in board.Zones() if zone.GetIsRuleArea() and zone.GetDoNotAllowTracks()
+                 and zone.GetDoNotAllowVias() and zone.GetDoNotAllowCopperPour()
+                 and list(zone.GetLayerSet().CuStack()) == [pcbnew.B_Cu]]
+        radius = BOARD["bottom_plate"]["encoder_post_keepout"] / 2
+        for index in range(len(BOARD["bottom_plate"]["encoder_posts"]["at"])):
+            x, y = _encoder_post(index)
+            rim = [layout.point(x + radius * math.cos(k * math.pi / 8), y + radius * math.sin(k * math.pi / 8))
+                   for k in range(16)]
+            self.assertTrue(any(all(area.Outline().Contains(p) for p in rim) for area in areas), (x, y))
+
     def test_overlapping_courtyards_fail_the_build(self) -> None:
         r1 = place.spots()["R1"]
         parts = _moved("R2", r1.x + 0.5, r1.y)
         with self.assertRaisesRegex(AssertionError, "R1 and R2 courtyards overlap"):
             layout.build_board(self.board_path, parts, {})
+
+
+def _encoder_post(index: int) -> tuple[float, float]:
+    """KiCad point of board.toml [bottom_plate] encoder post `index`."""
+    return place.kicad_xy(*BOARD["bottom_plate"]["encoder_posts"]["at"][index])
 
 
 def _moved_knob(ref: str, shaft_y: float) -> tuple[place.PlacedPart, ...]:

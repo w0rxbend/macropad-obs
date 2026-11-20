@@ -279,6 +279,13 @@ def add_hole_keepouts(board: pcbnew.BOARD) -> None:
         _circle_rule_area(board, COPPER_LAYERS, x, y, PCB["hole_keepout_diameter"] / 2)
 
 
+def add_encoder_post_keepouts(board: pcbnew.BOARD) -> None:
+    """board.toml [bottom_plate] encoder_post_keepout round each encoder post, on B.Cu: the post meets that face."""
+    plate = SPEC["bottom_plate"]
+    for x, y in plate["encoder_posts"]["at"]:
+        _circle_rule_area(board, (pcbnew.B_Cu,), *kicad_xy(x, y), plate["encoder_post_keepout"] / 2)
+
+
 def hole_centres() -> list[tuple[float, float]]:
     return [kicad_xy(x, y) for x, y in PCB["holes"]]
 

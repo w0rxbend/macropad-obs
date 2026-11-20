@@ -5,7 +5,8 @@
 
 Checks the outline with the antenna cut and the tail slots, the layer count and thickness, every M2 hole
 with its keep-out, the parts board.toml places, no copper in the antenna cut, nothing on the top face
-under a display carrier, and no tall top part beside a pocket (spec-v2 section 7). Prints one line per group.
+under a display carrier, no tall top part beside a pocket (spec-v2 section 7), and nothing on the bottom face
+at an encoder post. Prints one line per group.
 
 Copied from macropad-greycode pcb/gen (decision D5). Greycode's key, knob, OLED, USB, LED and RP2040
 groups are gone: they read greycode's circuit and board.toml.
@@ -347,7 +348,34 @@ def check_pocket_skirt(board: pcbnew.BOARD) -> str:
     return f"no top part of {limit} mm or more within {SKIRT_WIDTH} mm of a pocket"
 
 
-CHECKS = (check_outline, check_holes, check_positions, check_antenna, check_carriers, check_pocket_skirt)
+def _on_back_near(board: pcbnew.BOARD, x: float, y: float, radius: float) -> list[str]:
+    """Each B.Cu pad, track or via and each bottom courtyard that comes within radius of (x, y)."""
+    centre, reach = pcbnew.VECTOR2I(pcbnew.FromMM(x), pcbnew.FromMM(y)), pcbnew.FromMM(radius)
+    found = [f"{track.GetClass()} at {_xy(track.GetStart())}" for track in board.GetTracks()
+             if track.IsOnLayer(pcbnew.B_Cu) and track.HitTest(centre, reach)]
+    for footprint in board.GetFootprints():
+        found += [f"{footprint.GetReference()} pad {pad.GetNumber()}" for pad in footprint.Pads()
+                  if pad.IsOnLayer(pcbnew.B_Cu) and pad.HitTest(centre, reach, pcbnew.B_Cu)]
+        footprint.BuildCourtyardCaches()
+        courtyard = footprint.GetCourtyard(pcbnew.B_CrtYd)
+        if courtyard.OutlineCount() and courtyard.Collide(centre, reach):
+            found.append(f"{footprint.GetReference()} courtyard")
+    return found
+
+
+def check_encoder_posts(board: pcbnew.BOARD) -> str:
+    """[bottom_plate] encoder_post_keepout: no part and no copper on the bottom face round each encoder post.
+    The route-critical rule areas keep pours out; this reads what is there."""
+    plate = SPEC["bottom_plate"]
+    radius = plate["encoder_post_keepout"] / 2
+    for x, y in plate["encoder_posts"]["at"]:
+        inside = _on_back_near(board, *_spec_xy(x, y), radius)
+        assert not inside, f"{', '.join(inside)} within {radius} mm of the encoder post at ({x}, {y})"
+    return f"nothing on the bottom face within {radius} mm of the {len(plate['encoder_posts']['at'])} encoder posts"
+
+
+CHECKS = (check_outline, check_holes, check_positions, check_antenna, check_carriers, check_pocket_skirt,
+          check_encoder_posts)
 
 
 def check(board: pcbnew.BOARD) -> None:

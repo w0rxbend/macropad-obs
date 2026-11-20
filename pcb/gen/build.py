@@ -250,6 +250,7 @@ def route_critical() -> None:
     layout.add_copper_keepout(board, route.antenna_keepout())
     for rect in route.slot_keepouts():
         layout.add_copper_keepout(board, rect)
+    layout.add_encoder_post_keepouts(board)
     save_filled(board, BOARD_PATH)
     routed = pcbnew.LoadBoard(str(BOARD_PATH))
     check_locked(routed, result)
