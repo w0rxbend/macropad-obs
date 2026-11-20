@@ -8,7 +8,9 @@ The board here is the board.toml outline with six stock M2 holes: no circuit yet
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
+import subprocess
 import tempfile
 import tomllib
 import unittest
@@ -28,6 +30,8 @@ if HAVE_PCBNEW:
     import contract
     import fab
     import layout
+    import schematic
+    import sheets
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BOARD_TOML = tomllib.loads((REPO_ROOT / "board.toml").read_text())
@@ -131,6 +135,33 @@ class BoardTest(unittest.TestCase):
         pcbnew.SaveBoard(str(self.board_path), board)
         layout.write_project_rules(self.board_path.with_suffix(".kicad_pro"))
         build.check_rules_reach_drc(self.board_path, self.dir)
+
+
+def _kicad_cli(*arguments: str) -> None:
+    subprocess.run(["kicad-cli", *arguments], check=True, stdout=subprocess.DEVNULL)
+
+
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
+class ParityTest(unittest.TestCase):
+    """The placed board beside the schematic it was placed from, judged by DRC at warning severity."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        folder = Path(tempfile.mkdtemp())
+        board_path = folder / f"{schematic.PROJECT}.kicad_pcb"
+        netlist_path = folder / "schematic.net"
+        schematic.write(folder, sheets.SHEET)
+        _kicad_cli("sch", "export", "netlist", "--format", "kicadsexpr", "-o", str(netlist_path),
+                   str(board_path.with_suffix(".kicad_sch")))
+        build.place_board(board_path, netlist_path)
+        report_path = folder / "drc.json"
+        _kicad_cli("pcb", "drc", "--severity-warning", "--schematic-parity", "--format", "json", "-o",
+                   str(report_path), str(board_path))
+        cls.parity = json.loads(report_path.read_text())["schematic_parity"]
+
+    def test_every_open_pin_keeps_the_net_the_schematic_gives_it(self) -> None:
+        conflicts = sorted(item["items"][0]["description"] for item in self.parity if item["type"] == "net_conflict")
+        self.assertEqual(conflicts, [])
 
 
 @unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)

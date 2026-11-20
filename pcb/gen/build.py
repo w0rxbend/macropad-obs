@@ -48,6 +48,7 @@ KICAD_DIR = PCB_DIR / "kicad"
 BOARD_PATH = KICAD_DIR / f"{schematic.PROJECT}.kicad_pcb"
 SCHEMATIC_PATH = KICAD_DIR / f"{schematic.PROJECT}.kicad_sch"
 BUILD_DIR = PCB_DIR / ".build"
+NETLIST_PATH = BUILD_DIR / "schematic.net"
 # The fab set while the board still stands on PLACEHOLDER_* footprints: test_footprints.py keeps them out of pcb/fab.
 PROVISIONAL_FAB_DIR = BUILD_DIR / "fab"
 IMAGE_DIR = PCB_DIR.parent / "docs" / "images" / "pcb"
@@ -64,10 +65,8 @@ def _kicad_cli(*arguments: str) -> None:
     subprocess.run(["kicad-cli", *arguments], check=True, stdout=subprocess.DEVNULL)
 
 
-def _schematic_nets() -> dict[str, str]:
-    """"U1.5" -> net, read back from the netlist KiCad exports for the schematic."""
-    netlist_path = BUILD_DIR / "schematic.net"
-    _kicad_cli("sch", "export", "netlist", "--format", "kicadsexpr", "-o", str(netlist_path), str(SCHEMATIC_PATH))
+def read_netlist(netlist_path: Path) -> dict[str, str]:
+    """"U1.5" -> net, from a netlist KiCad exported for the schematic."""
     nets = {}
     for block in netlist_path.read_text().split("(net (code")[1:]:
         name = re.search(r'\(name "/?([^"]*)"\)', block).group(1)
@@ -76,10 +75,20 @@ def _schematic_nets() -> dict[str, str]:
     return nets
 
 
-def write_schematic(sheet: schematic.Sheet) -> dict[str, str]:
-    """Schematic of the sheet, then KiCad's own view of it: rule check, and the netlist compared pin by pin.
+def open_pin_nets(nets: dict[str, str]) -> dict[str, str]:
+    """The nets of the open pins ("U1.14" -> "unconnected-(U1-GPIO10-Pad14)"): the board must carry them too."""
+    return {pin: net for pin, net in nets.items() if net.startswith(schematic.OPEN_PIN_NET_PREFIX)}
 
-    Returns the nets of the open pins ("U1.14" -> "unconnected-(U1-GPIO10-Pad14)") for the board."""
+
+def _schematic_nets() -> dict[str, str]:
+    """"U1.5" -> net, read back from the netlist KiCad exports for the schematic."""
+    _kicad_cli("sch", "export", "netlist", "--format", "kicadsexpr", "-o", str(NETLIST_PATH), str(SCHEMATIC_PATH))
+    return read_netlist(NETLIST_PATH)
+
+
+def write_schematic(sheet: schematic.Sheet) -> None:
+    """Schematic of the sheet, then KiCad's own view of it: rule check, and the netlist compared pin by pin.
+    The netlist stays in NETLIST_PATH, where place_board reads the open pins' nets."""
     BUILD_DIR.mkdir(exist_ok=True)
     KICAD_DIR.mkdir(exist_ok=True)
     # The project file is where kicad-cli finds the project's sym-lib-table, so it must exist before ERC.
@@ -88,12 +97,11 @@ def write_schematic(sheet: schematic.Sheet) -> dict[str, str]:
     _kicad_cli("sch", "erc", "--severity-all", "--exit-code-violations", "-o", str(BUILD_DIR / "erc.rpt"),
                str(SCHEMATIC_PATH))
     exported, wanted = _schematic_nets(), schematic.nets_by_pin(sheet.parts)
-    open_pin_nets = {pin: net for pin, net in exported.items() if net.startswith(schematic.OPEN_PIN_NET_PREFIX)}
-    drawn = {pin: net for pin, net in exported.items() if pin not in open_pin_nets}
+    open_pins = open_pin_nets(exported)
+    drawn = {pin: net for pin, net in exported.items() if pin not in open_pins}
     wrong = sorted(pin for pin in drawn.keys() | wanted.keys() if drawn.get(pin) != wanted.get(pin))
     assert not wrong, f"schematic and circuit disagree on {wrong}"
     print(f"schematic: ERC clean, {len(drawn)} pins match the circuit")
-    return open_pin_nets
 
 
 SCHEMATIC_FILES = (f"{schematic.PROJECT}.kicad_sch", f"{schematic.PROJECT}.kicad_sym", "sym-lib-table", "fp-lib-table")
@@ -197,18 +205,19 @@ def drc() -> None:
     print("drc: the project rules reach DRC, no warnings")
 
 
-def place_board() -> None:
+def place_board(board_path: Path = BOARD_PATH, netlist_path: Path = NETLIST_PATH) -> None:
     """The parts at their place.py spots on the board.toml outline, saved, then read back by the contract.
-    Open pins stay without a net until the schematic step (task 5.7) names them."""
-    KICAD_DIR.mkdir(exist_ok=True)
-    layout.write_project_rules(BOARD_PATH.with_suffix(".kicad_pro"))
+    Each open pin gets the net the schematic's netlist (from `build.py erc`) names for it."""
+    assert netlist_path.exists(), f"no {netlist_path}: run `build.py erc` first"
+    board_path.parent.mkdir(exist_ok=True)
+    layout.write_project_rules(board_path.with_suffix(".kicad_pro"))
     parts = place.board_parts()
-    board = layout.build_board(BOARD_PATH, parts, {})
-    pcbnew.SaveBoard(str(BOARD_PATH), board)
+    board = layout.build_board(board_path, parts, open_pin_nets(read_netlist(netlist_path)))
+    pcbnew.SaveBoard(str(board_path), board)
     placeholders = sorted(part.ref for part in parts if "PLACEHOLDER_" in part.footprint)
     print(f"place: {len(parts)} footprints, {len(circuit_hmi.BOARD_PARTS)} circuit parts; provisional on "
           f"PLACEHOLDER_* tails {placeholders}")
-    contract.check(pcbnew.LoadBoard(str(BOARD_PATH)))
+    contract.check(pcbnew.LoadBoard(str(board_path)))
 
 
 def check_locked(board: pcbnew.BOARD, result: route.Result) -> None:
