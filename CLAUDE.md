@@ -2,9 +2,9 @@
 
 `board.toml` is the pin and mechanical source of truth. `tools/check_pins.py` binds `firmware/esp32s3/main/pins.h` and `host/obs_core/src/protocol.rs` to it. `docs/spec/layout-v2.toml` feeds `board.toml`; no board order while `tools/check_measure.py` exits 1.
 
-`just test` is gcc ASan, `cargo` in `host/`, and python3. It does not build `app/src-tauri`, does not import KiCad or the Pico SDK, and does not need `cad/.venv`.
+`just test` is gcc ASan/UBSan, `cargo` in `host/`, and python3. It runs padsim end to end against a fake OBS. It does not build `app/src-tauri`, does not import KiCad or ESP-IDF, and does not need `cad/.venv`.
 
-Protocol changes update `firmware/core/link.c`, `host/obs_core/src/protocol.rs`, `firmware/test/vectors.txt` and `docs/protocol.md` together.
+Protocol changes update `firmware/core/link.c`, `host/obs_core/src/protocol.rs`, `firmware/test/vectors.txt` and `docs/protocol.md` together. Config schema changes update `firmware/core/config.c`, `host/obs_core/src/document.rs`, `firmware/test/config_vectors/` and `docs/config.md` together.
 
 `LICENSE` is MIT for `firmware/`, `host/`, `app/`, and `tools/`. `LICENSE.cern-ohl-s` is CERN-OHL-S-2.0 for `pcb/` and `cad/`.
 

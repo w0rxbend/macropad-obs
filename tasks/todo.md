@@ -318,7 +318,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     key, no AP, OBS unreachable, bad password, OBS too old and factory each give their strip line
     (9). `just test` stays under 60 s.
   - Verify: `just test`. Deps: 2.17a. Files: `host/obs_core/tests/padsim_faults.rs`.
-- [ ] **2.18 Repo rule R4 (S).** Apply the spec 12 R4 text to `CLAUDE.md` (G-rules), now that
+- [x] **2.18 Repo rule R4 (S).** Apply the spec 12 R4 text to `CLAUDE.md` (G-rules), now that
   `just test` runs padsim end to end.
   - Accept: R4 matches spec 12 word for word. Every path in `CLAUDE.md` exists (the 1.10 loop).
   - Verify: `just test`. Deps: 2.17b. Files: `CLAUDE.md`.
