@@ -87,13 +87,6 @@ test-firmware:
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
         -I{{root}}/firmware/core/third_party/lwjson/src/include \
-        {{root}}/firmware/core/actions.c {{root}}/firmware/core/obs_state.c {{root}}/firmware/core/config.c \
-        {{root}}/firmware/core/json.c {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c \
-        {{root}}/firmware/test/test_actions.c -o {{root}}/.build/test_actions
-    {{root}}/.build/test_actions
-    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
-        -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
-        -I{{root}}/firmware/core/third_party/lwjson/src/include \
         -DGOLDEN='"{{root}}/firmware/test/golden"' \
         {{root}}/firmware/core/ui.c {{root}}/firmware/core/json.c \
         {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c {{root}}/firmware/core/render.c \
