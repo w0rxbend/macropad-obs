@@ -1,18 +1,26 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
-"""Assembly files from the routed board: JLCPCB bill of materials and component placement list, and the checks
-that they agree with the board, the Gerbers and the drill file.
+"""The JLCPCB file set from the routed board: Gerbers and drill files from kicad-cli, their zip, the bill of
+materials and component placement list, the routing summary and the board's SHA-256, and the checks that they
+agree with the board and with each other. Runs inside the KiCad container (`just pcb fab`).
 
-Gerbers and drill files come from kicad-cli (`just pcb`). Runs inside the KiCad container.
+KiCad stamps each Gerber, drill and job file with the time it wrote it; `without_dates` drops those stamps and
+`write_zip` fixes the member times, so the set is byte-repeatable from the same board.
 
 Copied from macropad-greycode pcb/gen (decision D5). The parts come in as `FabPart`s instead of
-greycode's circuit module. An LCSC cell that is not a JLCPCB number (UNVERIFIED) fails `check_outputs`.
+greycode's circuit module. LCSC cells stay UNVERIFIED (CLAUDE.md), so a BOM line without a JLCPCB number or a
+manufacturer part number does not fail the set: `order_blockers` lists it, and the owner's upload (F.1) and
+`just gate` decide on ordering.
 """
 
 from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import re
+import shutil
+import subprocess
+import zipfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Protocol
@@ -22,8 +30,13 @@ import pcbnew
 import schematic
 
 FAB_DIR = Path(__file__).resolve().parents[1] / "fab"
-# The board's SHA-256 when the order files were last written. test_order_files.py (task 5.10) compares it.
-BOARD_HASH_PATH = FAB_DIR / "board-sha256.txt"
+# In each fab folder: the board's SHA-256 when the set was written, and the board's DRC counts and copper.
+# test_order_files.py compares both with the committed board.
+BOARD_HASH_NAME = "board-sha256.txt"
+ROUTING_NAME = "routing.txt"
+GERBER_LAYERS = "F.Cu,In1.Cu,In2.Cu,B.Cu,F.Paste,B.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts"
+# Midnight of 1980-01-01, the earliest time a zip member can carry.
+ZIP_MEMBER_TIME = (1980, 1, 1, 0, 0, 0)
 BOM_COLUMNS = ["Comment", "Designator", "Footprint", "LCSC Part #", "Manufacturer", "Manufacturer Part #"]
 
 
@@ -128,9 +141,85 @@ def _drill_hits_by_diameter(drill_path: Path) -> dict[str, int]:
     return dict(hits)
 
 
-def check_outputs(board: pcbnew.BOARD, parts: tuple[FabPart, ...]) -> None:
-    """The files in pcb/fab/ agree with the board and with each other. Run after the Gerber export."""
-    gerber_dir = FAB_DIR / "gerbers"
+_GERBER_DATE = re.compile(r"^(G04 Created by KiCad \([^)]*\)) date [^*]*\*$", re.MULTILINE)
+_DRILL_DATE = re.compile(r"^(; DRILL file \{[^}]*\}) date \S+$", re.MULTILINE)
+_X2_DATE = re.compile(r"^(%TF\.CreationDate,[^*]*\*%|; #@! TF\.CreationDate,.*)\n", re.MULTILINE)
+
+
+def without_dates(name: str, text: str) -> str:
+    """A Gerber, drill or job file as KiCad wrote it, less the time it wrote it. The X2 creation date is optional."""
+    if name.endswith(".gbrjob"):
+        job = json.loads(text)
+        del job["Header"]["CreationDate"]
+        return json.dumps(job, indent=2) + "\n"
+    text = _X2_DATE.sub("", text)
+    text = _GERBER_DATE.sub(r"\1*", text)
+    return _DRILL_DATE.sub(r"\1", text)
+
+
+def write_gerbers(board_path: Path, gerber_dir: Path) -> None:
+    """kicad-cli's Gerbers and Excellon drill files (plated and unplated apart), without their dates."""
+    gerber_dir.mkdir(parents=True)
+    subprocess.run(["kicad-cli", "pcb", "export", "gerbers", "--layers", GERBER_LAYERS, "--subtract-soldermask",
+                    "-o", f"{gerber_dir}/", str(board_path)], check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(["kicad-cli", "pcb", "export", "drill", "--format", "excellon", "--excellon-units", "mm",
+                    "--excellon-separate-th", "-o", f"{gerber_dir}/", str(board_path)],
+                   check=True, stdout=subprocess.DEVNULL)
+    for path in gerber_dir.iterdir():
+        path.write_text(without_dates(path.name, path.read_text()))
+
+
+def write_zip(gerber_dir: Path, zip_path: Path) -> None:
+    """The folder as the zip the board house takes: members in name order, each at the same fixed time."""
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        for path in sorted(gerber_dir.iterdir()):
+            member = zipfile.ZipInfo(f"{gerber_dir.name}/{path.name}", ZIP_MEMBER_TIME)
+            member.compress_type = zipfile.ZIP_DEFLATED
+            member.external_attr = 0o644 << 16
+            archive.writestr(member, path.read_bytes())
+
+
+def differing_files(first: Path, second: Path) -> list[str]:
+    """Relative paths of the files that differ between two folders, or that only one of them holds."""
+    def files(root: Path) -> dict[str, Path]:
+        return {path.relative_to(root).as_posix(): path for path in root.rglob("*") if path.is_file()}
+    in_first, in_second = files(first), files(second)
+    return sorted(name for name in in_first.keys() | in_second.keys()
+                  if name not in in_first or name not in in_second
+                  or in_first[name].read_bytes() != in_second[name].read_bytes())
+
+
+_WHERE = {"bom": "in the BOM", "placement": "in the placement list", "board": "on the board"}
+_PAIRS = (("bom", "placement"), ("bom", "board"), ("placement", "bom"), ("placement", "board"), ("board", "bom"),
+          ("board", "placement"))
+
+
+def reference_mismatches(bom_refs: list[str], placement_refs: list[str], board_refs: set[str]) -> list[str]:
+    """Each reference the BOM, the placement list and the board's placed footprints do not all name once."""
+    found = [f"{ref}: twice {_WHERE[name]}" for name, refs in (("bom", bom_refs), ("placement", placement_refs))
+             for ref in sorted({ref for ref in refs if refs.count(ref) > 1})]
+    named = {"bom": set(bom_refs), "placement": set(placement_refs), "board": board_refs}
+    for ref in sorted(set().union(*named.values())):
+        found += [f"{ref}: {_WHERE[here]}, not {_WHERE[there]}" for here, there in _PAIRS
+                  if ref in named[here] and ref not in named[there]]
+    return found
+
+
+def order_blockers(bom_rows: list[dict[str, str]]) -> list[str]:
+    """BOM lines JLCPCB cannot buy from yet: no JLCPCB part number, or no manufacturer part number."""
+    found = []
+    for row in bom_rows:
+        line = f"{row['Designator']} {row['Comment']}"
+        if not re.fullmatch(r"C\d+", row["LCSC Part #"]):
+            found.append(f"{line}: no JLCPCB part number ({row['LCSC Part #']})")
+        if not (row["Manufacturer"] and row["Manufacturer Part #"]):
+            found.append(f"{line}: no manufacturer part number")
+    return found
+
+
+def check_outputs(board: pcbnew.BOARD, parts: tuple[FabPart, ...], fab_dir: Path) -> None:
+    """The files in fab_dir agree with the board and with each other. Run after the Gerber export."""
+    gerber_dir = fab_dir / "gerbers"
     board_written = Path(board.GetFileName()).stat().st_mtime
     for suffix in GERBER_SUFFIXES:
         gerber = gerber_dir / f"{schematic.PROJECT}-{suffix}"
@@ -148,17 +237,15 @@ def check_outputs(board: pcbnew.BOARD, parts: tuple[FabPart, ...]) -> None:
     assert npth == board_npth, f"{board_npth} unplated holes on the board, {npth} in the drill file"
 
     machine_assembled = {part.ref for part in parts if part.machine_assembled}
-    bom_rows = _read_csv("bom-jlcpcb.csv")
-    placement_rows = _read_csv("cpl-jlcpcb.csv")
+    bom_rows = _read_csv(fab_dir / "bom-jlcpcb.csv")
+    placement_rows = _read_csv(fab_dir / "cpl-jlcpcb.csv")
     placed = [row["Designator"] for row in placement_rows]
     listed = [ref for row in bom_rows for ref in row["Designator"].split(",")]
-    assert sorted(listed) == sorted(placed) == sorted(machine_assembled), "BOM, placement list and circuit differ"
-    assert len(placed) == len(set(placed)), "a part is placed twice"
+    on_board = {fp.GetReference() for fp in board.GetFootprints() if not fp.IsExcludedFromPosFiles()}
+    mismatched = reference_mismatches(listed, placed, on_board)
+    assert not mismatched, f"BOM, placement list and board differ: {mismatched}"
+    assert on_board == machine_assembled, "the board's placed footprints and the circuit's machine-placed parts differ"
     assert {row["Layer"] for row in placement_rows} <= {"Top", "Bottom"}, "side is not Top or Bottom"
-    unnumbered = [row["Comment"] for row in bom_rows if not re.fullmatch(r"C\d+", row["LCSC Part #"])]
-    assert not unnumbered, f"no JLCPCB part number for {unnumbered}"
-    no_mpn = [row["Comment"] for row in bom_rows if not (row["Manufacturer"] and row["Manufacturer Part #"])]
-    assert not no_mpn, f"no manufacturer part number for {no_mpn}"
     value = {part.ref: part.value for part in parts}
     for row in bom_rows:
         for ref in row["Designator"].split(","):
@@ -172,8 +259,8 @@ def check_outputs(board: pcbnew.BOARD, parts: tuple[FabPart, ...]) -> None:
             f"{row['Designator']}: side or rotation differs from the board"
 
 
-def _read_csv(name: str) -> list[dict[str, str]]:
-    with (FAB_DIR / name).open() as csv_file:
+def _read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open() as csv_file:
         return list(csv.DictReader(csv_file))
 
 
@@ -192,14 +279,23 @@ def _check_placement_on_parts(board: pcbnew.BOARD, placement_rows: list[dict[str
             f"{row['Designator']}: placement point ({x:.3f}, {y:.3f}) is not on the part"
 
 
-def write_assembly_files(board_path: Path, parts: tuple[FabPart, ...]) -> None:
-    FAB_DIR.mkdir(exist_ok=True)
+def routing_summary(board: pcbnew.BOARD, drc_counts: dict[str, int]) -> str:
+    """One line: the DRC counts the routed board was judged by, then its tracks and vias."""
+    counts = "  ".join(f"{name} {count}" for name, count in drc_counts.items())
+    tracks = sum(item.GetClass() == "PCB_TRACK" for item in board.GetTracks())
+    vias = sum(item.GetClass() == "PCB_VIA" for item in board.GetTracks())
+    return f"{counts}  tracks {tracks}  vias {vias}\n"
+
+
+def write_set(board_path: Path, parts: tuple[FabPart, ...], fab_dir: Path, drc_counts: dict[str, int]) -> list[str]:
+    """The whole set into an emptied fab_dir, checked against the board. Returns the BOM's order blockers."""
+    shutil.rmtree(fab_dir, ignore_errors=True)
+    write_gerbers(board_path, fab_dir / "gerbers")
+    write_zip(fab_dir / "gerbers", fab_dir / f"{schematic.PROJECT}-gerbers.zip")
     board = pcbnew.LoadBoard(str(board_path))
-    write_bom(parts, FAB_DIR / "bom-jlcpcb.csv")
-    write_placement(board, parts, FAB_DIR / "cpl-jlcpcb.csv")
-    check_outputs(board, parts)
-    BOARD_HASH_PATH.write_text(f"{board_hash(board_path)}  {board_path.name}\n")
-    assembled = sum(part.machine_assembled for part in parts)
-    lines = len(_bom_lines(parts))
-    print(f"assembly files: {assembled} machine-placed parts on {lines} BOM lines; Gerbers, drill files, "
-          "BOM and placement list agree with the board")
+    write_bom(parts, fab_dir / "bom-jlcpcb.csv")
+    write_placement(board, parts, fab_dir / "cpl-jlcpcb.csv")
+    check_outputs(board, parts, fab_dir)
+    (fab_dir / ROUTING_NAME).write_text(routing_summary(board, drc_counts))
+    (fab_dir / BOARD_HASH_NAME).write_text(f"{board_hash(board_path)}  {board_path.name}\n")
+    return order_blockers(_read_csv(fab_dir / "bom-jlcpcb.csv"))

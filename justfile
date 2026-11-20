@@ -230,7 +230,7 @@ firmware:
         build merge-bin -o macropad-obs-merged.bin
     python3 {{root}}/tools/check_partitions.py --built {{root}}/.build/esp32s3
 
-# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc, route);
+# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (erc, route, fab);
 # `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
 # `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml;
 # `just pcb route-critical` places, then adds the locked critical copper, the inner planes and the
@@ -239,7 +239,10 @@ firmware:
 # sha256 stops it), routes the free nets on F.Cu and B.Cu in eclipse-temurin:25-jre with no network,
 # reads the session back, and passes when KiCad's DRC at error severity finds 0 violations,
 # 0 unconnected and 0 parity on the 4-layer board. Any other STEP is a pcb/gen/build.py step.
-# Does not claim Gerbers exist until the pipeline has a fab step and exits 0.
+# `just pcb fab` judges the routed board again, writes the JLCPCB set (Gerbers, drill, zip, BOM, CPL,
+# routing.txt, board sha256) twice and passes when both writes are the same bytes and the BOM, CPL and
+# board footprints name the same parts; into pcb/fab, or pcb/.build/fab while PLACEHOLDER_* tails remain.
+# It lists the BOM lines that still stop an order; F.1 and `just gate` decide on ordering.
 pcb *STEP:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -249,7 +252,7 @@ pcb *STEP:
     }
     route() { kicad dsn; python3 -B {{root}}/pcb/gen/freeroute.py; kicad routed; }
     case "{{STEP}}" in
-        "") kicad erc; route ;;
+        "") kicad erc; route; kicad fab ;;
         route) route ;;
         *) kicad {{STEP}} ;;
     esac

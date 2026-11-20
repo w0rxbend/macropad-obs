@@ -550,13 +550,17 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     copper layers and every net routed (criterion 10). A wrong sha256 stops the run.
   - Verify: `just pcb`. Deps: 5.8. Files: `pcb/gen/freeroute.py`, `pcb/outer.rules`, `.gitignore`,
     `justfile`.
-- [ ] **5.10 Fab outputs (M) [provisional].** The JLCPCB Gerber, drill, BOM and CPL set. Bring in
+- [x] **5.10 Fab outputs (M) [provisional].** The JLCPCB Gerber, drill, BOM and CPL set. Bring in
   greycode's `test_order_files.py` here.
   - Accept: the outputs are byte-repeatable. Locally, every BOM reference matches a CPL line and a
     board footprint, and back. The JLCPCB upload is F.1 [owner]. `just gate` (1.5) still decides on
     ordering.
   - Verify: `just pcb fab`. Deps: 5.9. Files: `pcb/gen/fab.py`, `test_fab.py`,
     `pcb/gen/test_order_files.py`, `pcb/fab/*`, `justfile`.
+  - Status: `just pcb fab` writes 19 files, twice, byte-identical, and BOM, CPL and board agree.
+    J3/J4 are still `PLACEHOLDER_*`, so the set lands in ignored `pcb/.build/fab`; `pcb/fab` and
+    the committed board come with 5.12. 48 BOM findings (UNVERIFIED LCSC, no MPN) are listed,
+    not failed. CPL rotation against the STEP is F.1/5.11.
 - [ ] **5.11 Board STEP (S) [provisional].** `kicad-cli` in the local `kicad/kicad:10.0.7-full`
   (it has `RF_Module.3dshapes/ESP32-S3-WROOM-1.step`, `Connector_USB` and `Button_Switch` models;
   plain `10.0.7` has no `/usr/share/kicad/3dmodels`). MX and EC11 come from the `cad` envelopes.

@@ -9,11 +9,13 @@
     build.py dsn      route-critical, then the board as a Specctra DSN for Freerouting (freeroute.py)
     build.py routed   Freerouting's session read back, filled, and judged: the contract, the locks, and
                       KiCad's DRC at error severity with 0 violations, 0 unconnected, 0 parity (criterion 10)
+    build.py fab      the routed board judged again, then the JLCPCB set (fab.py) written twice and compared byte
+                      for byte; into pcb/fab, or into pcb/.build/fab while a PLACEHOLDER_* footprint is on it
     build.py contract the saved board against board.toml: outline, holes, positions, antenna, carriers
     build.py drc      KiCad's DRC: the project rules reach it, and no warning is left
 
 Several steps run in order: `build.py erc dsn`. Freerouting runs between `dsn` and `routed`, on the host in
-its own image (`just pcb route`). The order files join as a step in task 5.10.
+its own image (`just pcb route`); `fab` follows `routed`.
 
 Copied from macropad-greycode pcb/gen (decision D5), with `_check_rules_reach_drc` as macropad's
 pcb/gen/build.py has it. Greycode's place and order steps are gone until this board has a circuit
@@ -33,6 +35,7 @@ import pcbnew
 
 import circuit_hmi
 import contract
+import fab
 import freeroute
 import layout
 import place
@@ -45,6 +48,8 @@ KICAD_DIR = PCB_DIR / "kicad"
 BOARD_PATH = KICAD_DIR / f"{schematic.PROJECT}.kicad_pcb"
 SCHEMATIC_PATH = KICAD_DIR / f"{schematic.PROJECT}.kicad_sch"
 BUILD_DIR = PCB_DIR / ".build"
+# The fab set while the board still stands on PLACEHOLDER_* footprints: test_footprints.py keeps them out of pcb/fab.
+PROVISIONAL_FAB_DIR = BUILD_DIR / "fab"
 IMAGE_DIR = PCB_DIR.parent / "docs" / "images" / "pcb"
 # Camera for the two angled renders, as kicad-cli wants it: degrees about X, Y, Z.
 ASSEMBLED_VIEW_ROTATION = "-50,0,25"
@@ -275,19 +280,23 @@ def _locked_items(board: pcbnew.BOARD) -> list[tuple]:
                   if item.IsLocked())
 
 
-def check_routed(board_path: Path, work_dir: Path) -> None:
+DRC_KINDS = ("violations", "unconnected_items", "schematic_parity")
+
+
+def check_routed(board_path: Path, work_dir: Path) -> dict[str, int]:
     """Criterion 10: KiCad's DRC at error severity, against the schematic, finds no violation, no unconnected
-    item and no parity issue on a board of four copper layers."""
+    item and no parity issue on a board of four copper layers. Returns the count of each kind from the report."""
     layers = pcbnew.LoadBoard(str(board_path)).GetCopperLayerCount()
     assert layers == 4, f"{board_path.name} has {layers} copper layers"
     report_path = work_dir / "drc-routed.json"
     _kicad_cli("pcb", "drc", "--severity-error", "--schematic-parity", "--format", "json", "-o", str(report_path),
                str(board_path))
     report = json.loads(report_path.read_text())
-    found = {key: report[key] for key in ("violations", "unconnected_items", "schematic_parity") if report[key]}
+    found = {key: report[key] for key in DRC_KINDS if report[key]}
     summary = {key: sorted({item["description"] for item in items})[:5] for key, items in found.items()}
     assert not found, f"DRC: {summary}; see {report_path}"
     print("routed: DRC at error severity: 0 violations, 0 unconnected, 0 parity; 4 copper layers")
+    return {key: len(report[key]) for key in DRC_KINDS}
 
 
 def import_routes() -> None:
@@ -314,8 +323,33 @@ def import_routes() -> None:
     check_routed(BOARD_PATH, BUILD_DIR)
 
 
+def write_fab() -> None:
+    """The saved board judged by criterion 10 again, then the fab set written twice from it: the second write,
+    into an empty folder, must be the same bytes."""
+    BUILD_DIR.mkdir(exist_ok=True)
+    drc_counts = check_routed(BOARD_PATH, BUILD_DIR)
+    parts = place.board_parts()
+    placeholders = sorted(part.ref for part in parts if "PLACEHOLDER_" in part.footprint)
+    fab_dir = PROVISIONAL_FAB_DIR if placeholders else fab.FAB_DIR
+    blockers = fab.write_set(BOARD_PATH, parts, fab_dir, drc_counts)
+    again_dir = BUILD_DIR / "fab-again"
+    fab.write_set(BOARD_PATH, parts, again_dir, drc_counts)
+    differ = fab.differing_files(fab_dir, again_dir)
+    assert not differ, f"a second write of the fab set differs in {differ}"
+    files = sum(path.is_file() for path in fab_dir.rglob("*"))
+    print(f"fab: {files} files in {fab_dir.relative_to(PCB_DIR)}, byte-repeatable; BOM, placement list and board "
+          "name the same parts, Gerbers and drill files agree with the board")
+    if placeholders:
+        print(f"fab: provisional, PLACEHOLDER_* footprints {placeholders}: pcb/fab waits for task 5.12")
+    if blockers:
+        print(f"fab: not orderable yet, {len(blockers)} BOM findings; F.1 and `just gate` decide on ordering")
+    for line in blockers:
+        print(f"  {line}")
+
+
 STEPS = {"erc": erc, "place": place_board, "route-critical": route_critical, "dsn": write_dsn,
-         "routed": import_routes, "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
+         "routed": import_routes, "fab": write_fab,
+         "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
 # The KiCad side of `just pcb`; freeroute.py and `routed` follow on the host. dsn places the board first.
 PIPELINE = ("erc", "dsn")
 
