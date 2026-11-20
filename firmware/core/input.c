@@ -1,106 +1,155 @@
 // SPDX-License-Identifier: MIT
 #include "input.h"
 
-void input_init(input_t *in, uint8_t pulses_per_detent) {
-	in->pulses = pulses_per_detent;
-	in->stable = 0;
-	for (int i = 0; i < INPUT_KEYS; i++) {
-		in->changing[i] = false;
-		in->since[i] = 0;
+#include "link.h"
+
+#define COLS_MASK ((1u << INPUT_COLS) - 1u)
+#define CONTACT(row, col) (1u << ((row) * INPUT_COLS + (col)))
+// B1 and B4: the outer two of the button row.
+#define CLEAR_CONTACTS (CONTACT(3, 0) | CONTACT(3, 3))
+// The INPUT frame's value is one signed byte. -128 is left out to keep both ways alike.
+#define TURN_DETENTS_MAX 127
+
+// Sources 1 to 4 go into the INPUT frame as they are. The cast is for -Wenum-compare.
+_Static_assert(INPUT_SOURCE_KEY == (int)LINK_INPUT_KEY, "INPUT source of a key");
+_Static_assert(INPUT_SOURCE_BUTTON == (int)LINK_INPUT_BUTTON, "INPUT source of a button");
+_Static_assert(INPUT_SOURCE_KNOB_PUSH == (int)LINK_INPUT_KNOB_PUSH, "INPUT source of a push");
+_Static_assert(INPUT_SOURCE_KNOB_TURN == (int)LINK_INPUT_KNOB_TURN, "INPUT source of a turn");
+_Static_assert(INPUT_KEYS + INPUT_BUTTONS + INPUT_KNOBS == INPUT_CONTACTS,
+	       "every contact is a key, a button or a knob push");
+_Static_assert(INPUT_COUNTS_PER_DETENT >= 2,
+	       "one count of contact bounce must stay short of a detent");
+
+enum clear_hold {
+	CLEAR_HOLD_NOT_SAMPLED, // no sample since power-on
+	CLEAR_HOLD_RUNNING,     // B1 and B4 were low in every sample so far
+	CLEAR_HOLD_OVER,        // broken or raised: nothing more until the next power-on
+};
+
+typedef struct {
+	uint8_t source; // enum input_source
+	uint8_t index;
+} control_t;
+
+#define KEY(index) {INPUT_SOURCE_KEY, (index)}
+#define BUTTON(index) {INPUT_SOURCE_BUTTON, (index)}
+#define PUSH(index) {INPUT_SOURCE_KNOB_PUSH, (index)}
+
+// By contact, row * INPUT_COLS + col: the matrix of input.h, one row a line.
+static const control_t CONTROL_OF_CONTACT[INPUT_CONTACTS] = {
+	KEY(0),    KEY(1),    KEY(2),    PUSH(0),
+	KEY(3),    KEY(4),    KEY(5),    PUSH(1),
+	KEY(6),    KEY(7),    KEY(8),    PUSH(2),
+	BUTTON(0), BUTTON(1), BUTTON(2), BUTTON(3),
+};
+
+void input_init(input_t *in) {
+	*in = (input_t){.clear_hold = CLEAR_HOLD_NOT_SAMPLED};
+}
+
+// One bit per contact. A row keeps its own four bits, so a stray high bit of one row sample
+// cannot close a contact of the next row.
+static uint16_t sampled_contacts(const input_sample_t *sample) {
+	uint16_t sampled = 0;
+	for (int row = 0; row < INPUT_ROWS; row++) {
+		sampled |= (uint16_t)((sample->cols_low[row] & COLS_MASK) << (row * INPUT_COLS));
 	}
-	in->quad_seeded = false;
-	in->prev_ab = 0;
-	in->acc = 0;
-	in->push = false;
-	in->push_since = 0;
-	in->backlight = 0;
+	return sampled;
 }
 
-// One step of a gray-code quadrature. +1 and -1 are opposite directions.
-static int8_t quad_step(uint8_t prev, uint8_t curr) {
-	static const int8_t table[16] = {
-		0, +1, -1, 0, -1, 0, 0, +1, +1, 0, 0, -1, 0, -1, +1, 0,
-	};
-	return table[((prev & 3u) << 2) | (curr & 3u)];
-}
-
-static int push_event(input_event_t *out, int cap, int count, input_event_t ev) {
-	if (count < cap && out != 0) {
-		out[count] = ev;
+// Flips each contact whose samples have disagreed with it for INPUT_DEBOUNCE_MS without a
+// break. Returns the contacts that flipped.
+static uint16_t debounce(input_t *in, uint32_t now_ms, uint16_t sampled) {
+	uint16_t differs = sampled ^ in->closed;
+	uint16_t flipped = 0;
+	for (int contact = 0; contact < INPUT_CONTACTS; contact++) {
+		uint16_t bit = (uint16_t)(1u << contact);
+		if ((differs & bit) == 0) {
+			continue;
+		}
+		if ((in->unsettled & bit) == 0) {
+			in->unsettled_since_ms[contact] = now_ms;
+			continue;
+		}
+		uint32_t unsettled_ms = now_ms - in->unsettled_since_ms[contact];
+		if (unsettled_ms >= INPUT_DEBOUNCE_MS) {
+			flipped |= bit;
+		}
 	}
-	return count + 1;
+	in->closed ^= flipped;
+	in->unsettled = (uint16_t)(differs & ~flipped);
+	return flipped;
 }
 
-int input_step(input_t *in, uint32_t now_ms, uint16_t keys_down, uint8_t ab, bool push,
-	       bool usb_configured, input_event_t *out, int cap) {
+static int report_contacts(uint16_t flipped, uint16_t closed, input_event_t *out) {
 	int count = 0;
-	for (int i = 0; i < INPUT_KEYS; i++) {
-		bool down = (keys_down & (1u << i)) != 0;
-		bool was = (in->stable & (1u << i)) != 0;
-		if (down == was) {
-			in->changing[i] = false;
+	for (int contact = 0; contact < INPUT_CONTACTS; contact++) {
+		uint16_t bit = (uint16_t)(1u << contact);
+		if ((flipped & bit) == 0) {
 			continue;
 		}
-		if (!in->changing[i]) {
-			in->changing[i] = true;
-			in->since[i] = now_ms;
-			continue;
-		}
-		if ((uint32_t)(now_ms - in->since[i]) < INPUT_DEBOUNCE_MS) {
-			continue;
-		}
-		if (down) {
-			in->stable = (uint16_t)(in->stable | (1u << i));
-		} else {
-			in->stable = (uint16_t)(in->stable & ~(1u << i));
-		}
-		in->changing[i] = false;
-		input_event_t ev = {INPUT_EVT_KEY, (int8_t)i, down ? 1u : 0u};
-		count = push_event(out, cap, count, ev);
+		control_t control = CONTROL_OF_CONTACT[contact];
+		int8_t down = (closed & bit) != 0 ? 1 : 0;
+		out[count++] = (input_event_t){control.source, control.index, down};
 	}
-
-	uint8_t curr = (uint8_t)(ab & 3u);
-	if (!in->quad_seeded) {
-		in->prev_ab = curr;
-		in->quad_seeded = true;
-	} else if (curr != in->prev_ab && in->pulses > 0) {
-		in->acc = (int16_t)(in->acc + quad_step(in->prev_ab, curr));
-		in->prev_ab = curr;
-		int8_t detents = 0;
-		while (in->acc >= in->pulses || in->acc <= -(int16_t)in->pulses) {
-			if (in->acc > 0) {
-				in->acc = (int16_t)(in->acc - in->pulses);
-				if (detents < 127) {
-					detents++;
-				}
-			} else {
-				in->acc = (int16_t)(in->acc + in->pulses);
-				if (detents > -128) {
-					detents--;
-				}
-			}
-		}
-		if (detents != 0) {
-			input_event_t ev = {INPUT_EVT_KNOB, detents, 0};
-			count = push_event(out, cap, count, ev);
-		}
-	}
-
-	if (push && !in->push) {
-		in->push = true;
-		in->push_since = now_ms;
-	} else if (!push && in->push) {
-		uint32_t held = now_ms - in->push_since;
-		int8_t delta = held < INPUT_PAGE_LONG_MS ? 1 : -1;
-		input_event_t ev = {INPUT_EVT_PAGE, delta, 0};
-		count = push_event(out, cap, count, ev);
-		in->push = false;
-	}
-
-	in->backlight = usb_configured ? 1u : 0u;
 	return count;
 }
 
-uint8_t input_backlight(const input_t *in) {
-	return in->backlight;
+static int8_t clamped_detents(int32_t detents) {
+	if (detents > TURN_DETENTS_MAX) {
+		return TURN_DETENTS_MAX;
+	}
+	if (detents < -TURN_DETENTS_MAX) {
+		return -TURN_DETENTS_MAX;
+	}
+	return (int8_t)detents;
+}
+
+// Counts short of a detent wait in knob_counts_left. Contact bounce on one phase moves the
+// count one forth and one back, so it nets out there and never makes a turn.
+static int decode_knobs(input_t *in, const int16_t counts[INPUT_KNOBS], input_event_t *out) {
+	int count = 0;
+	for (int knob = 0; knob < INPUT_KNOBS; knob++) {
+		int32_t total = in->knob_counts_left[knob] + counts[knob];
+		int32_t detents = total / INPUT_COUNTS_PER_DETENT;
+		in->knob_counts_left[knob] = (int8_t)(total % INPUT_COUNTS_PER_DETENT);
+		if (detents != 0) {
+			out[count++] = (input_event_t){INPUT_SOURCE_KNOB_TURN, (uint8_t)knob,
+						       clamped_detents(detents)};
+		}
+	}
+	return count;
+}
+
+// The clear combination erases the pad, so it reads the samples as they come, not the
+// debounced contacts: one sample with B1 or B4 up ends the hold, and only a hold that runs
+// from the first sample after power-on counts.
+static int step_clear_hold(input_t *in, uint32_t now_ms, uint16_t sampled, input_event_t *out) {
+	if (in->clear_hold == CLEAR_HOLD_OVER) {
+		return 0;
+	}
+	if ((sampled & CLEAR_CONTACTS) != CLEAR_CONTACTS) {
+		in->clear_hold = CLEAR_HOLD_OVER;
+		return 0;
+	}
+	if (in->clear_hold == CLEAR_HOLD_NOT_SAMPLED) {
+		in->clear_hold = CLEAR_HOLD_RUNNING;
+		in->clear_hold_since_ms = now_ms;
+	}
+	uint32_t held_ms = now_ms - in->clear_hold_since_ms;
+	if (held_ms < INPUT_CLEAR_HOLD_MS) {
+		return 0;
+	}
+	in->clear_hold = CLEAR_HOLD_OVER;
+	out[0] = (input_event_t){INPUT_SOURCE_CLEAR, 0, 1};
+	return 1;
+}
+
+int input_step(input_t *in, const input_sample_t *sample, input_event_t out[INPUT_MAX_EVENTS]) {
+	uint16_t sampled = sampled_contacts(sample);
+	uint16_t flipped = debounce(in, sample->now_ms, sampled);
+	int count = report_contacts(flipped, in->closed, out);
+	count += decode_knobs(in, sample->knob_counts, out + count);
+	count += step_clear_hold(in, sample->now_ms, sampled, out + count);
+	return count;
 }
