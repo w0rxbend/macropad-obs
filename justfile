@@ -156,8 +156,9 @@ padsim-build:
 padsim-smoke: padsim-build
     python3 {{root}}/tools/padsim_smoke.py {{root}}/.build/padsim
 
-test-host:
-    cd {{root}}/host && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check
+# The padsim e2e tests (host/obs_core/tests/padsim_e2e.rs) run the padsim this builds.
+test-host: padsim-build
+    cd {{root}}/host && PADSIM={{root}}/.build/padsim cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check
 
 check:
     python3 {{root}}/tools/check_pins.py

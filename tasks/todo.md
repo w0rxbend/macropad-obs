@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.17a (padsim e2e: criteria 4 and 4c).
+Next action: Checkpoint 1 owner review, then 2.17b (padsim e2e: criteria 5, 8 and 9).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -307,7 +307,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     the bad-key `STATUS`.
   - Verify: `just padsim-smoke`. Deps: 2.4, 2.11b, 2.12, 2.14b. Files: `firmware/padsim/main.c`,
     `padsim/pty.c`, `padsim/panel_model.c`, `padsim/nor_file.c`, `justfile`.
-- [ ] **2.17a padsim e2e: criteria 4 and 4c (M).** A Rust test harness (host codec) drives padsim
+- [x] **2.17a padsim e2e: criteria 4 and 4c (M).** A Rust test harness (host codec) drives padsim
   and `fake_obs.py`.
   - Accept: criterion 4 (read, edit, write, `seq + 1`, stale) and 4c (exact request log) pass.
   - Verify: `just test`. Deps: 2.16. Files: `host/obs_core/tests/padsim_e2e.rs`,
