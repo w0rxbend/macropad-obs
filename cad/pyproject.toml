@@ -10,4 +10,5 @@ dependencies = [
     "lxml>=5.0",
     "numpy>=1.26",
     "matplotlib>=3.8",
+    "scipy>=1.10",  # obs_case/laser.py stroke check and read-back; build123d 0.13.0 requires it too
 ]

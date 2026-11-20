@@ -71,7 +71,7 @@ def sheet_files(face: Shape, stem: Path) -> list[Readback]:
     """DXF, SVG and PDF of one flat face, each read back."""
     stem.parent.mkdir(parents=True, exist_ok=True)
     dxf, svg, pdf = stem.with_suffix(".dxf"), stem.with_suffix(".svg"), stem.with_suffix(".pdf")
-    _write_dxf(face, dxf)
+    write_dxf({LAYER: face}, dxf)
     exporter = ExportSVG(unit=Unit.MM, margin=MARGIN)
     exporter.add_layer(LAYER)
     exporter.add_shape(face, layer=LAYER)
@@ -80,15 +80,16 @@ def sheet_files(face: Shape, stem: Path) -> list[Readback]:
     return [dxf_readback(dxf, face), svg_readback(svg, face), pdf_readback(pdf, svg)]
 
 
-def _write_dxf(face: Shape, path: Path) -> None:
-    """ExportDXF with ezdxf's fixed metadata, set before the document is made: no create or write
-    time and no random GUID."""
+def write_dxf(layers: dict, path: Path) -> None:
+    """ExportDXF in mm, one layer per key of `layers` holding its shapes, with ezdxf's fixed
+    metadata, set before the document is made: no create or write time and no random GUID."""
     fixed = ezdxf.options.write_fixed_meta_data_for_testing
     ezdxf.options.write_fixed_meta_data_for_testing = True
     try:
         exporter = ExportDXF(unit=Unit.MM)
-        exporter.add_layer(LAYER)
-        exporter.add_shape(face, layer=LAYER)
+        for layer, shapes in layers.items():
+            exporter.add_layer(layer)
+            exporter.add_shape(shapes, layer=layer)
         exporter.write(str(path))
     finally:
         ezdxf.options.write_fixed_meta_data_for_testing = fixed  # the option is global

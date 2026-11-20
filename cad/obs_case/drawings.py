@@ -12,13 +12,12 @@ import shutil
 import subprocess
 import textwrap
 from dataclasses import dataclass
-from pathlib import Path
 from xml.sax.saxutils import escape
 
 import ezdxf
-from build123d import Align, ExportDXF, GeomType, Plane, Pos, Text, Unit, export_step, import_step, scale, section
+from build123d import ExportDXF, GeomType, Plane, Pos, Unit, export_step, import_step, section
 
-from obs_case import checks, deck, variants
+from obs_case import checks, deck, laser, variants
 from obs_case.spec import BOARD_TOML, LAYOUT
 
 PACK = BOARD_TOML.parent / ".build" / "cad" / "cnc"
@@ -26,10 +25,7 @@ SHEET = (420.0, 297.0)  # A3 landscape, mm
 FAR = 500.0
 CURVE_STEP = 0.6  # mm between points when a curved edge is drawn as a polyline
 FONT = "DejaVu Sans, Arial, sans-serif"
-# The engrave outlines need a font file, never a family name (report 11 section 7).
-MARK_FONTS = (Path("/usr/share/fonts/TTF/DejaVuSans.ttf"), Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
 STEP_VOLUME_SHARE = 1e-4  # STEP read-back volume error allowed (task 6.5's figure)
-SECTION_ABOVE_FLOOR = 0.01  # mm above a face the DXF section sits, so the face itself is not cut
 # Tolerances on the critical fits, all after anodise. ISO 2768-m holds everywhere else (report 11).
 CUTOUT_PLUS = 0.05  # MX cut-outs, cap holes, knob holes and lens recesses: +0.05 / 0
 DEPTH_TOLERANCE = 0.05  # lens recess depth
@@ -90,7 +86,7 @@ def write_pack(folder):
         print("cnc: rsvg-convert and pdftotext are needed for the PDF and its read-back; pack not written")
         return 1
     parts = variants.parts(variants.CNC)
-    marks = engrave_marks()
+    marks = list(laser.marks().values())
     faults = 0
     for sheet in sheets():
         part = parts[sheet.name]
@@ -108,28 +104,12 @@ def write_pack(folder):
     return 1 if faults else 0
 
 
-def engrave_marks():
-    """The engrave layer MARK on the deck top: the knob index digits of [knobs] index_marks, each
-    scaled so its height is index_marks.height, centred on its point. Ticks and the logo come in
-    task 6.7 (open question 5)."""
-    font = next((path for path in MARK_FONTS if path.is_file()), None)
-    if font is None:
-        raise FileNotFoundError(f"no engrave font: none of {', '.join(map(str, MARK_FONTS))}")
-    marks = LAYOUT.knobs.index_marks
-    placed = []
-    for text, (x, y) in zip(marks.text, marks.at, strict=True):
-        glyphs = Text(text, font_size=marks.height, font_path=str(font), align=(Align.CENTER, Align.CENTER))
-        placed.append(Pos(x, y) * scale(glyphs, marks.height / glyphs.bounding_box().size.Y))
-    return placed
-
-
 def sheets():
     stack = LAYOUT.stack
     plate_inside = stack.bottom_plate_inside
     return (
         Sheet("shell", "macropad-obs case: top shell, CNC variant", "OBS-CASE-SHELL-CNC", _shell_features(),
-              _shell_tolerances(), _shell_notes(),
-              stack.deck_top - LAYOUT.body.top_chamfer - SECTION_ABOVE_FLOOR),
+              _shell_tolerances(), _shell_notes(), laser.ref_z()),
         Sheet("plate", "macropad-obs case: bottom plate, CNC variant", "OBS-CASE-PLATE-CNC", _plate_features(),
               _plate_tolerances(), _plate_notes(), plate_inside - LAYOUT.bottom_plate.thickness / 2),
     )
@@ -233,8 +213,9 @@ def _shell_notes():
         "No metal in the antenna board cut: the back-wall insert (plastic, not in this pack) fills the pocket.",
         "ENGRAVE (layer MARK)",
         f"Fibre laser after anodise, 0.03 to 0.1 deep. Fill each closed contour on layer MARK of shell.dxf; never "
-        f"mark layer REF. Marks: knob index digits {' '.join(marks.text)}, {_mm(marks.height)} high, left of "
-        "each knob, on the top face (orange on the plan). Ticks and logo: task 6.7, open question 5.",
+        f"mark layer REF. Marks (orange on the plan), from cad/exports/laser/deck.dxf (task 6.7): knob index "
+        f"digits {' '.join(marks.text)}, {_mm(marks.height)} cap height, a tick scale round each knob, a dot in "
+        "front of each button and the wordmark (open question 5: no logo yet).",
     )
 
 

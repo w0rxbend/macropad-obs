@@ -326,3 +326,19 @@ dsa_cap = [18.4, 7.39]         # report 08 [S1]: base square, height; z = 0 on t
 fpc_height = 2.0               # MEASURE: Hirose FH12 class height, not read from a drawing here
 # No envelope (no size in this file): the Kailh hot-swap socket, the JST debug header, the BOOT and
 # RESET switches, the buck and its inductor.
+
+[laser]
+# Deck engrave sheet (task 6.7, spec 13 `cad` laser): cad/exports/laser/deck.dxf, layer MARK filled
+# by a fibre laser after anodise, layer REF to register on. Style A (report 17 direction A): fixed
+# marks only, never a key legend; with [knobs] index_marks. Sizes are design: judge them on a 1:1
+# paper print of deck.pdf on the deck, then on a test mark on a blasted black coupon (report 17).
+tick_sweep = 270.0             # report 17: degrees of scale round each knob, centred on the top
+tick_count = 11                # report 17: the two end ticks longer
+tick_gap = 0.5                 # design: knob skirt ([knobs] diameter) to the inner end of a tick
+tick_length = [1.0, 1.6]       # design: short tick, end tick
+tick_width = 0.3               # design; spec 13: a stroke is at least 0.2
+dot = { diameter = 1.0, y = 0.65 }   # report 17: one dot in front of each button, x at its [ui_mirror] legend cell
+big_width_px = 320             # [big_display] part: 320 px across the active width, as [ui_mirror] counts
+# Open question 5: no logo chosen. The wordmark holds the logo's place, top left above the big
+# window (report 17), x, y of its lower-left corner; cap height spec 13: at least 2.0.
+wordmark = { text = "macropad-obs", cap_height = 2.5, at = [5.8, 163.6] }

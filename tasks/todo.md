@@ -599,7 +599,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   - Accept: each export reads back. FCStd is reopened, or it is marked not built in the manifest.
   - Verify: `just cad`. Deps: 6.5. Files: `cad/obs_case/export2d.py`, `envelopes.py`,
     `freecad_doc.py`.
-- [ ] **6.7 Laser engraving sheets (M).** Legends from `[ui_mirror]`, ticks and the logo (open
+- [x] **6.7 Laser engraving sheets (M).** Legends from `[ui_mirror]`, ticks and the logo (open
   question 5), on `MARK`/`REF` layers. Copy the DXF engraving writer from
   `macropad/cad/macropad_case/drawings.py` (`engraving_underside.dxf` path).
   - Accept: `ezdxf` audit (1.4.5 in `.venv`) shows 0 errors. Strokes are at least 0.2 mm and cap

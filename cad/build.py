@@ -18,7 +18,10 @@ Steps:
             back, into cad/exports/2d and the "2d" section. Tests: obs_case/test_export2d.py.
   envelopes write one STEP per bought part (task 6.6), read back, into cad/exports/envelopes and
             the "envelopes" section. Tests: obs_case/test_envelopes.py.
-  fcstd     record in the "freecad" section that the FCStd is not built, and why."""
+  fcstd     record in the "freecad" section that the FCStd is not built, and why.
+  laser     check the deck engrave marks (task 6.7) against the shop rules and the deck, write the
+            sheet (DXF layers MARK and REF, SVG, PDF), read it back, into cad/exports/laser and the
+            "laser" section. Tests: obs_case/test_laser.py."""
 
 import os
 import subprocess
@@ -100,6 +103,11 @@ def _fresh_process(module: str) -> int:
                           env={**os.environ, "PYTHONHASHSEED": "0"}, check=False).returncode
 
 
+def laser_step() -> int:
+    """In a fresh process with a fixed hash seed, for the DXF bytes (as export2d)."""
+    return _fresh_process("obs_case.laser")
+
+
 def envelopes_step() -> int:
     from obs_case import envelopes
 
@@ -123,7 +131,7 @@ def fcstd_step() -> int:
 
 STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step, "variants": variants_step,
          "cnc": cnc_step, "export": export_step, "export2d": export2d_step, "envelopes": envelopes_step,
-         "fcstd": fcstd_step}
+         "fcstd": fcstd_step, "laser": laser_step}
 
 
 def main(argv: list[str]) -> int:

@@ -740,5 +740,46 @@
       "lib3mf": "2.5.0",
       "trimesh": "5.2.1"
     }
+  },
+  "laser": {
+    "files": {
+      "laser/deck.dxf": {
+        "audit_errors": 0,
+        "bytes": 126935,
+        "format": "DXF",
+        "layers": [
+          "MARK",
+          "REF"
+        ],
+        "mark_off_mm": 0.005,
+        "marks": 11,
+        "outline_off_mm": 0.0,
+        "ref_off_mm": 0.0053,
+        "sha256": "6c5380fed9da315f13c5f8a270807211a8b1226dd55a12e6f57ecb545febc9a3",
+        "version": "AC1027"
+      },
+      "laser/deck.pdf": {
+        "bytes": 7416,
+        "fonts": 0,
+        "format": "PDF",
+        "page_pt": [
+          294.491,
+          510.208
+        ],
+        "sha256": "91035bfa3eb4304c8af42eed784124889ea879fc03548fe2d3ffd4574cdd3c2d"
+      },
+      "laser/deck.svg": {
+        "bytes": 18593,
+        "format": "SVG",
+        "sha256": "1c3afa66a9a060235c65896c6dc66d5d0bd74a7d1a4e1a22c252b6d07f84605b",
+        "size_off_mm": 0.0001
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
   }
 }
