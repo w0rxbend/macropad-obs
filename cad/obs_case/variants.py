@@ -105,7 +105,10 @@ def relieved(part, name):
     tools = [_relief_tool(corner) for corner in inside_corners(part) if corner.square]
     if not tools:
         return part, []
-    lobes = [piece for tool in tools for piece in (part & tool).solids()]
+    # A parallel boolean returns its pieces in any order, and the insert's union follows the order:
+    # sort them, so the cnc insert and its exports repeat byte for byte (task 6.5).
+    lobes = sorted((piece for tool in tools for piece in (part & tool).solids()),
+                   key=lambda piece: tuple(piece.center()))
     return body.cut(part, _union(tools), f"{name} corner reliefs"), lobes
 
 

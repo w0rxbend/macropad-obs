@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "8 degree wedge case for the OBS macropad"
 requires-python = ">=3.12"
 dependencies = [
-    "build123d>=0.13",
+    "build123d==0.13.0",  # obs_case/export.py calls the private _create_xde
     "trimesh>=4.0",
     "networkx>=3.0",
     "lxml>=5.0",

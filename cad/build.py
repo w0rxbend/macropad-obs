@@ -10,8 +10,12 @@ Steps:
   variants  build the print and cnc variants (task 6.4) and check each: its fits, and for cnc the
             shop rules (no sharp inside corner, JLCCNC corner radius, cutter reach).
   cnc       write the CNC pack (task 6.4): STEP, PDF drawing and DXF of each milled part, read
-            back, under .build/cad/cnc."""
+            back, under .build/cad/cnc.
+  export    write the 3D exports of both variants (task 6.5): STEP AP214 and AP242, BREP, IGES,
+            STL, 3MF and the assembly GLB, read each back, then replace cad/exports/<variant> and
+            the "case" section of cad/exports/manifest.json. Tests: obs_case/test_export.py."""
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -72,8 +76,16 @@ def cnc_step() -> int:
     return drawings.write_pack(drawings.PACK)
 
 
+def export_step() -> int:
+    """In a fresh process: the steps above add pcurves to the cached parts and nudge their
+    tolerances, and BREP and IGES would carry that history into the files."""
+    sys.stdout.flush()  # keep the step lines in order when stdout is a pipe
+    return subprocess.run([sys.executable, "-m", "obs_case.export"], cwd=Path(__file__).resolve().parent,
+                          check=False).returncode
+
+
 STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step, "variants": variants_step,
-         "cnc": cnc_step}
+         "cnc": cnc_step, "export": export_step}
 
 
 def main(argv: list[str]) -> int:

@@ -585,7 +585,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   - Accept: both variants build. The CNC pack holds STEP, PDF and DXF. The PDF carries tolerances,
     the D3 style A finish callout (bead blast, black anodise) and the engrave layer.
   - Verify: `just cad`. Deps: 6.3. Files: `cad/obs_case/variants.py`, `drawings.py`, `checks.py`.
-- [ ] **6.5 3D exports with read-back (M).** STEP AP214 (master), AP242, BREP, IGES, STL, native
+- [x] **6.5 3D exports with read-back (M).** STEP AP214 (master), AP242, BREP, IGES, STL, native
   3MF and GLB. Copy `_write_3mf`, `assembly` and the GLB path from
   `macropad-nyxilab/common/cad/macropad_cad/export.py` into `cad/obs_case/export.py`. The STEP
   header is deterministic.
