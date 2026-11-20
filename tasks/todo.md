@@ -209,7 +209,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: every state and backoff step runs on a fake event feed. Each failure maps to its line.
     No line holds a secret.
   - Verify: `just test-firmware`. Deps: 1.8. Files: `core/wifi.[ch]`, `test/test_wifi.c`.
-- [ ] **2.5 fw-stream and fw-ws (M) [lane A].** Write the TCP seam (open, send, recv, close) and an
+- [x] **2.5 fw-stream and fw-ws (M) [lane A].** Write the TCP seam (open, send, recv, close) and an
   RFC 6455 client: masking, fragments, ping on idle, close codes.
   - Accept: a fake transport with 1-byte reads, fragments, ping and close passes. The upgrade key
     check uses SHA-1 and base64.

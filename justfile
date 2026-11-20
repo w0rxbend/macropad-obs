@@ -21,6 +21,12 @@ test-firmware:
         -o {{root}}/.build/test_crypto
     {{root}}/.build/test_crypto
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/test \
+        {{root}}/firmware/core/crypto.c {{root}}/firmware/core/ws.c \
+        {{root}}/firmware/test/fake_stream.c {{root}}/firmware/test/test_ws.c \
+        -o {{root}}/.build/test_ws
+    {{root}}/.build/test_ws
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
         -I{{root}}/firmware/core/third_party/lwjson/src/include \
         -DFIXTURES='"{{root}}/firmware/test/fixtures"' \
