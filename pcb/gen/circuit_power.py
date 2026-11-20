@@ -106,11 +106,11 @@ C0805 = "Capacitor_SMD:C_0805_2012Metric"
 DERIVED_FOOTPRINTS = {"macropad-obs:ESP32-S3-WROOM-1": "RF_Module:ESP32-S3-WROOM-1"}
 
 
-def _resistor(ref: str, value: str, net_1: str, net_2: str, footprint: str = R0402) -> Part:
+def resistor(ref: str, value: str, net_1: str, net_2: str, footprint: str = R0402) -> Part:
     return Part(ref, value, footprint, "Device:R", TWO_PINS, {"1": net_1, "2": net_2})
 
 
-def _capacitor(ref: str, value: str, net: str, footprint: str = C0402) -> Part:
+def capacitor(ref: str, value: str, net: str, footprint: str = C0402) -> Part:
     return Part(ref, value, footprint, "Device:C", TWO_PINS, {"1": net, "2": GND})
 
 
@@ -129,17 +129,17 @@ def _usb() -> tuple[Part, ...]:
              "Connector:USB_C_Receptacle_USB2.0_16P", USB_C_PINS, jack_nets, frozenset({"A8", "B8"}),
              ("GCT", "USB4216-03-A")),
         # One 5.1 k per CC pad, never shared (USB Type-C spec table 4-28, report 10 block 1).
-        _resistor("R1", "5.1k", USB_CC1, GND),
-        _resistor("R2", "5.1k", USB_CC2, GND),
+        resistor("R1", "5.1k", USB_CC1, GND),
+        resistor("R2", "5.1k", USB_CC2, GND),
         # CC sense into ADC1: a 1.5 A or 3 A source shows 0.746 V or more (report 10 block 1).
-        _resistor("R3", "100k", USB_CC1, gpio_net("CC1")),
-        _resistor("R4", "100k", USB_CC2, gpio_net("CC2")),
+        resistor("R3", "100k", USB_CC1, gpio_net("CC1")),
+        resistor("R4", "100k", USB_CC2, gpio_net("CC2")),
         Part("U3", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "Power_Protection:USBLC6-2SC6", USBLC6_PINS,
              {"1": USB_D_N, "6": USB_D_N, "3": USB_D_P, "4": USB_D_P, "2": GND, "5": VBUS},
              manufacturer_part=("STMicroelectronics", "USBLC6-2SC6")),
         # Espressif: "reserve series resistors (initial value can be 22/33 ohm)" on IO19 and IO20.
-        _resistor("R5", "22R", USB_D_N, gpio_net("USB_DM")),
-        _resistor("R6", "22R", USB_D_P, gpio_net("USB_DP")),
+        resistor("R5", "22R", USB_D_N, gpio_net("USB_DM")),
+        resistor("R6", "22R", USB_D_P, gpio_net("USB_DP")),
         # About 0.75 A hold against the 510 mA peak (report 18 section 4). Part unverified.
         Part("F1", "PPTC 0.75A hold", "Fuse:Fuse_1206_3216Metric", "Device:Polyfuse", TWO_PINS,
              {"1": VBUS, "2": V5}),
@@ -156,12 +156,12 @@ def _buck() -> tuple[Part, ...]:
         Part("U2", "TLV62569DBV", "Package_TO_SOT_SMD:SOT-23-5", "Regulator_Switching:TLV62569DBV",
              TLV62569_PINS, {"1": V5, "2": GND, "3": BUCK_SW, "4": V5, "5": BUCK_FB},
              manufacturer_part=("Texas Instruments", "TLV62569DBVR")),
-        _capacitor("C1", "4.7uF", V5, C0805),
+        capacitor("C1", "4.7uF", V5, C0805),
         # 2.5 x 2.0 so it stays under [bottom_side] max_part_height; part and saturation current unverified.
         Part("L1", "2.2uH", "Inductor_SMD:L_1008_2520Metric", "Device:L", TWO_PINS, {"1": BUCK_SW, "2": V3}),
-        _resistor("R7", "453k", V3, BUCK_FB),
-        _resistor("R8", "100k", BUCK_FB, GND),
-        _capacitor("C2", "10uF", V3, C0805),
+        resistor("R7", "453k", V3, BUCK_FB),
+        resistor("R8", "100k", BUCK_FB, GND),
+        capacitor("C2", "10uF", V3, C0805),
     )
 
 
@@ -179,13 +179,13 @@ def _module() -> tuple[Part, ...]:
         Part("U1", BOARD["mcu"]["part"], "macropad-obs:ESP32-S3-WROOM-1", "RF_Module:ESP32-S3-WROOM-1",
              WROOM_PINS, nets, frozenset(str(WROOM_IO_PIN[io]) for io in left_open),
              ("Espressif", BOARD["mcu"]["part"])),
-        _capacitor("C3", "22uF", V3, C0805),
-        _capacitor("C4", "100nF", V3),
-        _resistor("R9", "10k", RESET_NET, V3),
-        _capacitor("C5", "1uF", RESET_NET),
+        capacitor("C3", "22uF", V3, C0805),
+        capacitor("C4", "100nF", V3),
+        resistor("R9", "10k", RESET_NET, V3),
+        capacitor("C5", "1uF", RESET_NET),
         Part("SW21", "TS-1187A", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "Switch:SW_Push", TWO_PINS,
              {"1": RESET_NET, "2": GND}),
-        _resistor("R10", "10k", gpio_net("BOOT"), V3),
+        resistor("R10", "10k", gpio_net("BOOT"), V3),
         Part("SW20", "TS-1187A", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "Switch:SW_Push", TWO_PINS,
              {"1": gpio_net("BOOT"), "2": GND}),
         # Report 10 block 9: pin 1 RX, pin 2 GND, pin 3 TX, 499 ohm in series with TX.
@@ -193,7 +193,7 @@ def _module() -> tuple[Part, ...]:
              "Connector_Generic_MountingPin:Conn_01x03_MountingPin", JST_PINS,
              {"1": gpio_net("UART0_RX"), "2": GND, "3": DEBUG_TX, "MP": GND},
              manufacturer_part=("JST", "SM03B-SRSS-TB(LF)(SN)")),
-        _resistor("R11", "499R", gpio_net("UART0_TX"), DEBUG_TX),
+        resistor("R11", "499R", gpio_net("UART0_TX"), DEBUG_TX),
     )
 
 
@@ -206,8 +206,8 @@ def _sink(ref: str, enable: str, cathode: str, set_ref: str, set_value: str, pul
         Part(ref, "BCR421UW6", "Package_TO_SOT_SMD:SOT-23-6", "macropad-obs:BCR421UW6", BCR421_PINS,
              {"1": enable, "2": cathode, "3": cathode, "4": GND, "5": cathode, "6": rext},
              manufacturer_part=("Diodes Incorporated", "BCR421UW6-7")),
-        _resistor(set_ref, set_value, rext, GND, R0805),
-        _resistor(pull_ref, "100k", enable, GND),  # off until the firmware drives it (report 10 block 5)
+        resistor(set_ref, set_value, rext, GND, R0805),
+        resistor(pull_ref, "100k", enable, GND),  # off until the firmware drives it (report 10 block 5)
     )
 
 

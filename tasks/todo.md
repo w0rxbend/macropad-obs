@@ -507,7 +507,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     carried over.
   - Verify: `just pcb-test`. Deps: 5.2, 1.3. Files: `pcb/gen/circuit_power.py`,
     `pcb/gen/test_circuit.py`.
-- [ ] **5.5 Netlist: HMI (M).** The 4x4 matrix with BAT54 x16, MX x9, B3F x4, EC11 x3 with RC
+- [x] **5.5 Netlist: HMI (M).** The 4x4 matrix with BAT54 x16, MX x9, B3F x4, EC11 x3 with RC
   filters, and the FPC 40 and 10 nets.
   - Accept: the nets match `[gpio]` in `board.toml`. `check_pins` agrees.
   - Verify: `just pcb-test`; `just check`. Deps: 5.4. Files: `pcb/gen/circuit_hmi.py`, test.
