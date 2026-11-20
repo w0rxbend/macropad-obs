@@ -639,15 +639,21 @@ typedef struct {
 	char text[CONFIG_PATH_MAX + 1];
 } path_t;
 
+// A path longer than CONFIG_PATH_MAX is cut there: RESULT carries no more (docs/config.md).
+// The checked snprintf result tells gcc that the cut is meant.
 static path_t member_path(const char *parent, const char *name) {
 	path_t path;
-	snprintf(path.text, sizeof path.text, "%s%s%s", parent, parent[0] == '\0' ? "" : ".", name);
+	if (snprintf(path.text, sizeof path.text, "%s%s%s", parent, parent[0] == '\0' ? "" : ".", name) < 0) {
+		path.text[0] = '\0';
+	}
 	return path;
 }
 
 static path_t item_path(const char *parent, unsigned index) {
 	path_t path;
-	snprintf(path.text, sizeof path.text, "%s[%u]", parent, index);
+	if (snprintf(path.text, sizeof path.text, "%s[%u]", parent, index) < 0) {
+		path.text[0] = '\0';
+	}
 	return path;
 }
 
