@@ -8,7 +8,8 @@ Steps:
   insert    build the back-wall insert, its pocket in the shell and the bottom plate (task 6.3),
             and check that no metal sits in the antenna board cut.
   variants  build the print and cnc variants (task 6.4) and check each: its fits, and for cnc the
-            shop rules (no sharp inside corner, JLCCNC corner radius, cutter reach).
+            shop rules (no sharp inside corner, JLCCNC corner radius, cutter reach, wall thickness;
+            the thin walls board.toml draws on purpose are named).
   cnc       write the CNC pack (task 6.4): STEP, PDF drawing and DXF of each milled part, read
             back, under .build/cad/cnc.
   export    write the 3D exports of both variants (task 6.5): STEP AP214 and AP242, BREP, IGES,
@@ -87,6 +88,9 @@ def variants_step() -> int:
     reliefs = len(variants.inside_corners(variants.parts(variants.CNC)["shell"], variants.SETUPS["shell"]))
     print(f"variants: {', '.join(variants.VARIANTS)} built, {len(found)} problems;"
           f" sharp inside corners left in the cnc shell: {reliefs}")
+    for name in checks.MILLED:
+        named = "; ".join(f"{wall.name} {wall.thickness:.2f} ({wall.source})" for wall in checks.thin_walls(name))
+        print(f"variants: cnc {name} walls under {checks.CNC_MIN_WALL:g}, named and measured: {named}")
     return 1 if found else 0
 
 

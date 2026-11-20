@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 """The cnc variant's shop rules: each dog-bone is sized for the setup that cuts it, and the CNC
-drawing lists it in that setup. Needs cad/.venv: `cad/.venv/bin/python cad/obs_case/test_cnc.py`."""
+drawing lists it in that setup; every milled wall holds CNC_MIN_WALL, or the thickness of a thin
+wall board.toml draws on purpose, which the check names. Needs cad/.venv: `cad/.venv/bin/python cad/obs_case/test_cnc.py`."""
 
 import sys
 import unittest
@@ -8,10 +9,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from obs_case import drawings, shop, variants  # noqa: E402
+from build123d import Box, Pos, Vector  # noqa: E402
+
+from obs_case import checks, drawings, shop, variants  # noqa: E402
 from obs_case.spec import LAYOUT  # noqa: E402
 
 MILLED = ("shell", "plate")
+THIN, THINNER = 1.45, 1.15  # mm, test walls under checks.CNC_MIN_WALL
 PLACES = 6
 
 
@@ -64,6 +68,66 @@ class ReliefSetups(unittest.TestCase):
         top_up = variants.SETUPS["shell"].index(variants.ABOVE) + 1
         self.assertIn("MX cut-outs", sentences[top_up])
         self.assertNotIn("cut-outs", " ".join(text for number, text in sentences.items() if number != top_up))
+
+
+def walled_box(wall):
+    """A 10 mm cube hollowed from its top and +x face, leaving a `wall` thick wall at x 0 to `wall`
+    and a 2 mm floor."""
+    outer = Pos(5, 5, 5) * Box(10, 10, 10)
+    return outer - Pos(5 + wall / 2 + 1, 5, 6 + 1) * Box(10 - wall + 2, 6, 8 + 2)
+
+
+def thin_wall(thickness, region=(-1, -1, -1, 11, 11, 11)):
+    return checks.ThinWall("test wall", "test.wall", thickness, (region,))
+
+
+class MinimumWall(unittest.TestCase):
+    def test_a_wall_under_the_cnc_minimum_is_a_problem(self):
+        found = checks.wall_problems(walled_box(THIN), ())
+        self.assertTrue(found)
+        self.assertTrue(all(f"wall {THIN:.2f}" in problem for problem in found), found)
+
+    def test_a_wall_at_the_cnc_minimum_passes(self):
+        self.assertEqual(checks.wall_problems(walled_box(checks.CNC_MIN_WALL), ()), [])
+
+    def test_an_accepted_thin_wall_passes_where_board_toml_draws_it(self):
+        self.assertEqual(checks.wall_problems(walled_box(THIN), (thin_wall(THIN),)), [])
+
+    def test_an_accepted_thin_wall_milled_thinner_is_a_problem(self):
+        found = checks.wall_problems(walled_box(THINNER), (thin_wall(THIN),))
+        walls = [problem for problem in found if problem.startswith("wall ")]
+        self.assertTrue(walls, found)
+        self.assertTrue(all(f"wall {THINNER:.2f}" in problem and "test wall" in problem for problem in walls), found)
+
+    def test_an_accepted_thin_wall_elsewhere_does_not_cover_it(self):
+        found = checks.wall_problems(walled_box(THIN), (thin_wall(THIN, (20, 20, 20, 30, 30, 30)),))
+        self.assertTrue(any(f"wall {THIN:.2f}" in problem for problem in found), found)
+
+    def test_an_accepted_thin_wall_the_part_lost_is_a_problem(self):
+        found = checks.wall_problems(walled_box(checks.CNC_MIN_WALL), (thin_wall(THIN),))
+        self.assertEqual(found, [f"accepted thin wall test wall (test.wall {THIN:g}) not found"])
+
+    def test_the_milled_cnc_parts_hold_the_minimum_or_an_accepted_thin_wall(self):
+        parts = variants.parts(variants.CNC)
+        for name in MILLED:
+            with self.subTest(name=name):
+                self.assertEqual(checks.wall_problems(parts[name], checks.thin_walls(name)), [])
+
+    def test_the_accepted_thin_walls_are_the_ones_board_toml_draws(self):
+        names = {name: {wall.source for wall in checks.thin_walls(name)} for name in MILLED}
+        self.assertEqual(names, {"shell": {"[usb] back_wall_thinned.to", "[display_carrier] skirt"},
+                                 "plate": {"[bottom_plate] key_ribs.width", "[pcb] holes 3.3,166"}})
+
+    def test_the_back_left_standoff_web_is_the_hole_to_the_bay_arc(self):
+        pcb, body = LAYOUT.pcb, LAYOUT.body
+        corner = pcb.corner_radius + body.pcb_clearance
+        centre = Vector(-body.pcb_clearance + corner, pcb.depth + body.pcb_clearance - corner, 0)
+        hole = Vector(*pcb.holes[-1], 0)
+        want = corner - (hole - centre).length - pcb.hole_diameter / 2
+        webs = [wall.thickness for wall in checks.thin_walls("plate") if wall.name.startswith("standoff")]
+        self.assertEqual(len(webs), 1)
+        self.assertAlmostEqual(webs[0], want, PLACES)
+        self.assertGreaterEqual(webs[0], checks.SHOP_MIN_WALL)
 
 
 if __name__ == "__main__":

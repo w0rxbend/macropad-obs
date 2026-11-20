@@ -176,9 +176,14 @@ def _plate_features():
 def _relief_note(name):
     radii = sorted({round(radius, 2) for radius, _ in _relief_walls(name)})
     listed = ", ".join(f"R{_mm(radius)}" for radius in radii) or "none"
-    return (f"Inside corners: every vertical inside corner is at least JLCCNC's depth / "
-            f"{shop.SHOP_DEPTH_SHARE} + {_mm(shop.SHOP_MIN_RADIUS)}; square ones carry dog-bone reliefs. "
-            f"Inside corner radii in this part: {listed}. Take them from the STEP file.")
+    return (f"Inside corners: each at least JLCCNC's depth / {shop.SHOP_DEPTH_SHARE} + "
+            f"{_mm(shop.SHOP_MIN_RADIUS)}, square ones dog-boned; radii here {listed}, from the STEP file.")
+
+
+def _thin_wall_note(name):
+    """The walls board.toml draws under checks.CNC_MIN_WALL on purpose, so the shop expects them."""
+    walls = ", ".join(f"{wall.name} {_mm(wall.thickness)}" for wall in checks.thin_walls(name))
+    return f"Walls {_mm(checks.CNC_MIN_WALL)} or more, but these thin walls on purpose: {walls}."
 
 
 def _relief_walls(name):
@@ -240,7 +245,7 @@ def _dog_bones(name, setup):
 def _shell_notes():
     marks = LAYOUT.knobs.index_marks
     return (
-        "3-axis, two setups.",
+        f"3-axis, two setups. {_thin_wall_note('shell')}",
         *_setup_notes("shell"),
         "Style A: the top chamfer is machined after the bead blast (setup 2) so it shows bright, then the part is "
         "anodised. Order as \"chamfer machined after blast\".",
@@ -256,7 +261,7 @@ def _shell_notes():
 
 def _plate_notes():
     return (
-        "3-axis, one setup.",
+        f"3-axis, one setup. {_thin_wall_note('plate')}",
         *_setup_notes("plate"),
         _relief_note("plate"),
         "ENGRAVE: none on this part.",

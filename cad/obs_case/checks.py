@@ -9,18 +9,25 @@ tools/check_numbers.py, measured off the solids, so the model and the numbers te
 
 `variant_problems` runs these on the print and cnc variants (variants.py) and adds the CNC-only
 shop rules, ported from macropad/cad/macropad_case/checks.py and measure.py (`machinability`,
-`_tool_reach`): no sharp inside corner, corner radius against depth, cutter reach."""
+`_tool_reach`): no sharp inside corner, corner radius against depth, cutter reach; and a measured
+wall thickness, where only the thin walls board.toml draws on purpose (thin_walls) pass under
+CNC_MIN_WALL, each by name."""
 
 import importlib.util
-from math import pi
+from dataclasses import dataclass
+from math import inf, pi
 
 from build123d import Box, GeomType, Pos, Vector
 from OCP.BRepAdaptor import BRepAdaptor_Surface
+from OCP.gp import gp_Dir, gp_Lin, gp_Pnt
+from OCP.IntCurvesFace import IntCurvesFace_ShapeIntersector
 
 from obs_case import body, bottom, carriers, deck, insert, shop, spec, variants
+from obs_case.shop import SHOP_MIN_WALL
 from obs_case.spec import LAYOUT
 
 CNC_MIN_WALL = 2.0  # report 11: walls 2.0 mm or more (JLCCNC: above 1.5 for bead blast)
+WALL_MESH = 0.05  # mm, mesh tolerance of the faces the wall check samples
 TOLERANCE = 1e-6  # mm, the build123d point and bounding-box tolerance
 PAST_EDGE = 1e-3  # mm a probe sits past an edge it tests, well above TOLERANCE
 CHECK_NUMBERS = spec.BOARD_TOML.parent / "tools" / "check_numbers.py"
@@ -473,15 +480,136 @@ def _thinned_wall_probes(shell):
 def cnc_problems(parts):
     """The shop rules on the milled shell and plate (report 11 section 3): no sharp inside corner
     left, every inside corner radius at least JLCCNC's depth / 10 + 0.5 [J1] and no deeper than
-    MAX_TOOL_DEPTH_RATIO cutter diameters, and the corner finder still sees the drawn MX cut-outs."""
+    MAX_TOOL_DEPTH_RATIO cutter diameters, every wall CNC_MIN_WALL or a named thin wall, and the
+    corner finder still sees the drawn MX cut-outs."""
     found = [f"cnc {name}: {_corner_text(corner)}" for name in MILLED
              for corner in variants.inside_corners(parts[name], variants.SETUPS[name])]
     found += [f"cnc {name}: inside corner at {corner.middle.X:.2f},{corner.middle.Y:.2f} open to none of its setups"
               for name in MILLED for corner in variants.relief_corners(name) if corner.setup is None]
     found += [f"cnc {name}: {problem}" for name in MILLED for problem in _radius_problems(parts[name])]
+    found += [f"cnc {name}: {problem}" for name in MILLED for problem in wall_problems(parts[name], thin_walls(name))]
     if LAYOUT.variants.cnc.hole_clearance != LAYOUT.buttons.hole_clearance:
         found.append("variants.cnc.hole_clearance is not buttons.hole_clearance, the drawn deck")
     return found + _finder_problems()
+
+
+@dataclass(frozen=True)
+class ThinWall:
+    """A wall board.toml draws thinner than CNC_MIN_WALL on purpose: what it is, the board.toml key
+    that sets its thickness, that thickness, and the boxes (x, y, z low, x, y, z high) it stands in."""
+
+    name: str
+    source: str
+    thickness: float
+    regions: tuple
+
+    def covers(self, point):
+        return any(low_x - PAST_EDGE <= point.X <= high_x + PAST_EDGE and low_y - PAST_EDGE <= point.Y <= high_y
+                   + PAST_EDGE and low_z - PAST_EDGE <= point.Z <= high_z + PAST_EDGE
+                   for low_x, low_y, low_z, high_x, high_y, high_z in self.regions)
+
+
+def _box(rect, z_low, z_high):
+    x, y, width, depth = rect
+    return x, y, z_low, x + width, y + depth, z_high
+
+
+def thin_walls(name):
+    """The thin walls of milled part `name` the shop is told to expect: sizes from layout-v2 as the
+    owner approved it (D3), under report 11's CNC_MIN_WALL and over the shops' SHOP_MIN_WALL. The
+    wall check names each one it measures and fails on any other wall under CNC_MIN_WALL."""
+    stack = LAYOUT.stack
+    if name == "plate":
+        ribs = LAYOUT.bottom_plate.key_ribs
+        rects = [[ribs.x[0], y - ribs.width / 2, ribs.x[1] - ribs.x[0], ribs.width] for y in ribs.y]
+        return (ThinWall("key ribs", "[bottom_plate] key_ribs.width", ribs.width,
+                         tuple(_box(rect, stack.bottom_plate_inside, stack.pcb_bottom) for rect in rects)),
+                *_clipped_standoffs())
+    usb, mouth_z = LAYOUT.usb, insert.usb_mouth_z()
+    area_width, area_height = usb.back_wall_thinned.area
+    inside = _back(bottom.cavity_rect())
+    usb_rect = [usb.x - area_width / 2, inside, area_width, insert.thinned_face_y() - inside]
+    bars = [bar for panel in deck.panels() for bar in deck.pocket_wall_rects(panel)]
+    return (
+        ThinWall("USB thinned back wall", "[usb] back_wall_thinned.to", usb.back_wall_thinned.to,
+                 (_box(usb_rect, mouth_z - area_height / 2, mouth_z + area_height / 2),)),
+        ThinWall("display pocket walls", "[display_carrier] skirt", LAYOUT.display_carrier.skirt,
+                 tuple(_box(bar, stack.pocket_skirt_bottom, stack.deck_underside) for bar in bars)),
+    )
+
+
+def _clipped_standoffs():
+    """A thin wall for each standoff the board bay clips (bottom.py) to under CNC_MIN_WALL between
+    its screw hole and the bay: the [pcb] hole sits that close to the bay edge in layout-v2 (the
+    back-left drill, 0.5 from the R 4.0 arc), so the post wall there is the hole's web to the bay."""
+    pcb, stack, posts = LAYOUT.pcb, LAYOUT.stack, LAYOUT.bottom_plate.standoffs
+    found = []
+    for hole in pcb.holes:
+        web = _bay_distance(hole) - pcb.hole_diameter / 2
+        if _bay_distance(hole) >= posts.diameter / 2 or web >= CNC_MIN_WALL - TOLERANCE:
+            continue
+        x, y = hole
+        rect = [x - posts.diameter / 2, y - posts.diameter / 2, posts.diameter, posts.diameter]
+        found.append(ThinWall(f"standoff {x:g},{y:g} web to the bay", f"[pcb] holes {x:g},{y:g}", web,
+                              (_box(rect, stack.bottom_plate_inside, stack.pcb_bottom),)))
+    return tuple(found)
+
+
+def _bay_distance(point):
+    """Distance from `point`, inside the board bay, to the bay's rounded outline."""
+    corner = LAYOUT.pcb.corner_radius + LAYOUT.body.pcb_clearance
+    x, y, width, depth = deck.grown(bottom.cavity_rect(), -corner)  # the rectangle of arc centres
+    nearest = Vector(min(max(point[0], x), x + width), min(max(point[1], y), y + depth), 0)
+    offset = (Vector(point[0], point[1], 0) - nearest).length
+    if offset > 0:
+        return corner - offset
+    return corner + min(point[0] - x, x + width - point[0], point[1] - y, y + depth - point[1])
+
+
+def wall_problems(part, walls):
+    """The thinnest sample of each vertical plane face of `part` under CNC_MIN_WALL that no wall in
+    `walls` accepts, and each wall in `walls` the part no longer has. A wall accepts a sample it
+    covers that is at least its own thickness and SHOP_MIN_WALL."""
+    thinnest, seen = {}, set()
+    for face, point, thickness in wall_samples(part):
+        if thickness >= CNC_MIN_WALL - TOLERANCE:
+            continue
+        wall = next((wall for wall in walls if wall.covers(point)), None)
+        if wall and thickness >= max(wall.thickness, SHOP_MIN_WALL) - TOLERANCE:
+            seen.add(wall.name)
+        elif face not in thinnest or thickness < thinnest[face][1]:
+            thinnest[face] = (point, thickness, wall)
+    found = [f"wall {thickness:.2f} at {point.X:.2f},{point.Y:.2f} z {point.Z:.2f}, CNC minimum {CNC_MIN_WALL:g}"
+             + (f", {wall.name} {wall.thickness:g}" if wall else "") for point, thickness, wall in thinnest.values()]
+    return found + [f"accepted thin wall {wall.name} ({wall.source} {wall.thickness:g}) not found"
+                    for wall in walls if wall.name not in seen]
+
+
+def wall_samples(part):
+    """(face index, point, thickness) at the middle of each mesh triangle of each vertical plane face
+    of `part`: how far a ray from there along the face's inward normal runs in material. The mesh
+    reaches every strip of a face, however narrow, where a grid of points could miss it."""
+    rays = IntCurvesFace_ShapeIntersector()
+    rays.Load(part.wrapped, TOLERANCE)
+    found = []
+    for index, face in enumerate(part.faces().filter_by(GeomType.PLANE)):
+        inward = -face.normal_at()
+        if abs(inward.Z) > TOLERANCE:
+            continue
+        vertices, triangles = face.tessellate(WALL_MESH)
+        for corners in triangles:
+            point = sum((vertices[corner] for corner in corners), Vector()) / len(corners)
+            found.append((index, point, _run_in_material(rays, point, inward)))
+    return found
+
+
+def _run_in_material(rays, point, inward):
+    """How far from `point`, on a face, a ray along `inward` runs before it leaves the material."""
+    start = point + inward * PAST_EDGE
+    rays.PerformNearest(gp_Lin(gp_Pnt(start.X, start.Y, start.Z), gp_Dir(inward.X, inward.Y, inward.Z)), 0, inf)
+    if not rays.IsDone() or rays.NbPnt() == 0:
+        return inf
+    return rays.WParameter(1) + PAST_EDGE
 
 
 def _corner_text(corner):
