@@ -114,7 +114,7 @@ The validator stops at the first failure and reports its path in `RESULT` (at mo
 4. `main_display`, then `strip_display`: `widgets` and its count, then each widget in order: `kind`, `x`, `y`, `w`, `h`, rule 2, the fields of the kind, then rules 3 and 4 against the widgets before it.
 5. `ui` (`brightness`).
 
-A path joins names with `.` and adds a list index as `[n]`, counted from 0: `obs.url`, `keys[2].do`, `strip_display.widgets[0].parts[1]`. A missing field, a wrong type and a bad value all give the field's own path. A wrong count gives the list's path (`keys`, `main_display.widgets`). Rules 2, 3 and 4 give the widget's path. For rules 3 and 4 that is the later widget of the pair: two overlapping widgets at index 0 and 1 give `main_display.widgets[1]` (criterion 4b).
+A path joins names with `.` and adds a list index as `[n]`, counted from 0: `obs.url`, `keys[2].do`, `strip_display.widgets[0].parts[1]`. A missing field, a wrong type and a bad value all give the field's own path. A list entry that is not an object reads as an object with no members, so it gives the path of its first field: `buttons[3].do`. A wrong count gives the list's path (`keys`, `main_display.widgets`). Rules 2, 3 and 4 give the widget's path. For rules 3 and 4 that is the later widget of the pair: two overlapping widgets at index 0 and 1 give `main_display.widgets[1]` (criterion 4b).
 
 ## URL rule
 
@@ -153,7 +153,7 @@ Spec 8.2 and R13 differ on when a try-only draft ends (`docs/research/gap-3.md`,
 
 `firmware/test/config_vectors/` holds one file per case, the raw bytes of a document. `verdicts.txt` in that directory lists each file with its verdict: `valid`, `too_big`, or `invalid` and the path (no path means the empty path). The pad range for every vector is min 1, max 1.
 
-The Rust test gives every file to the validator and compares the verdict and the path. The C test does the same against the stub and expects `unimplemented` for every file; task 2.9 replaces the stub and that test.
+The Rust test gives every file to the validator and compares the verdict and the path. A second Rust test fails when a file is missing from `verdicts.txt` or listed there without a file. The C test does the same against the stub and expects `unimplemented` for every file; task 2.9 replaces the stub and that test.
 
 ## Open points
 

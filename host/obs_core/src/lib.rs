@@ -2,6 +2,7 @@
 //! OBS keymap core. The shell does the websocket and the serial port.
 
 mod config;
+pub mod document;
 mod keymap;
 mod obs;
 mod paging;

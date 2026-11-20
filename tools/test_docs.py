@@ -147,6 +147,12 @@ class TaskListTest(unittest.TestCase):
             rule_r5 = re.search(r'R5 \(source of truth\)\.\*\* Add: "([^"]+)"', flat(SPEC)).group(1)
             self.assertIn(rule_r5, claude_md_after_pending_edits())
 
+    def test_claude_md_carries_rule_r3_while_1_9_is_ticked(self):
+        if "1.9" in ticked_tasks():
+            rule_r3 = re.search(r'R3 \(protocol and config\)\.\*\* "([^"]+)"', flat(SPEC)).group(1)
+            self.assertIn("Config schema changes", rule_r3)
+            self.assertIn(rule_r3, claude_md_after_pending_edits())
+
     def test_claude_md_carries_rules_r1_and_r2_while_1_10_is_ticked(self):
         if "1.10" not in ticked_tasks():
             return

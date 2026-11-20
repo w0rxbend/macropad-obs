@@ -120,7 +120,7 @@ pub fn parse(text: &str) -> Result<Config, ConfigError> {
     if scene_count(&keys) == 0 {
         return Err(ConfigError::SceneKeys);
     }
-    let (host, port) = split_url(&file.obs.url, file.obs.allow_non_loopback)?;
+    let (host, port) = split_url(&file.obs.url)?;
     Ok(Config {
         obs: ObsSettings {
             url: file.obs.url,
@@ -204,17 +204,10 @@ fn to_file(config: &Config) -> FileConfig {
     }
 }
 
-fn split_url(url: &str, allow_non_loopback: bool) -> Result<(String, u16), ConfigError> {
-    let (secure, rest) = if let Some(rest) = url.strip_prefix("wss://") {
-        (true, rest)
-    } else if let Some(rest) = url.strip_prefix("ws://") {
-        (false, rest)
-    } else {
+fn split_url(url: &str) -> Result<(String, u16), ConfigError> {
+    let Some(rest) = url.strip_prefix("wss://").or_else(|| url.strip_prefix("ws://")) else {
         return Err(ConfigError::Url);
     };
-    if allow_non_loopback && !secure {
-        return Err(ConfigError::Url);
-    }
     if rest.contains('@') || rest.contains('/') || rest.contains('?') || rest.contains('#') {
         return Err(ConfigError::Url);
     }
@@ -328,7 +321,7 @@ mod tests {
         assert!(parse(&sample_text().replace(":4455", "")).is_err());
         let mut remote = sample_text();
         remote = remote.replace("allow_non_loopback = false", "allow_non_loopback = true");
-        assert!(parse(&remote).is_err());
+        assert!(parse(&remote).is_ok(), "obs-websocket has no TLS, so a remote ws:// URL is allowed");
         remote = remote.replace("ws://", "wss://");
         assert!(parse(&remote).is_ok());
         let mut keys = sample_text();

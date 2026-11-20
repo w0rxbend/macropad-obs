@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: 1.9 (config schema and vectors).
+Next action: Checkpoint 1 owner review, then 2.9 (fw-config) once 2.2 lands.
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -156,7 +156,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Verify: `just test`.
   - Deps: 1.7, 1.10 (R1 replaces "No OBS password in a CDC frame" first). Files: the four protocol
     files and `test_link.c`.
-- [ ] **1.9 Config schema, vectors, Rust document, C stub (M) [P].** Write `docs/config.md` (layout
+- [x] **1.9 Config schema, vectors, Rust document, C stub (M) [P].** Write `docs/config.md` (layout
   names, try-only revert). Add `firmware/test/config_vectors/` with valid and invalid files and their
   expected verdicts. Add `host/obs_core/src/document.rs`: types, validator, unknown fields kept, and
   migrations by `schema`. Add a stub `firmware/core/config.c` that returns `unimplemented` for every
