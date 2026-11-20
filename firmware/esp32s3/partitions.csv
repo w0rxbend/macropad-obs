@@ -1,0 +1,10 @@
+# macropad-obs partition table, ESP32-S3-WROOM-1-N16R2 (16 MB). Spec section 10, D8.
+# tools/check_partitions.py checks it, and `just firmware` checks the built table against it.
+# nvs: IDF default, no secret. cred: plain NVS, secrets only, erased whole. cfg_a/cfg_b: raw
+# config slots (firmware/core/store.h), 64 KB each for room past STORE_SLOT_BYTES.
+# Name, Type, SubType, Offset, Size, Flags
+nvs, data, nvs, 0x9000, 0x6000,
+factory, app, factory, 0x10000, 0x400000,
+cred, data, nvs, 0x410000, 0x6000,
+cfg_a, data, 0x40, 0x420000, 0x10000,
+cfg_b, data, 0x40, 0x430000, 0x10000,

@@ -402,7 +402,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
 
 ## Phase 4: ESP-IDF port (`espressif/idf:v6.1.1` in Docker, pulled only after owner approval)
 
-- [ ] **4.1 IDF project and `just firmware` (M).** `firmware/esp32s3/`: CMake, `sdkconfig.defaults`
+- [x] **4.1 IDF project and `just firmware` (M).** `firmware/esp32s3/`: CMake, `sdkconfig.defaults`
   (no NVS encryption, no flash encryption, no secure boot), a partition table (`nvs`, `cred`,
   `cfg_a`, `cfg_b`), esp_tinyusb 3.0.1. The core links as a component.
   - Accept: `just firmware` writes a merged image. The partition table is checked against the spec.

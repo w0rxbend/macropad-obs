@@ -163,6 +163,8 @@ test-host: padsim-build
 check:
     python3 {{root}}/tools/check_pins.py
     python3 {{root}}/tools/test_check_pins.py
+    python3 {{root}}/tools/check_partitions.py
+    python3 {{root}}/tools/test_check_partitions.py
     python3 {{root}}/tools/test_docs.py
 
 numbers:
@@ -207,6 +209,19 @@ app-check:
         -v "{{root}}:{{root}}" -w "{{root}}/app/src-tauri" macropad-obs-app-check \
         sh -c 'cargo build --locked && xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" \
             {{root}}/app/check/window.sh "$CARGO_TARGET_DIR/debug/macropad-obs"'
+
+# Not on the test chain. ESP-IDF v6.1.1 in Docker (spec 10). Checks partitions.csv and
+# sdkconfig.defaults, builds into .build/esp32s3, reads the built partition table and sdkconfig
+# back against them, and writes the merged image .build/esp32s3/macropad-obs-merged.bin
+# (bootloader at 0x0, table at 0x8000, app at 0x10000).
+firmware:
+    python3 {{root}}/tools/check_partitions.py
+    mkdir -p {{root}}/.build/esp32s3 {{root}}/.build/idf-home
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME={{root}}/.build/idf-home \
+        -v "{{root}}:{{root}}" -w "{{root}}/firmware/esp32s3" espressif/idf:v6.1.1 \
+        idf.py -B {{root}}/.build/esp32s3 -D SDKCONFIG={{root}}/.build/esp32s3/sdkconfig \
+        build merge-bin -o macropad-obs-merged.bin
+    python3 {{root}}/tools/check_partitions.py --built {{root}}/.build/esp32s3
 
 # Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc, place);
 # `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
