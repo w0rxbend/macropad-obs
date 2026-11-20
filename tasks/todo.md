@@ -566,7 +566,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   (greycode pattern). No layout literal stays in `cad/`. Bring back `cad-check` running
   `test_spec.py` with the stdlib only, in `just test`.
   - Verify: `just test`. Deps: 1.4b. Files: `cad/obs_case/spec.py`, `test_spec.py`, `justfile`.
-- [ ] **6.2a Style A slab and deck (M).** A flat slab with chamfered edges, windows, lens recesses,
+- [x] **6.2a Style A slab and deck (M).** A flat slab with chamfered edges, windows, lens recesses,
   the key well, button and knob holes. `cad/build.py` runs the new body; the `cad *STEP` recipe
   returns and passes the step to `build.py`.
   - Accept: the geometry checks pass. A failed cut is a fault (no `_keep()` swallow).

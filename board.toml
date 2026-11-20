@@ -68,6 +68,8 @@ outline = [-2.9, -2.9, 97.4, 173.5]   # design. 97.4 x 173.5 mm, flat slab
 corner_radius = 6.9                   # design: concentric with the PCB corner R 4.0
 wall = 2.5                            # design, report 11 (CNC: walls >= 2.0)
 pcb_clearance = 0.4                   # design, report 11
+top_chamfer = 1.5                     # design, report 17 style A: one 45 degree chamfer round the top edge
+opening_chamfer = 0.5                 # design, report 17: a 45 degree chamfer frames each lens recess and the key well
 
 [pcb]
 width = 91.6                          # design
@@ -142,6 +144,7 @@ margin = 0.4                          # design: lens opening = active + 0.4 a si
 lens_recess_depth = 1.2               # report 11
 lens_recess_corner_radius = 2.1       # report 11
 window_corner_radius = 0.8            # design: R 2.1 on the window would clip ~0.45 of pixels
+lens_ledge = 2.0                      # report 11 s5: lens recess = lens opening + 2.0 ledge a side
 
 [stack]
 # z above the PCB top face (z = 0), mm. Report 11 section 2, except where marked.
@@ -190,6 +193,8 @@ keycap = 18.0                         # drawn size; DSA base is 18.4 (report 08)
 plate_hole = 14.0                     # datasheet, +/-0.05; print coupon MEASURE
 housing = 15.6                        # datasheet
 well_clearance = 0.7                  # design: deck key well = cap + 0.7, top edge y 72.4
+well_corner_radius = 1.6              # report 11: shallow show-face pockets get R 1.6
+plate_margin = 2.5                    # design: MX plate (z 3.5 to 5.0) runs 2.5 past the well, so the well walls stand on it
 
 [buttons]
 part = "Omron B3F-1060 (B3F-1050 square stem as alternate), 6x6 through-hole"
@@ -198,6 +203,8 @@ y = 5.60                              # design
 cap = [9.5, 6.0]                      # design: web 3.0 (cnc) / 2.6 (print); MEASURE fit on the stem
 cap_flange = [9.5, 8.0]               # 1.0 flange front and back only; 1.35 clear of the (3, 3) boss
 body = 6.0                            # datasheet, +/-0.2
+hole_clearance = 0.1                  # report 11: deck cap hole = cap + 0.1 a side (cnc); print 0.3 waits for the 6.4 variants
+cap_corner_radius = 1.0               # design: cap plan corner; CNC inside corner in the 2.0 deck >= 0.7 (report 11, JLCCNC)
 footprint = "Button_Switch_THT:SW_TH_Tactile_Omron_B3F-100x"
 # Cap back edge 8.6, front keycap edge 15.6: gap 7.0. Deeper caps would close that gap.
 
@@ -264,6 +271,7 @@ height = 3.1                          # datasheet; over max_part_height 2.5: 0.9
 part = "on-module PCB antenna, ESP32-S3-WROOM-1"
 area = [60.6, 161.7, 18.0, 6.0]       # datasheet: last 6.0 of the module (figure 10-1)
 board_cut = [58.6, 161.7, 33.0, 6.0]  # Espressif: feed side 2.0; far side runs off the PCB edge (13.0 + air)
+feed_side = "left"                    # footprint: feed on the pad 40 side (datasheet fig 10-1), mirrored on the bottom face; RF confirm in S.3
 # Web behind the carriers: narrow 0.28 (161.42), big 0.60 (x 58.00). Cut corners R 0.5, design.
 insert = { outline = [56.0, 168.1, 31.6, 2.5], material = "black PC or POM", height = "full wall" }   # design
 # The insert replaces the back wall from x 56.0 to the corner arc (87.6) and carries a tongue that

@@ -76,6 +76,11 @@ numbers:
 cad-check:
     python3 {{root}}/cad/obs_case/test_spec.py
 
+# Not on the test chain. Needs cad/.venv (build123d). No STEP runs every step; `just cad body`
+# builds the style A top shell and runs its geometry checks.
+cad *STEP:
+    {{root}}/cad/.venv/bin/python {{root}}/cad/build.py {{STEP}}
+
 # Plain python3 over pcb/gen: no Docker, no KiCad symbol libraries.
 pcb-test:
     python3 -B -m unittest discover -s {{root}}/pcb/gen -p 'test_*.py'
