@@ -18,7 +18,7 @@ from xml.sax.saxutils import escape
 import ezdxf
 from build123d import ExportDXF, GeomType, Plane, Pos, Unit, export_step, import_step, section
 
-from obs_case import checks, deck, laser, variants
+from obs_case import checks, deck, laser, shop, variants
 from obs_case.spec import BOARD_TOML, LAYOUT
 
 PACK = BOARD_TOML.parent / ".build" / "cad" / "cnc"
@@ -177,7 +177,7 @@ def _relief_note(name):
     radii = sorted({round(radius, 2) for radius, _ in _relief_walls(name)})
     listed = ", ".join(f"R{_mm(radius)}" for radius in radii) or "none"
     return (f"Inside corners: every vertical inside corner is at least JLCCNC's depth / "
-            f"{variants.SHOP_DEPTH_SHARE} + {_mm(variants.SHOP_MIN_RADIUS)}; square ones carry dog-bone reliefs. "
+            f"{shop.SHOP_DEPTH_SHARE} + {_mm(shop.SHOP_MIN_RADIUS)}; square ones carry dog-bone reliefs. "
             f"Inside corner radii in this part: {listed}. Take them from the STEP file.")
 
 

@@ -23,6 +23,7 @@ from operator import add
 from build123d import Cylinder, GeomType, Pos, Vector
 
 from obs_case import body, bottom, deck, insert
+from obs_case.shop import shop_radius
 from obs_case.spec import LAYOUT
 
 PRINT, CNC = "print", "cnc"
@@ -33,8 +34,6 @@ SHARP_SHARE = 0.6  # an edge with more of its probes in material is an inside co
 SQUARE_PROBES = 6  # probes in material round a 90 degree inside corner: three quadrants of eight
 MIN_EDGE = 0.05  # mm; shorter vertical edges are boolean slivers
 TOUCHING = 1e-6  # mm; a lobe this close to the insert fills its pocket
-SHOP_DEPTH_SHARE = 10  # JLCCNC [J1]: inside corner radius >= depth / 10 + 0.5
-SHOP_MIN_RADIUS = 0.5
 ABOVE, BELOW = "from above", "from below"  # the side a setup's cutter comes in from
 # The milled parts as board.toml draws them, and their setups in the CNC drawing's order: the shell
 # underside up then top up (report 11 setups 1 and 2), the plate inside face up only.
@@ -64,11 +63,6 @@ class Corner:
     @property
     def relief_radius(self):
         return shop_radius(self.depth)
-
-
-def shop_radius(depth):
-    """The smallest inside corner radius JLCCNC mills at `depth` mm [J1]."""
-    return depth / SHOP_DEPTH_SHARE + SHOP_MIN_RADIUS
 
 
 def fits(variant):

@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from obs_case import drawings, variants  # noqa: E402
+from obs_case import drawings, shop, variants  # noqa: E402
 from obs_case.spec import LAYOUT  # noqa: E402
 
 MILLED = ("shell", "plate")
@@ -35,7 +35,7 @@ class ReliefSetups(unittest.TestCase):
             for corner in variants.relief_corners(name):
                 with self.subTest(name=name, x=corner.middle.X, y=corner.middle.Y):
                     self.assertIn(corner.setup, variants.SETUPS[name])
-                    self.assertAlmostEqual(corner.relief_radius, variants.shop_radius(reach(part, corner)), PLACES)
+                    self.assertAlmostEqual(corner.relief_radius, shop.shop_radius(reach(part, corner)), PLACES)
 
     def test_the_mx_cut_outs_are_cut_top_up(self):
         stack = LAYOUT.stack

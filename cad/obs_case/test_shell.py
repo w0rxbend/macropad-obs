@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from build123d import Vector  # noqa: E402
 
-from obs_case import carriers, checks, deck  # noqa: E402
+from obs_case import carriers, checks, deck, insert, variants  # noqa: E402
 from obs_case.spec import LAYOUT  # noqa: E402
 
 NUDGE = 0.05  # mm a probe sits off the face it tests
@@ -89,6 +89,34 @@ class PocketWalls(unittest.TestCase):
         found = checks.location_problems("big", carriers.carrier("big"), far)
         self.assertEqual(len(found), 1)
         self.assertIn("big carrier", found[0])
+
+
+class UsbThinnedWall(unittest.TestCase):
+    """The outside pocket thins the back wall to [usb] back_wall_thinned.to round the opening. In
+    both variants the wall keeps that thickness right up to the pocket's side walls."""
+
+    def test_the_thinned_wall_keeps_its_thickness_beside_the_opening(self):
+        usb, mouth_z = LAYOUT.usb, insert.usb_mouth_z()
+        inside, thinned = insert.thinned_face_y() - usb.back_wall_thinned.to, insert.thinned_face_y()
+        area_half, opening_half = usb.back_wall_thinned.area[0] / 2, usb.opening[0] / 2
+        low, high = LAYOUT.stack.bottom_plate_inside, mouth_z + usb.back_wall_thinned.area[1] / 2
+        for variant in variants.VARIANTS:
+            shell = variants.parts(variant)["shell"]
+            for side in (-1, 1):
+                for x in (usb.x + side * (area_half - NUDGE), usb.x + side * mid(area_half, opening_half)):
+                    for y in (inside + NUDGE, thinned - NUDGE):
+                        for z in (low + NUDGE, mouth_z, high - NUDGE):
+                            with self.subTest(variant=variant, x=x, y=y, z=z):
+                                self.assertTrue(shell.is_inside(Vector(x, y, z)))
+
+    def test_no_dog_bone_goes_into_the_thinned_pocket(self):
+        top = insert.usb_mouth_z() + LAYOUT.usb.back_wall_thinned.area[1] / 2
+        self.assertEqual([corner for corner in variants.relief_corners("shell") if abs(corner.z_high - top) < NUDGE], [])
+
+    def test_the_variant_check_probes_the_thinned_wall(self):
+        parts = variants.parts(variants.CNC)
+        names = {name for name, _, _, _ in checks.variant_probes(parts, variants.CNC)}
+        self.assertIn("shell thinned wall full beside the USB opening", names)
 
 
 if __name__ == "__main__":

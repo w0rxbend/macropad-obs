@@ -11,10 +11,11 @@ pocket that thins the wall round it, over the plate's USB notch (bottom.py).
 Modelled line to line: the insert fit, its fixing and its material stay MEASURE (spec 6).
 Colour per open question 1 (spec 15): black until the owner answers."""
 
-from build123d import Color
+from build123d import Axis, Color, fillet
 
 from obs_case import body, bottom, deck
 from obs_case.carriers import block
+from obs_case.shop import shop_radius
 from obs_case.spec import LAYOUT
 
 OVERRUN = 0.5  # mm a cut tool runs past the faces it opens, so no face is left coplanar
@@ -52,7 +53,9 @@ def thinned_face_y():
 
 def _usb_tool():
     """[usb] opening through the back wall, centred on the mouth, and the outside pocket of
-    back_wall_thinned area round it, down to thinned_face_y(). Both run out below the shell."""
+    back_wall_thinned area round it, down to thinned_face_y(). Both run out below the shell.
+    The pocket's two inside vertical corners are drawn round, at the JLCCNC radius for a cutter
+    from the shell's bottom face: a dog-bone there would mill into the thinned wall behind it."""
     usb, case_back = LAYOUT.usb, LAYOUT.body.outline[1] + LAYOUT.body.outline[3]
     inside = thinned_face_y() - usb.back_wall_thinned.to
     mouth_z = usb_mouth_z()
@@ -60,8 +63,11 @@ def _usb_tool():
     area_width, area_height = usb.back_wall_thinned.area
     opening = block([usb.x - width / 2, inside - OVERRUN, width, case_back - inside + 2 * OVERRUN],
                     mouth_z - height / 2, mouth_z + height / 2)
+    pocket_top = mouth_z + area_height / 2
     pocket = block([usb.x - area_width / 2, thinned_face_y(), area_width, case_back + OVERRUN - thinned_face_y()],
-                   mouth_z - area_height / 2, mouth_z + area_height / 2)
+                   mouth_z - area_height / 2, pocket_top)
+    inside_corners = pocket.edges().filter_by(Axis.Z).group_by(Axis.Y)[0]
+    pocket = fillet(inside_corners, shop_radius(pocket_top - LAYOUT.stack.bottom_plate_inside))
     return opening + pocket
 
 

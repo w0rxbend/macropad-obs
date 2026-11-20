@@ -17,7 +17,7 @@ from math import pi
 from build123d import Box, GeomType, Pos, Vector
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 
-from obs_case import body, bottom, carriers, deck, insert, spec, variants
+from obs_case import body, bottom, carriers, deck, insert, shop, spec, variants
 from obs_case.spec import LAYOUT
 
 CNC_MIN_WALL = 2.0  # report 11: walls 2.0 mm or more (JLCCNC: above 1.5 for bead blast)
@@ -457,7 +457,17 @@ def variant_probes(parts, variant):
             for x in LAYOUT.buttons.x] + [
         ("big lens recess fit", shell,
          (recess_edge, recess_y, _mid(stack.lens_recess_floor, stack.deck_top - LAYOUT.body.opening_chamfer)), not wide),
-    ]
+    ] + _thinned_wall_probes(shell)
+
+
+def _thinned_wall_probes(shell):
+    """Just inside the thinned wall's outside face, between the USB opening and each side of the
+    thinning pocket: the wall keeps [usb] back_wall_thinned.to there, so no relief milled into it."""
+    usb = LAYOUT.usb
+    between = _mid(usb.opening[0], usb.back_wall_thinned.area[0]) / 2
+    y = insert.thinned_face_y() - PAST_EDGE
+    return [("shell thinned wall full beside the USB opening", shell, (usb.x + side * between, y, insert.usb_mouth_z()),
+             True) for side in (-1, 1)]
 
 
 def cnc_problems(parts):
@@ -502,8 +512,8 @@ def concave_walls(part):
 def _radius_problems(part):
     found = []
     for radius, height in concave_walls(part):
-        if radius < variants.shop_radius(height) - TOLERANCE:
-            found.append(f"inside corner R {radius:.3f}, {height:g} deep, JLCCNC wants R {variants.shop_radius(height):.3f}")
+        if radius < shop.shop_radius(height) - TOLERANCE:
+            found.append(f"inside corner R {radius:.3f}, {height:g} deep, JLCCNC wants R {shop.shop_radius(height):.3f}")
         if height > MAX_TOOL_DEPTH_RATIO * 2 * radius + TOLERANCE:
             found.append(f"inside corner R {radius:.3f} is {height / (2 * radius):.1f} cutter diameters deep")
     return found
