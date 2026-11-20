@@ -199,7 +199,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     gives the same result.
   - Verify: `just test-firmware`. Deps: 1.2. Files: `core/third_party/lwjson/*`, `core/json.[ch]`,
     `test/test_json.c`, `test/fixtures/obs_500_*.json`.
-- [ ] **2.3 fw-input (M) [P, lane C].** Scan the 4x4 matrix with 16-bit debounce. Add 3 quadrature
+- [x] **2.3 fw-input (M) [P, lane C].** Scan the 4x4 matrix with 16-bit debounce. Add 3 quadrature
   decoders fed by counts, and the B1 + B4 clear combination (an event; 2.11a wires the erase).
   - Accept: ghosting cases, debounce, and 2 turns/s with bounce all pass. Holding 5.0 s raises the
     clear event; 4.9 s does not.
@@ -215,7 +215,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     check uses SHA-1 and base64.
   - Verify: `just test-firmware`. Deps: 2.1. Files: `core/stream.h`, `core/ws.[ch]`,
     `test/test_ws.c`, `test/fake_stream.[ch]`.
-- [ ] **2.6 tools/fake_obs.py (M) [P, lane E].** A stdlib-only obs-websocket 5 server: Hello,
+- [x] **2.6 tools/fake_obs.py (M) [P, lane E].** A stdlib-only obs-websocket 5 server: Hello,
   Identify, auth on or off, scripted state from `ui_state.json`, a request log, modes for
   4009/4010/4011, a 500-scene collection, and a throttled 75 kB reply.
   - Accept: its self-test drives a handshake with a Python client and checks the log format that

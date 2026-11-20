@@ -1,0 +1,17 @@
+{
+  "currentProgramSceneUuid": "S_A",
+  "currentPreviewSceneUuid": "S_B",
+  "studioModeEnabled": true,
+  "scenes": [
+    {"sceneName": "Camera", "sceneUuid": "S_A"},
+    {"sceneName": "Screen", "sceneUuid": "S_B"},
+    {"sceneName": "Break", "sceneUuid": "S_C"}
+  ],
+  "inputs": [
+    {"inputMuted": false, "inputName": "Mic", "inputUuid": "U_A", "inputVolumeDb": -6},
+    {"inputMuted": false, "inputName": "Desktop", "inputUuid": "U_B", "inputVolumeDb": -20},
+    {"inputMuted": true, "inputName": "Music", "inputUuid": "U_C", "inputVolumeDb": -30}
+  ],
+  "recordActive": false,
+  "streamActive": false
+}
