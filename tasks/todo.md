@@ -398,7 +398,9 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Status: image, `app/check/window.sh`, recipe and udev line are in. Open until 3.6: `just
     app-check` stops at `session.rs` (v1 `Bridge`, `Port`). A scratch copy with a stub `session.rs`
     builds in the image and passes the window check. `check_pins.py` had to learn the second line,
-    because it compares the whole rule file.
+    because it compares the whole rule file. Rechecked 2026-11-20: same stop, same stub pass. The
+    image is approved (G-docker), so 3.6 is unblocked; 3.9 ticks when 3.6 makes `just app-check`
+    exit 0.
 
 ### Checkpoint 3
 - [ ] `just test` includes 4b and 4c.
@@ -447,10 +449,16 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     any other PCNT user, then `input_port_next_event` into fw-actions. A 1 ms `esp_timer` wakes the
     scan, so `CONFIG_FREERTOS_HZ` stays 100. Row settle 30 µs and the clockwise sign are MEASURE.
     Not run on hardware.
-- [ ] **4.6 Display port (M) [P].** Two `esp_lcd` SPI IO handles on SPI2, the big panel first
+- [x] **4.6 Display port (M) [P].** Two `esp_lcd` SPI IO handles on SPI2, the big panel first
   (CS0 on IO10). DMA band push. LEDC backlights. `spi_device_get_actual_freq()` logged. f_bus comes
   from S.3 (13.3 MHz if no higher step passed).
   - Verify: `just firmware`. Deps: 4.1, 2.15, S.3. Files: `main/lcd_port.c`, `main/backlight.c`.
+  - Status: builds with no warning; not wired yet. f_bus is the provisional 13.3 MHz (80 MHz / 6):
+    S.3 has no record, so S.3 sets `LCD_PCLK_HZ` later. The IO handle hides its SPI device, so a
+    no-CS probe device with the same clock settings reads `spi_device_get_actual_freq()`. 4.7 calls
+    `backlight_init` (both off), `lcd_port_start`, passes `lcd_port_push` as the `render_sink_t`
+    push, then `backlight_set` under the power cap. One 10,240 B DMA band buffer, freed by the
+    done callback. Backlight PWM 20 kHz, 10 bit. Not run on hardware.
 - [ ] **4.7 Main, watchdog and power cap (M).** The task layout and the watchdog. Backlights and
   Wi-Fi stay off until USB configures, or for 2 s with no enumeration. The cap comes from
   `board.toml`, and a 1.5 A CC advert lifts it. Add the `just flash` recipe.
@@ -565,12 +573,17 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     J3/J4 are still `PLACEHOLDER_*`, so the set lands in ignored `pcb/.build/fab`; `pcb/fab` and
     the committed board come with 5.12. 48 BOM findings (UNVERIFIED LCSC, no MPN) are listed,
     not failed. CPL rotation against the STEP is F.1/5.11.
-- [ ] **5.11 Board STEP (S) [provisional].** `kicad-cli` in the local `kicad/kicad:10.0.7-full`
+- [x] **5.11 Board STEP (S) [provisional].** `kicad-cli` in the local `kicad/kicad:10.0.7-full`
   (it has `RF_Module.3dshapes/ESP32-S3-WROOM-1.step`, `Connector_USB` and `Button_Switch` models;
   plain `10.0.7` has no `/usr/share/kicad/3dmodels`). MX and EC11 come from the `cad` envelopes.
   - Accept: the STEP reads back with its solid count recorded in the manifest. The manifest lists
     which parts come from KiCad models and which from `cad` envelopes.
   - Verify: `just pcb step`. Deps: 5.9. Files: `pcb/gen/step.py`, `justfile`.
+  - Status: the STEP reads back 75 solids (the board plus each distinct model, written once however
+    often placed) and an assembly occurrence for every part with a model. 15 parts are `cad`
+    envelopes (SW1-SW9, SW14-SW16, J1, both panels), 72 KiCad models; H1-H6, SW20 and SW21 have no
+    model. J3/J4 are still `PLACEHOLDER_*`, so it lands in ignored `pcb/.build/step`; `pcb/step`
+    comes with 5.12.
 - [ ] **5.12 Re-run on the real FPC footprints (S).** After 5.3b, run 5.6 to 5.11 again.
   - Accept: DRC 0/0/0, ERC clean, fab and STEP rebuilt, and no `PLACEHOLDER_*` in any output.
   - Verify: `just pcb`; `just pcb step`; `just gate`. Deps: S.3, 5.3b, 5.11. Files: `pcb/fab/*`,
