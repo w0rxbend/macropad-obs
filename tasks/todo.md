@@ -651,11 +651,18 @@ D5 copies: never edit the sibling repos. Each copied file carries
     height at least 2.0 mm. The outline matches the deck 1:1 within 0.05 mm.
   - Verify: `just cad laser`. Deps: 6.2a. Files: `cad/obs_case/laser.py`, `test_laser.py`,
     `cad/build.py`, `justfile`.
-- [ ] **6.8 Interference with the board STEP (S).** Check the case, plate, insert and caps against
+- [x] **6.8 Interference with the board STEP (S).** Check the case, plate, insert and caps against
   the 5.11 STEP and the module, plus the module stack (0.9 to the plate) and the USB shell.
   - Accept: 0 interferences. Gaps are reported against MEASURE. Provisional until 5.12.
   - Verify: `just cad fit`. Deps: 5.11, 6.3, 6.10. Files: `cad/obs_case/fit.py`, `cad/build.py`,
     `justfile`.
+  - Status: 14 case parts a variant (shell, plate, insert, carriers, foam frames, 3 dials, 4 B3F
+    caps) against 143 placed STEP solids and each other: 0 interferences in print and cnc. The
+    dial D bore on the round EC11 envelope shaft is allowed inside the shaft flat only. The STEP
+    puts its faces 1.68 apart (board.toml 1.6), so bottom parts sit 0.08 low: module stack reads
+    0.82 to the plate (0.90 drawn, MEASURE). USB overhang 1.00, face 0.40 behind the thinned wall,
+    insert line to line. DSA caps not checked (seat MEASURE). `just cad fit` needs `just pcb step`;
+    no justfile change. Provisional until 5.12.
 - [x] **6.9 Coupons and renders (S).** Print coupons for the module stack, USB4216, keys and FPC
   tail. Copy `macropad/cad/macropad_case/coupons.py`. Regenerate `docs/images/*.png` with
   `render.py`.

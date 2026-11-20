@@ -29,7 +29,10 @@ Steps:
   coupons   cut the print coupons (task 6.9) from the print parts, check each, write their 3D
             exports, read each back, into cad/exports/coupons and the "coupons" section.
             Tests: obs_case/test_coupons.py.
-  render    render the cnc case to docs/images case.png, rear.png and underside.png (task 6.9)."""
+  render    render the cnc case to docs/images case.png, rear.png and underside.png (task 6.9).
+  fit       check every case part of both variants against the board STEP of `just pcb step` and
+            each other (task 6.8): 0 interferences, and the MEASURE gaps reported.
+            Tests: obs_case/test_fit.py."""
 
 import os
 import subprocess
@@ -136,6 +139,12 @@ def render_step() -> int:
     return _fresh_process("obs_case.render")
 
 
+def fit_step() -> int:
+    from obs_case import fit
+
+    return fit.run()
+
+
 def envelopes_step() -> int:
     from obs_case import envelopes
 
@@ -160,7 +169,7 @@ def fcstd_step() -> int:
 STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step, "variants": variants_step,
          "cnc": cnc_step, "export": export_step, "export2d": export2d_step, "envelopes": envelopes_step,
          "fcstd": fcstd_step, "laser": laser_step, "knob": knob_step, "b3f": b3f_step,
-         "coupons": coupons_step, "render": render_step}
+         "coupons": coupons_step, "render": render_step, "fit": fit_step}
 
 
 def main(argv: list[str]) -> int:
