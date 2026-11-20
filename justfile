@@ -243,6 +243,10 @@ firmware:
 # routing.txt, board sha256) twice and passes when both writes are the same bytes and the BOM, CPL and
 # board footprints name the same parts; into pcb/fab, or pcb/.build/fab while PLACEHOLDER_* tails remain.
 # It lists the BOM lines that still stop an order; F.1 and `just gate` decide on ordering.
+# `just pcb step` exports the routed board as one STEP in kicad/kicad:10.0.7-full (plain 10.0.7 has
+# no 3D models), with the cad envelopes for MX, EC11, the USB jack and the panels, and passes when
+# the STEP reads back the board's and every model's solids; manifest.json records the count and
+# each part's source. Into pcb/step, or pcb/.build/step while PLACEHOLDER_* tails remain.
 pcb *STEP:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -254,5 +258,7 @@ pcb *STEP:
     case "{{STEP}}" in
         "") kicad erc; route; kicad fab ;;
         route) route ;;
+        step) docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "{{root}}:{{root}}" -w "{{root}}" \
+            kicad/kicad:10.0.7-full python3 -B pcb/gen/step.py ;;
         *) kicad {{STEP}} ;;
     esac
