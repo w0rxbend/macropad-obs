@@ -193,7 +193,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
 - [x] **2.1 fw-crypto (S) [P, lane A].** SHA-1, SHA-256, base64.
   - Accept: the NIST vectors pass. The R05 obs-websocket auth example gives the published string.
   - Verify: `just test-firmware`. Deps: 1.2. Files: `core/crypto.[ch]`, `test/test_crypto.c`.
-- [ ] **2.2 fw-json (M) [P, lane B].** Vendor LwJSON v1.10.1 (MIT; **new dependency, ask first**).
+- [x] **2.2 fw-json (M) [P, lane B].** Vendor LwJSON v1.10.1 (MIT; **new dependency, ask first**).
   Add a streaming wrapper.
   - Accept: 500-scene and 500-input fixtures parse in bounded RAM under ASan. A split at any byte
     gives the same result.
