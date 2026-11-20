@@ -16,8 +16,8 @@ envelope boxes. It is not a photograph. Nothing in it has been printed, assemble
 ## No hardware yet
 
 No board, case or panel exists. Nothing has run on a chip. Every hardware number in this repo is a
-datasheet value, an arithmetic result, or a MEASURE tag. The bring-up order for the first board is
-`docs/bringup.md`.
+datasheet value, an arithmetic result, or a MEASURE tag. What to buy, print, mill and assemble is
+`docs/build-guide.md`. The bring-up order for the first board is `docs/bringup.md`.
 
 ## Commands
 
