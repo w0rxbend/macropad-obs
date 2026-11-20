@@ -17,7 +17,7 @@ from math import pi
 from build123d import Box, GeomType, Pos, Vector
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 
-from obs_case import body, bottom, carriers, deck, spec, variants
+from obs_case import body, bottom, carriers, deck, insert, spec, variants
 from obs_case.spec import LAYOUT
 
 CNC_MIN_WALL = 2.0  # report 11: walls 2.0 mm or more (JLCCNC: above 1.5 for bead blast)
@@ -310,7 +310,8 @@ def insert_problems(parts):
     insert.shell(), "plate" to bottom.plate() and "insert" to insert.insert(). The shell and the
     plate count as metal (the CNC case): neither may hold any volume in the antenna board cut."""
     found = [problem for name, solid in parts.items() for problem in _one_solid(name, solid)]
-    found += _insert_rule_problems() + _post_height_problems() + _insert_extent_problems(parts["insert"])
+    found += _insert_rule_problems() + _usb_rule_problems() + _post_height_problems()
+    found += _insert_extent_problems(parts["insert"])
     found += [f"{name} is metal in the antenna board cut" for name in ("shell", "plate")
               if _shared_volume(parts[name], _antenna_cut()) > TOLERANCE]
     names = list(parts)
@@ -515,7 +516,46 @@ def _insert_probes(parts):
         ("shell pocket at the insert deck rim", shell, (wall_x, wall_y, _deck_mid()), False),
         ("shell wall left of the insert", shell, (x - PAST_EDGE, wall_y, 0.0), True),
         ("shell wall right of the insert", shell, (x + width + PAST_EDGE, wall_y, 0.0), True),
+    ] + _usb_probes(shell)
+
+
+def _usb_probes(shell):
+    """The USB opening through the back wall and the outside pocket that thins the wall round it."""
+    usb, mouth_z = LAYOUT.usb, insert.usb_mouth_z()
+    opening_width, opening_height = usb.opening
+    area_width, area_height = usb.back_wall_thinned.area
+    inside, thinned, back = _back(bottom.cavity_rect()), insert.thinned_face_y(), _back(LAYOUT.body.outline)
+    beside = usb.x + opening_width / 2 + PAST_EDGE
+    return [
+        ("shell open at the USB mouth", shell, (usb.x, _mid(inside, back), mouth_z), False),
+        ("shell thinned beside the USB opening", shell, (beside, _mid(thinned, back), mouth_z), False),
+        ("shell thin wall beside the USB opening", shell, (beside, _mid(inside, thinned), mouth_z), True),
+        ("shell over the USB opening", shell,
+         (usb.x, _mid(inside, thinned), mouth_z + opening_height / 2 + PAST_EDGE), True),
+        ("shell full wall beside the thinned area", shell,
+         (usb.x + area_width / 2 + PAST_EDGE, _mid(thinned, back), mouth_z), True),
+        ("shell full wall over the thinned area", shell,
+         (usb.x, _mid(thinned, back), mouth_z + area_height / 2 + PAST_EDGE), True),
     ]
+
+
+def _usb_rule_problems():
+    """The USB opening must pass the receptacle, meet the plate notch, and leave the receptacle face
+    behind the thinned wall face ([usb]: 0.4 behind it)."""
+    usb, notch = LAYOUT.usb, LAYOUT.bottom_plate.usb_notch
+    width, depth = usb.body
+    opening_width, opening_height = usb.opening
+    mouth_z = insert.usb_mouth_z()
+    receptacle_face = LAYOUT.pcb.depth + usb.mouth_overhang
+    found = []
+    if opening_width <= width or opening_height <= usb.height:
+        found.append(f"usb.opening {usb.opening} does not pass the {width:g} x {usb.height:g} shell")
+    if opening_width > notch.width or mouth_z - opening_height / 2 < LAYOUT.stack.bottom_plate_inside - notch.depth:
+        found.append(f"usb.opening {usb.opening} runs past the plate notch {notch.width:g} x {notch.depth:g}")
+    if insert.thinned_face_y() <= receptacle_face:
+        found.append(f"USB receptacle face y {receptacle_face:g} is not behind the thinned face "
+                     f"y {insert.thinned_face_y():g}")
+    return found
 
 
 def _plate_probes(plate):

@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
-"""One isometric PNG of the assembly mesh. No window is opened."""
+"""Renders of the cnc case for docs/images (task 6.9): case.png from the front, rear.png from the
+back (insert, USB opening), underside.png from below (plate). No window is opened. The case parts
+are the cnc variant; the keycaps and switches are their [envelopes] envelopes and the PCB a plain
+board, so the renders show the case, not the bought parts. A z-buffer paints the triangles of every part.
+`python -m obs_case.render` writes the three PNGs; a rerun writes the same bytes."""
 
 from __future__ import annotations
 
@@ -11,24 +15,28 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import trimesh
+from build123d import Compound, Pos, extrude
 from mpl_toolkits.mplot3d import proj3d
 
+from obs_case import b3f_cap, body, envelopes, export, export2d, knob, variants
+from obs_case.spec import BOARD_TOML, LAYOUT
 
+IMAGES = BOARD_TOML.parent / "docs" / "images"
+VIEWS = {"case.png": (28.0, -58.0), "rear.png": (22.0, 118.0), "underside.png": (-38.0, -58.0)}  # elev, azim
 COLOURS = {
-    "base": "#3a3c40",
-    "top": "#d0d1d4",
-    "glass": "#4a4c52",
-    "display": "#07080c",
-    "knob": "#2a2c30",
+    "shell": export.COLOURS[variants.CNC, "shell"],
+    "plate": export.COLOURS[variants.CNC, "plate"],
+    "insert": export.COLOURS[variants.CNC, "insert"],
+    "lens": "#0b0d12",
     "keycaps": "#e4e2de",
-    "screws": "#c5c8cc",
+    "switches": "#4a403c",
+    "knobs": "#2a2c30",
+    "caps": "#9a9ca0",
     "pcb": "#1c4f32",
     "usb": "#b7b8b4",
-    "encoder": "#242628",
-    "switches": "#4a403c",
 }
-ELEV_DEG = 28.0
-AZIM_DEG = -58.0
+KEYCAP_SEAT = 6.6  # mm, MX housing top over the plate top (report 08 [C1]: 11.6 over the PCB); render only
+TESSELLATION = 0.02  # mm chord error of each part's triangles
 BACKGROUND = "#c4c0ba"
 
 
@@ -37,7 +45,7 @@ def _rgb(hex_colour: str) -> np.ndarray:
     return np.array(((value >> 16) & 255, (value >> 8) & 255, value & 255), dtype=np.uint8)
 
 
-def _eye(elev: float = ELEV_DEG, azim: float = AZIM_DEG) -> np.ndarray:
+def _eye(elev: float, azim: float) -> np.ndarray:
     elev = np.deg2rad(elev)
     azim = np.deg2rad(azim)
     return np.array((np.cos(elev) * np.cos(azim), np.cos(elev) * np.sin(azim), np.sin(elev)))
@@ -119,21 +127,58 @@ def _paint(axis, parts: list[tuple[trimesh.Trimesh, np.ndarray]], eye: np.ndarra
     return image
 
 
-def _load_mesh(path: Path) -> trimesh.Trimesh:
-    mesh = trimesh.load_mesh(path)
-    if isinstance(mesh, trimesh.Scene):
-        mesh = trimesh.util.concatenate(tuple(mesh.geometry.values()))
-    return mesh
+def _placed(shape, points):
+    """One Compound of `shape` moved to each (x, y) of `points`."""
+    return Compound([Pos(x, y, 0) * shape for x, y in points])
 
 
-def render(folder: Path, png_path: Path, elev: float = ELEV_DEG, azim: float = AZIM_DEG) -> None:
-    """folder holds one stl per COLOURS key."""
+def scene() -> dict[str, object]:
+    """{COLOURS key: shape} of the assembled cnc case, PCB frame."""
+    keys, buttons, knobs, stack = LAYOUT.keys, LAYOUT.buttons, LAYOUT.knobs, LAYOUT.stack
+    pcb, usb = LAYOUT.pcb, LAYOUT.usb
+    parts = variants.parts(variants.CNC)
+    lens_thickness = stack.lens_top - stack.lens_recess_floor
+    lenses = Compound([extrude(Pos(0, 0, stack.lens_recess_floor) * export2d.lens(name), amount=lens_thickness)
+                       for name in export2d.PANELS])
+    keycap = Pos(0, 0, stack.mx_plate_top + KEYCAP_SEAT) * envelopes.parts()["dsa-keycap"]
+    _, depth = usb.body
+    receptacle = Pos(usb.x, pcb.depth + usb.mouth_overhang - depth / 2, stack.pcb_bottom - usb.height) * (
+        envelopes.parts()["usb4216"])
+    return {
+        "shell": parts["shell"], "plate": parts["plate"], "insert": parts["insert"], "lens": lenses,
+        "keycaps": _placed(keycap, [(x, y) for x in keys.x for y in keys.y]),
+        "switches": _placed(envelopes.parts()["mx-switch"], [(x, y) for x in keys.x for y in keys.y]),
+        "knobs": _placed(knob.dial(), [(knobs.x, y) for y in knobs.y]),
+        "caps": _placed(b3f_cap.cap(variants.CNC), [(x, buttons.y) for x in buttons.x]),
+        "pcb": body.prism([0, 0, pcb.width, pcb.depth], pcb.corner_radius, stack.pcb_bottom, stack.pcb_top),
+        "usb": receptacle,
+    }
+
+
+def _mesh(shape) -> trimesh.Trimesh:
+    vertices, triangles = shape.tessellate(TESSELLATION)
+    return trimesh.Trimesh([tuple(vertex) for vertex in vertices], triangles, process=False)
+
+
+def render(parts: list[tuple[trimesh.Trimesh, np.ndarray]], png_path: Path, elev: float, azim: float) -> None:
+    """One PNG of `parts`, (mesh, rgb) each, seen from `elev` and `azim` degrees."""
     png_path.parent.mkdir(parents=True, exist_ok=True)
-    parts = [(_load_mesh(folder / f"{name}.stl"), _rgb(colour)) for name, colour in COLOURS.items()]
     low = np.min([mesh.bounds[0] for mesh, _colour in parts], axis=0)
     high = np.max([mesh.bounds[1] for mesh, _colour in parts], axis=0)
     figure, axis = _view(low, high, elev, azim)
     image = _paint(axis, parts, _eye(elev, azim))
     plt.close(figure)
-    plt.imsave(png_path, image)
-    print(f"rendered {png_path}")
+    plt.imsave(png_path, image, metadata={"Software": None})
+    print(f"rendered {png_path.name}")
+
+
+def render_all(folder: Path = IMAGES) -> int:
+    """Every VIEWS png of the scene into `folder`."""
+    parts = [(_mesh(shape), _rgb(COLOURS[name])) for name, shape in scene().items()]
+    for name, (elev, azim) in VIEWS.items():
+        render(parts, folder / name, elev, azim)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(render_all())

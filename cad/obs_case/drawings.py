@@ -150,6 +150,10 @@ def _shell_features():
     outline = LAYOUT.antenna.insert.outline
     rows.append(("IP", _centre(outline), f"insert pocket {_size(outline)} through the back wall, "
                  f"±{_mm(POSITION_TOLERANCE)}; insert fit MEASURE"))
+    usb = LAYOUT.usb
+    rows.append(("UO", (usb.x, LAYOUT.pcb.depth), f"USB opening {_mm(usb.opening[0])} x {_mm(usb.opening[1])} "
+                 f"through the back wall from the bottom face; wall thinned to {_mm(usb.back_wall_thinned.to)} "
+                 f"over {_mm(usb.back_wall_thinned.area[0])} x {_mm(usb.back_wall_thinned.area[1])} from outside"))
     return tuple(rows)
 
 

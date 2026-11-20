@@ -4,9 +4,10 @@ An 8° wedge for OBS. Nine MX keys, one knob, and a 2.4" ST7789 TFT sit on the s
 
 The pad speaks USB CDC. A Linux app holds the OBS WebSocket, the URL, and the password. The password never goes to the pad.
 
-![Mesh render of the 8 degree case, screen, nine key holes, and knob](docs/images/case.png)
+![Mesh render of the style A slab: two lens windows, nine keys, four buttons and three knobs](docs/images/case.png)
 
-That picture is a mesh render of the retired v1 wedge. It is not a photograph. Nothing in it has been printed, assembled, or flashed.
+That picture is a mesh render of the v2 style A case, cnc variant (`just cad render`); the keycaps are
+envelope boxes. It is not a photograph. Nothing in it has been printed, assembled, or flashed.
 
 ## Commands
 

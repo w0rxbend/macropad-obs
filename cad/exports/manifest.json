@@ -286,14 +286,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22416,
-            "volume_error": "1.1e-05",
+            "triangles": 22984,
+            "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 467456,
+        "bytes": 474026,
         "format": "3MF",
-        "sha256": "42dbb0f597032c82073ba1e2d14097dd42e9b9244d8614c768686caae438b113"
+        "sha256": "22fd2bb5e49a22f204f097617ab5863f47b5f6835692de9423e92b8efad6b4bc"
       },
       "cnc/assembly.glb": {
         "bodies": {
@@ -308,14 +308,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22416,
+            "triangles": 22984,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 1541484,
+        "bytes": 1567864,
         "format": "GLB",
-        "sha256": "516d682049caef40922963eef6a745491a103c3c9b9af1ff5bb51795230a68e6",
+        "sha256": "3ea18426e780cc5df81e37a621805f4d7d5ba86c8062ff2eb59873b00ff38bc3",
         "zero_area_dropped": {
           "OBS-CASE-INSERT-CNC": 0,
           "OBS-CASE-PLATE-CNC": 0,
@@ -323,13 +323,13 @@
         }
       },
       "cnc/assembly.step": {
-        "bytes": 1152284,
+        "bytes": 1187121,
         "format": "STEP AP214",
-        "sha256": "7b70dda07eb882ea01dcc60939cbdbeb51b04a18d2aca652f0f7674f04f7355c",
+        "sha256": "40befeb4519d723cc68ee2b0dac63bb8a77c20b06d3b1cd60ef26a3f7837c4f4",
         "solids": 3,
         "valid": true,
-        "volume_error": "4.9e-15",
-        "volume_mm3": 76549.193
+        "volume_error": "4.4e-15",
+        "volume_mm3": 76308.886
       },
       "cnc/insert.3mf": {
         "bodies": {
@@ -454,62 +454,62 @@
       "cnc/shell.3mf": {
         "bodies": {
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22416,
-            "volume_error": "1.1e-05",
+            "triangles": 22984,
+            "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 291336,
+        "bytes": 298107,
         "format": "3MF",
-        "sha256": "cf62e01ace1b3a98ef50413dcb7c6e0d391a8b9bc3f7e57b3b72a5dc2ce9951b"
+        "sha256": "a6dddb572068db56d7cf8ab042b918985c813600970f4659c712356171cf7be2"
       },
       "cnc/shell.ap242.step": {
-        "bytes": 839052,
+        "bytes": 873882,
         "format": "STEP AP242",
-        "sha256": "ed787786d0a431ed337c0c67e226dd82956a563b0a8d88ca97e5f0b746654877",
+        "sha256": "2bb9bd977d2a67b13ccc4e97445b15a73f3322cd499001a330d3b19b701d9425",
         "solids": 1,
         "valid": true,
-        "volume_error": "7.9e-16",
-        "volume_mm3": 32262.505
+        "volume_error": "2.3e-14",
+        "volume_mm3": 32022.197
       },
       "cnc/shell.brep": {
-        "bytes": 287504,
+        "bytes": 299839,
         "format": "BREP",
-        "sha256": "b560dd6bb025c95a710272d3e262a2beb8e1daf1198068e60ed93c7efd22a43f",
+        "sha256": "f1b5cc0effbadec9a220c4d4276900112c16f3cf504fad7458351aa4879f457d",
         "solids": 1,
         "valid": true,
-        "volume_error": "4.5e-16",
-        "volume_mm3": 32262.505
+        "volume_error": "0.0e+00",
+        "volume_mm3": 32022.197
       },
       "cnc/shell.igs": {
-        "bytes": 671004,
+        "bytes": 694737,
         "format": "IGES",
-        "sha256": "1b0f97a13c389fbe193e8c6ede8c5cdbf58a6fee2af3b3a6e9afe528bb381166",
+        "sha256": "db132f17fc2d4ed49041debbdd0314bb22b509c4aca96fb032a66f31e6fda93a",
         "solids": 1,
         "valid": true,
-        "volume_error": "3.5e-12",
-        "volume_mm3": 32262.505
+        "volume_error": "2.4e-12",
+        "volume_mm3": 32022.197
       },
       "cnc/shell.step": {
-        "bytes": 839017,
+        "bytes": 873847,
         "format": "STEP AP214",
-        "sha256": "ed70431cf0c2d916a267e3578540be3879681e2b7116166a6aa0203f2429f815",
+        "sha256": "5e79bd34f9fc8db97eaff706d0a444b78569b749a1692d5f4dc84b9c023fdf4a",
         "solids": 1,
         "valid": true,
-        "volume_error": "7.9e-16",
-        "volume_mm3": 32262.505
+        "volume_error": "2.3e-14",
+        "volume_mm3": 32022.197
       },
       "cnc/shell.stl": {
         "bodies": {
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22416,
-            "volume_error": "1.1e-05",
+            "triangles": 22984,
+            "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 1120884,
+        "bytes": 1149284,
         "format": "STL",
-        "sha256": "0786915e1beeba205fb91054fb249cf884ba2dca63da6c503eb3f7fb0b49edf4"
+        "sha256": "21d911dc04c39091591cc6e2a436ad43d5bc01cac6ec45e9423cc03a86074f41"
       },
       "print/assembly.3mf": {
         "bodies": {
@@ -524,14 +524,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11394,
+            "triangles": 11426,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 279627,
+        "bytes": 279735,
         "format": "3MF",
-        "sha256": "656cdb2a3001f5d92cd0cfabce424ed3cd458eb4607775ce8f669971a19bcb3d"
+        "sha256": "388b50192c5fece0fafbea6e4bc7d25ccfe87d2aa535c1e274031e57c1b2d2d1"
       },
       "print/assembly.glb": {
         "bodies": {
@@ -546,14 +546,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11394,
-            "volume_error": "1.1e-05",
+            "triangles": 11426,
+            "volume_error": "1.2e-05",
             "watertight": true
           }
         },
-        "bytes": 952624,
+        "bytes": 958368,
         "format": "GLB",
-        "sha256": "62d093da0ef9ddf8e52c772e7f57e85e6dc45ffdd6b99299d52699d3bd0e67cb",
+        "sha256": "623711017914bf5775d4ddc2e39db382a43f92e39c961fb4344eda4b9a989857",
         "zero_area_dropped": {
           "OBS-CASE-INSERT-PRINT": 0,
           "OBS-CASE-PLATE-PRINT": 0,
@@ -561,13 +561,13 @@
         }
       },
       "print/assembly.step": {
-        "bytes": 887416,
+        "bytes": 919292,
         "format": "STEP AP214",
-        "sha256": "ffce671ecee1eaf6ae854c5944f4e834eeae31416fb386c35a14a095e874666e",
+        "sha256": "a49d70a79ce7b0ab95a39330477190c5504b9d1ac123255fb8b9e085e5bf0c7b",
         "solids": 3,
         "valid": true,
-        "volume_error": "1.5e-15",
-        "volume_mm3": 76502.521
+        "volume_error": "1.9e-15",
+        "volume_mm3": 76272.229
       },
       "print/insert.3mf": {
         "bodies": {
@@ -692,62 +692,612 @@
       "print/shell.3mf": {
         "bodies": {
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11394,
+            "triangles": 11426,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 147520,
+        "bytes": 147622,
         "format": "3MF",
-        "sha256": "bc41a3b8aaf8f1b35a3e069b07be9ff65213373c7e69a054c9d90403201dc0e7"
+        "sha256": "8f7a0f9abfe027e0500d11e4f3217698479eb59ee980a8df6de81232aef87584"
       },
       "print/shell.ap242.step": {
-        "bytes": 653063,
+        "bytes": 684934,
         "format": "STEP AP242",
-        "sha256": "f03f1476b83d768da649cc6ebc1b100c22cb081dd9beaeb15c99fe92680f3745",
+        "sha256": "1d7887e0448fd6ab6fedd76fa7857ff5032f0b0cec9ded5cf5b4553712311169",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.5e-15",
-        "volume_mm3": 32215.67
+        "volume_error": "1.8e-15",
+        "volume_mm3": 31985.378
       },
       "print/shell.brep": {
-        "bytes": 203544,
+        "bytes": 211784,
         "format": "BREP",
-        "sha256": "1658e5b7f074944605e7a983b9c61874e5a6334e36964066be905a1fef45fcaa",
+        "sha256": "89bb532ac67dac53a676d1628dffe3c78964a153ea8ad98d3a0852f63eab457f",
         "solids": 1,
         "valid": true,
-        "volume_error": "4.5e-16",
-        "volume_mm3": 32215.67
+        "volume_error": "2.3e-16",
+        "volume_mm3": 31985.378
       },
       "print/shell.igs": {
-        "bytes": 507870,
+        "bytes": 526743,
         "format": "IGES",
-        "sha256": "d271a6a03e18efb65799e28899b0dfc8d79dee24ddf4142da16e74f116e9144a",
+        "sha256": "3cf4e88d89cb6884ae21d803672b56a4adc70470f78f9ccb536ba6f44fd37d33",
         "solids": 1,
         "valid": true,
         "volume_error": "2.1e-12",
-        "volume_mm3": 32215.67
+        "volume_mm3": 31985.378
       },
       "print/shell.step": {
-        "bytes": 653028,
+        "bytes": 684899,
         "format": "STEP AP214",
-        "sha256": "8fe01bd0e4aa63ff11ea557886bee395a04744b212b6348b82b5862f7281d6b0",
+        "sha256": "16041dcb1ac508631c132aece1bf8fea566a11a3fd6d8e5c64142aff2794d244",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.5e-15",
-        "volume_mm3": 32215.67
+        "volume_error": "1.8e-15",
+        "volume_mm3": 31985.378
       },
       "print/shell.stl": {
         "bodies": {
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11394,
+            "triangles": 11426,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 569784,
+        "bytes": 571384,
         "format": "STL",
-        "sha256": "d9043a0b862686cda5543b1f2b5db4854f5caa9ecf855f6a77eb48ccad84903f"
+        "sha256": "f825980d723f73ea2bd77481ed293866fcd3bc9efa4a726b4a049855936e0452"
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
+  "coupons": {
+    "files": {
+      "coupons/cap-hole.3mf": {
+        "bodies": {
+          "OBS-COUPON-CAP-HOLE": {
+            "triangles": 620,
+            "volume_error": "1.1e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 8571,
+        "format": "3MF",
+        "sha256": "8f5d93d1eda17f8c1cd8eec6717b95d23870aa191663aadd73fdb2892334674e"
+      },
+      "coupons/cap-hole.ap242.step": {
+        "bytes": 63914,
+        "format": "STEP AP242",
+        "sha256": "c4b6204d4c9c3213f80dc73d353bf2219bc56c5c8a63da948ff28934dcdea442",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "6.6e-15",
+        "volume_mm3": 303.329
+      },
+      "coupons/cap-hole.brep": {
+        "bytes": 19836,
+        "format": "BREP",
+        "sha256": "38cc73995104c4ab348450dac2a61aacffd7c2f84fca0d5df643ac87ba7e94f8",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "3.7e-16",
+        "volume_mm3": 303.329
+      },
+      "coupons/cap-hole.igs": {
+        "bytes": 46575,
+        "format": "IGES",
+        "sha256": "55757c8e3a2230cbbd6d946f6bd4e54331a715138317bdae4196cd4e6b098e28",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "2.2e-15",
+        "volume_mm3": 303.329
+      },
+      "coupons/cap-hole.step": {
+        "bytes": 63878,
+        "format": "STEP AP214",
+        "sha256": "35a3663309c6ec7494b61a6d7bc50f2354aa8e031193bbcce47f2fbbb6e1cf8d",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "6.6e-15",
+        "volume_mm3": 303.329
+      },
+      "coupons/cap-hole.stl": {
+        "bodies": {
+          "OBS-COUPON-CAP-HOLE": {
+            "triangles": 620,
+            "volume_error": "1.1e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 31084,
+        "format": "STL",
+        "sha256": "750d7b3a212caeec9289d46c61810831d585e2f737de1e3fc3587e7632dc9af4"
+      },
+      "coupons/fpc-big.3mf": {
+        "bodies": {
+          "OBS-COUPON-FPC-BIG": {
+            "triangles": 72,
+            "volume_error": "6.5e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 2318,
+        "format": "3MF",
+        "sha256": "47854109a8f43b6dcc0134b32e931631ba083de1e84cf9131670707de5d087c1"
+      },
+      "coupons/fpc-big.ap242.step": {
+        "bytes": 68631,
+        "format": "STEP AP242",
+        "sha256": "98c15911c0cb0764c369c67a7de6b63f0ab56b9fc24907e43aede65bd099522a",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "2.2e-16",
+        "volume_mm3": 1040.896
+      },
+      "coupons/fpc-big.brep": {
+        "bytes": 19567,
+        "format": "BREP",
+        "sha256": "fcf93170d2a67e00197481e1dbbb11c5b1badc926464920a5624e74682127e44",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 1040.896
+      },
+      "coupons/fpc-big.igs": {
+        "bytes": 46980,
+        "format": "IGES",
+        "sha256": "a485f7ee3b772814cade8289a99469e6b3f339192fe417186ce22c70ad181427",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.1e-15",
+        "volume_mm3": 1040.896
+      },
+      "coupons/fpc-big.step": {
+        "bytes": 68596,
+        "format": "STEP AP214",
+        "sha256": "8fb5f59ad9d067b84a1cf7849b064fb0fd63b78d50d70c9d689957f3f463fd27",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "2.2e-16",
+        "volume_mm3": 1040.896
+      },
+      "coupons/fpc-big.stl": {
+        "bodies": {
+          "OBS-COUPON-FPC-BIG": {
+            "triangles": 72,
+            "volume_error": "6.5e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 3684,
+        "format": "STL",
+        "sha256": "02d490ef04ec1b7295fa44da1d9aa57c8bd7f556bdbe292bb27567160776e4d2"
+      },
+      "coupons/fpc-narrow.3mf": {
+        "bodies": {
+          "OBS-COUPON-FPC-NARROW": {
+            "triangles": 72,
+            "volume_error": "1.7e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 2326,
+        "format": "3MF",
+        "sha256": "cccac7d399cfc3e0dda317f27d2428319df6c5ddb3607d7127258af7ecbeadd0"
+      },
+      "coupons/fpc-narrow.ap242.step": {
+        "bytes": 68913,
+        "format": "STEP AP242",
+        "sha256": "22689d218f498904bb8c5c2a3b7799ea6ca3dbb9582ea522d540fe9026724809",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 514.401
+      },
+      "coupons/fpc-narrow.brep": {
+        "bytes": 19504,
+        "format": "BREP",
+        "sha256": "0bb197f12cc4673414ab95fc6e1e4975c4ddb80e67db1a4f7331b84ac8177598",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 514.401
+      },
+      "coupons/fpc-narrow.igs": {
+        "bytes": 46818,
+        "format": "IGES",
+        "sha256": "41c3042a606cd9fae0900ea44dd6694d58b39fa381be12bc9f1e2116a05b22cf",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "4.4e-16",
+        "volume_mm3": 514.401
+      },
+      "coupons/fpc-narrow.step": {
+        "bytes": 68878,
+        "format": "STEP AP214",
+        "sha256": "b934abefa056aa77ea856f992d75b4bc2b65b66271ccc8e882a932468112a663",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 514.401
+      },
+      "coupons/fpc-narrow.stl": {
+        "bodies": {
+          "OBS-COUPON-FPC-NARROW": {
+            "triangles": 72,
+            "volume_error": "1.7e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 3684,
+        "format": "STL",
+        "sha256": "cf5053b9001fb82b3c8fde6e8344c6e2f1bc7cf2e41303657de94ec50ed8be35"
+      },
+      "coupons/knob-bore.3mf": {
+        "bodies": {
+          "OBS-COUPON-KNOB-BORE": {
+            "triangles": 2040,
+            "volume_error": "6.1e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 25915,
+        "format": "3MF",
+        "sha256": "a80ebd93648c10cdd0e2a22912d253d465b4a1ad64fc8243ea5e1bd69b901bea"
+      },
+      "coupons/knob-bore.ap242.step": {
+        "bytes": 171903,
+        "format": "STEP AP242",
+        "sha256": "1968d25d5669bce59282928e7afcc91e5fe89d01c490a168460b8f3579e2e63a",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "4.3e-14",
+        "volume_mm3": 2118.411
+      },
+      "coupons/knob-bore.brep": {
+        "bytes": 138628,
+        "format": "BREP",
+        "sha256": "8ebc01858815d2f0b85dae7966337d127a86cbc73aa3eee6391e0ce100db0e51",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "2.8e-15",
+        "volume_mm3": 2118.411
+      },
+      "coupons/knob-bore.igs": {
+        "bytes": 138753,
+        "format": "IGES",
+        "sha256": "d91f421fe0fb6b8512f0bb75e0d8b68acdb8e7f90f9ddbc18ab788f8015e30ae",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "4.2e-11",
+        "volume_mm3": 2118.411
+      },
+      "coupons/knob-bore.step": {
+        "bytes": 171868,
+        "format": "STEP AP214",
+        "sha256": "37011b47d3f72b76aca75e64d49fdabc508bfc84f74478e41a1c459ca82d1a43",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "4.3e-14",
+        "volume_mm3": 2118.411
+      },
+      "coupons/knob-bore.stl": {
+        "bodies": {
+          "OBS-COUPON-KNOB-BORE": {
+            "triangles": 2040,
+            "volume_error": "6.1e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 102084,
+        "format": "STL",
+        "sha256": "6f6ce0f99d6c5d09a2b05dc2c20b906ac1f0ac5e5660b1f9d69baaaf60097c24"
+      },
+      "coupons/knob-hole.3mf": {
+        "bodies": {
+          "OBS-COUPON-KNOB-HOLE": {
+            "triangles": 592,
+            "volume_error": "1.2e-04",
+            "watertight": true
+          }
+        },
+        "bytes": 8292,
+        "format": "3MF",
+        "sha256": "af584a29c28c20164e3226b29492ed9275001b8e49af7a61459cceb87030b458"
+      },
+      "coupons/knob-hole.ap242.step": {
+        "bytes": 22068,
+        "format": "STEP AP242",
+        "sha256": "f46e0b9ef515865c15a5b9e01267e5eb03961c484f19e78272992e840f287ef7",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.5e-14",
+        "volume_mm3": 221.503
+      },
+      "coupons/knob-hole.brep": {
+        "bytes": 7657,
+        "format": "BREP",
+        "sha256": "47fb6c2d1c51aae20c6e370860e15d0ff69901f534615efb4619b55b795be96e",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.0e-15",
+        "volume_mm3": 221.503
+      },
+      "coupons/knob-hole.igs": {
+        "bytes": 18144,
+        "format": "IGES",
+        "sha256": "1ea4fbd8e169ff930726e522d42145f3f99f21f4e300336ed568c32d4fd517fa",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "2.3e-15",
+        "volume_mm3": 221.503
+      },
+      "coupons/knob-hole.step": {
+        "bytes": 22033,
+        "format": "STEP AP214",
+        "sha256": "43e3ba2f63fd6f9bd984813b6c8f507f9d4e8ac5ae4ccbdf4717fb008bac16b7",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.5e-14",
+        "volume_mm3": 221.503
+      },
+      "coupons/knob-hole.stl": {
+        "bodies": {
+          "OBS-COUPON-KNOB-HOLE": {
+            "triangles": 592,
+            "volume_error": "1.2e-04",
+            "watertight": true
+          }
+        },
+        "bytes": 29684,
+        "format": "STL",
+        "sha256": "973e3a2611b60841012e892ce9d74bb19246a00f504bce3b48ed7268ca603b50"
+      },
+      "coupons/module-stack.3mf": {
+        "bodies": {
+          "OBS-COUPON-MODULE-STACK": {
+            "triangles": 2508,
+            "volume_error": "3.6e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 31479,
+        "format": "3MF",
+        "sha256": "34d7a9a62d377a4e3825cf6bb0231bcbebef233d2fd0a201bf112fd16f408f21"
+      },
+      "coupons/module-stack.ap242.step": {
+        "bytes": 56832,
+        "format": "STEP AP242",
+        "sha256": "655a77bb02ab5a3c64bee2b8834805800714c1f8ce9abd85d5c3f16167aec834",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.5e-14",
+        "volume_mm3": 2767.791
+      },
+      "coupons/module-stack.brep": {
+        "bytes": 21184,
+        "format": "BREP",
+        "sha256": "8c8524eafca032388fdcb8d1c013ed29a2501718c01db76e758e43ca6d618338",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.6e-16",
+        "volume_mm3": 2767.791
+      },
+      "coupons/module-stack.igs": {
+        "bytes": 51192,
+        "format": "IGES",
+        "sha256": "6b48be056989fe6d44964363fb41fcd4f964157e86bf2c75d1246a55205c7173",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.0e-14",
+        "volume_mm3": 2767.791
+      },
+      "coupons/module-stack.step": {
+        "bytes": 56797,
+        "format": "STEP AP214",
+        "sha256": "83a36dfc6bf3c04053368e7242361db61a53ea93b7532f6cb50d591a09659e04",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.5e-14",
+        "volume_mm3": 2767.791
+      },
+      "coupons/module-stack.stl": {
+        "bodies": {
+          "OBS-COUPON-MODULE-STACK": {
+            "triangles": 2508,
+            "volume_error": "3.6e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 125484,
+        "format": "STL",
+        "sha256": "e596a61fe3fb8a45d4f28202f468e362b54044e2015c4ba495a814acdd0b861d"
+      },
+      "coupons/mx-cutout.3mf": {
+        "bodies": {
+          "OBS-COUPON-MX-CUTOUT": {
+            "triangles": 56,
+            "volume_error": "9.9e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 2165,
+        "format": "3MF",
+        "sha256": "3a18ed9d980cd5dc5477223112ba203e67a8793ecd7c6b9603810a36f3230687"
+      },
+      "coupons/mx-cutout.ap242.step": {
+        "bytes": 56035,
+        "format": "STEP AP242",
+        "sha256": "5436adf48510eb832bda36b94ad5d3346850924f975ce7e92899e00e852b8932",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "8.5e-16",
+        "volume_mm3": 666.834
+      },
+      "coupons/mx-cutout.brep": {
+        "bytes": 20170,
+        "format": "BREP",
+        "sha256": "d7c21972e27e035644d1b36d42f3ec0370b00ef3473a173ea55711dd3a291da0",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.0e-15",
+        "volume_mm3": 666.834
+      },
+      "coupons/mx-cutout.igs": {
+        "bytes": 37665,
+        "format": "IGES",
+        "sha256": "107933bddd7b379db21154e2429b08e5b79c58868450feb4e7a2cdd37165416c",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "6.8e-16",
+        "volume_mm3": 666.834
+      },
+      "coupons/mx-cutout.step": {
+        "bytes": 56000,
+        "format": "STEP AP214",
+        "sha256": "acd8459613b54639a89021355c1ddba080d2a8d43983658459863d3abf5b4291",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "8.5e-16",
+        "volume_mm3": 666.834
+      },
+      "coupons/mx-cutout.stl": {
+        "bodies": {
+          "OBS-COUPON-MX-CUTOUT": {
+            "triangles": 56,
+            "volume_error": "9.9e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 2884,
+        "format": "STL",
+        "sha256": "f825dd4fb1d87834003b09c9bf67bb9bfd48efc2b4bcdd252c64b5b219777f3f"
+      },
+      "coupons/usb-base.3mf": {
+        "bodies": {
+          "OBS-COUPON-USB-BASE": {
+            "triangles": 28,
+            "volume_error": "8.4e-09",
+            "watertight": true
+          }
+        },
+        "bytes": 1878,
+        "format": "3MF",
+        "sha256": "afd3ba6d1ffef3cee6aa24c711da3b2ddc7b6a6ed72be2fc28733e69ebe9bfca"
+      },
+      "coupons/usb-base.ap242.step": {
+        "bytes": 32889,
+        "format": "STEP AP242",
+        "sha256": "932eea75b1adaa43a515c5d6fa748b31905318b5ccc1eac636436d9ff5b994ee",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 215.35
+      },
+      "coupons/usb-base.brep": {
+        "bytes": 9466,
+        "format": "BREP",
+        "sha256": "686fe087a110d165fb0f7bf0cccdad3322d08f5e1a83155c9faec444a4042fe9",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 215.35
+      },
+      "coupons/usb-base.igs": {
+        "bytes": 22923,
+        "format": "IGES",
+        "sha256": "66b838d07a0bec3af4349c71ec410e204c3b323715ef766339e766f5f725d812",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.3e-16",
+        "volume_mm3": 215.35
+      },
+      "coupons/usb-base.step": {
+        "bytes": 32854,
+        "format": "STEP AP214",
+        "sha256": "f779d66a7fc2bb1b02c977ef056180bfd77c6d0ffe625072bf78363e2da6c531",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 215.35
+      },
+      "coupons/usb-base.stl": {
+        "bodies": {
+          "OBS-COUPON-USB-BASE": {
+            "triangles": 28,
+            "volume_error": "8.4e-09",
+            "watertight": true
+          }
+        },
+        "bytes": 1484,
+        "format": "STL",
+        "sha256": "267046e6068dc761fc1d5883b9fc2306d8a4006517fe42362ed42c4cd120b93b"
+      },
+      "coupons/usb-top.3mf": {
+        "bodies": {
+          "OBS-COUPON-USB-TOP": {
+            "triangles": 56,
+            "volume_error": "4.9e-09",
+            "watertight": true
+          }
+        },
+        "bytes": 2175,
+        "format": "3MF",
+        "sha256": "0b75c56d1b27f8b7dfbe5610ee6067af1fd1747cf70966ad7c27103d07184f12"
+      },
+      "coupons/usb-top.ap242.step": {
+        "bytes": 59450,
+        "format": "STEP AP242",
+        "sha256": "30d2cc188d2b112910a15be82437f23cf1f8f8c6646927a422e9d140cb301cae",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "3.2e-15",
+        "volume_mm3": 527.208
+      },
+      "coupons/usb-top.brep": {
+        "bytes": 17606,
+        "format": "BREP",
+        "sha256": "539614fc42ea83e0c5b0e882e7d1fbc4411b6ec54fd8ab6d99beeaf918fedeb5",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "2.2e-16",
+        "volume_mm3": 527.208
+      },
+      "coupons/usb-top.igs": {
+        "bytes": 39447,
+        "format": "IGES",
+        "sha256": "a2a8ac8746f0190b218a69b1d4b6e8a83ddee975ee50d467778183b369ec6c3c",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "3.5e-15",
+        "volume_mm3": 527.208
+      },
+      "coupons/usb-top.step": {
+        "bytes": 59415,
+        "format": "STEP AP214",
+        "sha256": "937ef1c26bf1fe5718081d874e35124920afb60b8c37c1ef46ee58bdd88811f6",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "3.2e-15",
+        "volume_mm3": 527.208
+      },
+      "coupons/usb-top.stl": {
+        "bodies": {
+          "OBS-COUPON-USB-TOP": {
+            "triangles": 56,
+            "volume_error": "4.9e-09",
+            "watertight": true
+          }
+        },
+        "bytes": 2884,
+        "format": "STL",
+        "sha256": "e4dced2e92fb6a13e5d1ec33919689937100c579d993f95371fe9d168994d3f3"
       }
     },
     "tools": {

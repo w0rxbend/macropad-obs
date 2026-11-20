@@ -647,7 +647,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   - Accept: 0 interferences. Gaps are reported against MEASURE. Provisional until 5.12.
   - Verify: `just cad fit`. Deps: 5.11, 6.3, 6.10. Files: `cad/obs_case/fit.py`, `cad/build.py`,
     `justfile`.
-- [ ] **6.9 Coupons and renders (S).** Print coupons for the module stack, USB4216, keys and FPC
+- [x] **6.9 Coupons and renders (S).** Print coupons for the module stack, USB4216, keys and FPC
   tail. Copy `macropad/cad/macropad_case/coupons.py`. Regenerate `docs/images/*.png` with
   `render.py`.
   - Verify: `just cad`. Deps: 6.4. Files: `cad/obs_case/coupons.py`, `render.py`.
