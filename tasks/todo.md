@@ -439,10 +439,14 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     `store_flash_bind(&port, &slots, &cred)`, which fills `device_port_t` `cred`, `flash`,
     `slot_a`, `slot_b`, so device.c's wipe runs `cred_nvs` erase before the slots. Not run on
     hardware.
-- [ ] **4.5 Input port (S) [P].** A matrix GPIO scan task. PCNT units 0-2 with glitch filter on the
+- [x] **4.5 Input port (S) [P].** A matrix GPIO scan task. PCNT units 0-2 with glitch filter on the
   spec's pins.
   - Verify: `just firmware`; `just check` (pins from `pins.h`). Deps: 4.1. Files:
     `main/input_port.c`.
+  - Status: builds with no warning; not wired yet. 4.7 calls `input_port_start(priority)` before
+    any other PCNT user, then `input_port_next_event` into fw-actions. A 1 ms `esp_timer` wakes the
+    scan, so `CONFIG_FREERTOS_HZ` stays 100. Row settle 30 µs and the clockwise sign are MEASURE.
+    Not run on hardware.
 - [ ] **4.6 Display port (M) [P].** Two `esp_lcd` SPI IO handles on SPI2, the big panel first
   (CS0 on IO10). DMA band push. LEDC backlights. `spi_device_get_actual_freq()` logged. f_bus comes
   from S.3 (13.3 MHz if no higher step passed).
