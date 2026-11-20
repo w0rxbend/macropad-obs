@@ -359,11 +359,15 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     edited widgets. An overlap write gets `invalid` and the frames stay unchanged.
   - Verify: `just test`. Deps: 2.14b, 3.2. Files: `host/app_core/build.rs`, `src/preview.rs`,
     `tests/criterion_4b.rs`.
-- [ ] **3.5 App core: firmware update (M).** `BOOTLOADER`, wait for 303a:1001 within 10 s,
+- [x] **3.5 App core: firmware update (M).** `BOOTLOADER`, wait for 303a:1001 within 10 s,
   `espflash` 4.7.0 as a library (**ask first**), hard reset, check the new git hash in `INFO`.
   - Accept: the state machine passes on a fake port: timeouts, wrong PID, flash error. The real run
     is 4.9. It drops if the owner says no to the in-app update.
   - Verify: `just test`. Deps: 3.2. Files: `host/app_core/src/update.rs`, its test, `Cargo.toml`.
+  - Status: `update::update` takes the caller's `Image` (segments and git hash); nothing builds an
+    `Image` from `just firmware` output yet (3.8 or 4.9). The firmware does not fill the `INFO` git
+    hash yet. `espflash` is the library only, with no reset before (the chip waits in ROM).
+    app_core MSRV is 1.95. Not run on hardware.
 - [ ] **3.6 Tauri commands over the core (M). Blocked: needs D6 or the 3.9 image approval.**
   Replace `session.rs` and the seven old commands. Keep `logbuf.rs`.
   - Accept: each command is a thin call into `app_core`. Errors reach the UI as values. No `unwrap`.

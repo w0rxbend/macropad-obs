@@ -232,7 +232,7 @@ fn wait_obs_up<P: Read + Write>(session: &mut Session<P>) {
 /// The pixels where two frames of one panel differ, as (x, y).
 fn changed(before: &[u8], after: &[u8], width: usize) -> Vec<(usize, usize)> {
     assert_eq!(before.len(), after.len());
-    let pixels = before.chunks_exact(2).zip(after.chunks_exact(2));
+    let pixels = before.as_chunks::<2>().0.iter().zip(after.as_chunks::<2>().0);
     pixels.enumerate().filter(|(_, (old, new))| old != new).map(|(at, _)| (at % width, at / width)).collect()
 }
 

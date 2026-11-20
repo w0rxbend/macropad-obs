@@ -2,13 +2,16 @@
 name = "app_core"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.80"
-description = "The app's pad session for macropad-obs: discovery, INFO, config read and write, display preview. No window."
+# espflash 4.7.0 sets 1.95.
+rust-version = "1.95"
+description = "The app's pad session for macropad-obs: discovery, INFO, config read and write, display preview, firmware update. No window."
 license = "MIT"
 publish = false
 
 [dependencies]
 obs_core = { path = "../obs_core" }
+# The library only: no CLI, no update check (spec 10, decisions-v2 G-deps).
+espflash = { version = "=4.7.0", default-features = false, features = ["serialport"] }
 serde_json = { version = "1", default-features = false, features = ["std"] }
 serialport = "4.10"
 
