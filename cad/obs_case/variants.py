@@ -7,8 +7,10 @@ changes fits only:
   print.hole_clearance a side ([variants]).
 - cnc: every square inside vertical corner a round cutter cannot reach gets a dog-bone relief
   (report 11: MX cut-outs, as macropad did), sized by the JLCCNC rule R = depth / 10 + 0.5 [J1] on
-  the depth from the face the cutter comes in from. Where a relief opens the insert's pocket, the
-  insert carries a matching lobe, so the two still meet line to line.
+  the depth from the face the cutter comes in from. Each corner carries the setup that cuts it,
+  from the part's SETUPS, and drawings.py lists the reliefs by that same setup. Where a relief
+  opens the insert's pocket, the insert carries a matching lobe, so the two still meet line to
+  line.
 
 The corner finder is a port of macropad/cad/macropad_case/measure.py `sharp_internal_corners`;
 checks.py counts what it finds on the finished parts."""
@@ -33,18 +35,25 @@ MIN_EDGE = 0.05  # mm; shorter vertical edges are boolean slivers
 TOUCHING = 1e-6  # mm; a lobe this close to the insert fills its pocket
 SHOP_DEPTH_SHARE = 10  # JLCCNC [J1]: inside corner radius >= depth / 10 + 0.5
 SHOP_MIN_RADIUS = 0.5
+ABOVE, BELOW = "from above", "from below"  # the side a setup's cutter comes in from
+# The milled parts as board.toml draws them, and their setups in the CNC drawing's order: the shell
+# underside up then top up (report 11 setups 1 and 2), the plate inside face up only.
+MILLED_PARTS = {"shell": insert.shell, "plate": bottom.plate}
+SETUPS = {"shell": (BELOW, ABOVE), "plate": (ABOVE,)}
 
 
 @dataclass(frozen=True)
 class Corner:
     """A sharp inside vertical corner: its middle, z span, unit direction into the air between its
-    two walls, probes in material, and the depth a cutter reaches it from."""
+    two walls, probes in material, the setup that cuts it (ABOVE or BELOW, None if none of the
+    part's setups reaches it) and the depth its cutter plunges there."""
 
     middle: Vector
     z_low: float
     z_high: float
     toward_air: Vector
     in_material: int
+    setup: str | None
     depth: float
 
     @property
@@ -89,9 +98,21 @@ def _print_parts():
     return {"shell": shell, "plate": bottom.plate(), "insert": insert.insert()}
 
 
+@cache
+def drawn(name):
+    """The milled part `name` ("shell" or "plate") as board.toml draws it, before any relief."""
+    return MILLED_PARTS[name]()
+
+
+@cache
+def relief_corners(name):
+    """The square inside corners of drawn(name), each with its setup: where the dog-bones go."""
+    return tuple(corner for corner in inside_corners(drawn(name), SETUPS[name]) if corner.square)
+
+
 def _cnc_parts():
-    shell, shell_lobes = relieved(insert.shell(), "shell")
-    plate, plate_lobes = relieved(bottom.plate(), "plate")
+    shell, shell_lobes = relieved("shell")
+    plate, plate_lobes = relieved("plate")
     part = insert.insert()
     lobes = [lobe for lobe in shell_lobes + plate_lobes if lobe.distance_to(part) <= TOUCHING]
     filled = _union([part, *lobes]) if lobes else part
@@ -99,10 +120,11 @@ def _cnc_parts():
     return {"shell": shell, "plate": plate, "insert": filled}
 
 
-def relieved(part, name):
-    """`part` with a dog-bone at each square inside corner, and the pieces those reliefs removed.
-    Acute corners are left as they are, for checks.py to report."""
-    tools = [_relief_tool(corner) for corner in inside_corners(part) if corner.square]
+def relieved(name):
+    """drawn(name) with a dog-bone at each square inside corner, and the pieces those reliefs
+    removed. Acute corners are left as they are, for checks.py to report."""
+    part = drawn(name)
+    tools = [_relief_tool(corner) for corner in relief_corners(name)]
     if not tools:
         return part, []
     # A parallel boolean returns its pieces in any order, and the insert's union follows the order:
@@ -121,10 +143,9 @@ def _relief_tool(corner):
     return Pos(centre.X, centre.Y, (corner.z_low + corner.z_high) / 2) * Cylinder(radius, height)
 
 
-def inside_corners(part):
+def inside_corners(part, setups):
     """Every vertical straight edge of `part` where two walls meet without a radius: most probes on
-    a small circle round its middle are in material."""
-    box = part.bounding_box()
+    a small circle round its middle are in material. Each is cut by one of `setups`."""
     found = []
     for edge in part.edges().filter_by(GeomType.LINE):
         start, end = edge.position_at(0), edge.position_at(1)
@@ -139,20 +160,25 @@ def inside_corners(part):
             continue
         toward_air = sum(air, Vector()).normalized()
         z_low, z_high = min(start.Z, end.Z), max(start.Z, end.Z)
-        depth = _cutter_depth(part, middle, toward_air, (z_low, z_high), (box.min.Z, box.max.Z))
-        found.append(Corner(middle, z_low, z_high, toward_air, in_material, depth))
+        setup, depth = _cutting_setup(part, middle + toward_air * PROBE, (z_low, z_high), setups)
+        found.append(Corner(middle, z_low, z_high, toward_air, in_material, setup, depth))
     return found
 
 
-def _cutter_depth(part, middle, toward_air, edge_span, part_span):
-    """How deep a cutter plunges to finish the corner: from the part's top face when the corner is
-    open above, from its bottom face when open below, the shallower if both. Measured to the
-    part's extreme faces, so it never comes out short."""
+def _cutting_setup(part, beside, edge_span, setups):
+    """(setup, depth) of the setup in `setups` that finishes the corner with the shortest plunge:
+    ABOVE if the corner is open above, from the part's top face; BELOW if open below, from its
+    bottom face. Depths run to the part's extreme faces, so they never come out short. A corner no
+    setup reaches gives (None, the part's full height)."""
+    box = part.bounding_box()
     z_low, z_high = edge_span
-    beside = middle + toward_air * PROBE
-    depths = []
-    if not part.is_inside(Vector(beside.X, beside.Y, z_high + PROBE)):
-        depths.append(part_span[1] - z_low)
-    if not part.is_inside(Vector(beside.X, beside.Y, z_low - PROBE)):
-        depths.append(z_high - part_span[0])
-    return min(depths) if depths else part_span[1] - part_span[0]
+    reach = {ABOVE: (z_high + PROBE, box.max.Z - z_low), BELOW: (z_low - PROBE, z_high - box.min.Z)}
+    open_to = []
+    for setup in setups:
+        probe_z, depth = reach[setup]
+        if not part.is_inside(Vector(beside.X, beside.Y, probe_z)):
+            open_to.append((depth, setup))
+    if not open_to:
+        return None, box.max.Z - box.min.Z
+    depth, setup = min(open_to)
+    return setup, depth

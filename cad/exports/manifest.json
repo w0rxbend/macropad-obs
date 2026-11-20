@@ -276,13 +276,13 @@
       "cnc/assembly.3mf": {
         "bodies": {
           "OBS-CASE-INSERT-CNC": {
-            "triangles": 1782,
-            "volume_error": "1.5e-06",
+            "triangles": 1792,
+            "volume_error": "3.4e-06",
             "watertight": true
           },
           "OBS-CASE-PLATE-CNC": {
-            "triangles": 12142,
-            "volume_error": "6.0e-06",
+            "triangles": 12150,
+            "volume_error": "5.9e-06",
             "watertight": true
           },
           "OBS-CASE-SHELL-CNC": {
@@ -291,20 +291,20 @@
             "watertight": true
           }
         },
-        "bytes": 475469,
+        "bytes": 475862,
         "format": "3MF",
-        "sha256": "164a9db53b8439b91620c747b650b40002062314368872db7fc151ef80dde3e2"
+        "sha256": "5b07e43bb4184215af4de9ce55b6cc7d842e60102d1b2a3f28d4f21eb620d996"
       },
       "cnc/assembly.glb": {
         "bodies": {
           "OBS-CASE-INSERT-CNC": {
-            "triangles": 1782,
-            "volume_error": "2.4e-06",
+            "triangles": 1792,
+            "volume_error": "4.3e-06",
             "watertight": true
           },
           "OBS-CASE-PLATE-CNC": {
-            "triangles": 12142,
-            "volume_error": "6.0e-06",
+            "triangles": 12150,
+            "volume_error": "5.9e-06",
             "watertight": true
           },
           "OBS-CASE-SHELL-CNC": {
@@ -313,9 +313,9 @@
             "watertight": true
           }
         },
-        "bytes": 1598444,
+        "bytes": 1599220,
         "format": "GLB",
-        "sha256": "2bdfb855504c722ccf6a276e064565be155d600857e5cc2cd7bb5352dd541967",
+        "sha256": "6d109e20c1f7a2e6f6a4c0dc49779bf915e06c99a1de2ee4bf75f8cc422f009a",
         "zero_area_dropped": {
           "OBS-CASE-INSERT-CNC": 0,
           "OBS-CASE-PLATE-CNC": 0,
@@ -323,133 +323,133 @@
         }
       },
       "cnc/assembly.step": {
-        "bytes": 1323374,
+        "bytes": 1323457,
         "format": "STEP AP214",
-        "sha256": "4d9e4c0a5ff5f53a14c68c42bd60b54a2b02d30cfa4723e9bd3580083537c031",
+        "sha256": "977d01e84de7b14256d45df99acd85500d5d5319921bb71ee9f1b35d8935a1e6",
         "solids": 3,
         "valid": true,
-        "volume_error": "3.4e-15",
+        "volume_error": "3.7e-16",
         "volume_mm3": 77853.046
       },
       "cnc/insert.3mf": {
         "bodies": {
           "OBS-CASE-INSERT-CNC": {
-            "triangles": 1782,
-            "volume_error": "1.5e-06",
+            "triangles": 1792,
+            "volume_error": "3.4e-06",
             "watertight": true
           }
         },
-        "bytes": 24271,
+        "bytes": 24376,
         "format": "3MF",
-        "sha256": "56bc3d13c095c4588d2c6a9a82c1591bdd14fea866ed4815f7a9f874386ef42f"
+        "sha256": "45fddffde317e20051a02050b4eae038b0f5d0f2fe08078af1746866202b50e4"
       },
       "cnc/insert.ap242.step": {
-        "bytes": 80590,
+        "bytes": 80626,
         "format": "STEP AP242",
-        "sha256": "8efe3cbdd31b8f8eeb684d579309eb8a293fe4f8eac9a1e4fe3bd8311b678d8b",
+        "sha256": "f273bd9ca9d34a2b04bb33369c17d058f0d2ea24985bb90ae75932e30e597162",
         "solids": 1,
         "valid": true,
-        "volume_error": "1.6e-13",
-        "volume_mm3": 1775.079
+        "volume_error": "4.2e-13",
+        "volume_mm3": 1779.418
       },
       "cnc/insert.brep": {
-        "bytes": 49339,
+        "bytes": 49659,
         "format": "BREP",
-        "sha256": "94f2bbffd7e1ac47c0f3182dfd858e83e024b01e212fbeb679533258c254947a",
+        "sha256": "d0b74958a789774aaf77bd10a6787144573cf07b0349635a718a568be5004e18",
         "solids": 1,
         "valid": true,
-        "volume_error": "4.4e-15",
-        "volume_mm3": 1775.079
+        "volume_error": "4.7e-15",
+        "volume_mm3": 1779.418
       },
       "cnc/insert.igs": {
         "bytes": 65448,
         "format": "IGES",
-        "sha256": "87e969dd78e13697a6c6de457e13921c924e29a6b12a43959b364f604c2c0f70",
+        "sha256": "f604e74667e7e896e9c97ed841d036676627453a5917a43516188d43dc286f38",
         "solids": 1,
         "valid": true,
-        "volume_error": "3.1e-11",
-        "volume_mm3": 1775.079
+        "volume_error": "2.9e-11",
+        "volume_mm3": 1779.418
       },
       "cnc/insert.step": {
-        "bytes": 80555,
+        "bytes": 80591,
         "format": "STEP AP214",
-        "sha256": "ec9a9d2bc09f6cc148a86a2e6692e8bd8e20127ba8577a4e9e7892d8ac1f5443",
+        "sha256": "67df073e3c76b5d08684d479c32696e9805eae7b36a32318cbee9ccb96de7525",
         "solids": 1,
         "valid": true,
-        "volume_error": "1.6e-13",
-        "volume_mm3": 1775.079
+        "volume_error": "4.2e-13",
+        "volume_mm3": 1779.418
       },
       "cnc/insert.stl": {
         "bodies": {
           "OBS-CASE-INSERT-CNC": {
-            "triangles": 1782,
-            "volume_error": "1.5e-06",
+            "triangles": 1792,
+            "volume_error": "3.4e-06",
             "watertight": true
           }
         },
-        "bytes": 89184,
+        "bytes": 89684,
         "format": "STL",
-        "sha256": "a1db4fe3f3baef7bf2ccd34d3f902f1060bcaab0708376b303d4beb863bea2b2"
+        "sha256": "27c44f4df110b4356aada2048eaef68e878ac6a537eb00e51a7bf9319704c59b"
       },
       "cnc/plate.3mf": {
         "bodies": {
           "OBS-CASE-PLATE-CNC": {
-            "triangles": 12142,
-            "volume_error": "6.0e-06",
+            "triangles": 12150,
+            "volume_error": "5.9e-06",
             "watertight": true
           }
         },
-        "bytes": 154259,
+        "bytes": 154626,
         "format": "3MF",
-        "sha256": "1b24972797772e38a53a7bdec6090c77347d8d5e220d4d6a720fe9d7564c0fe5"
+        "sha256": "6b3f292da1e8a33d6c2224506133f3ba4c57424f3bd78d176135a0a722a858ef"
       },
       "cnc/plate.ap242.step": {
-        "bytes": 212412,
+        "bytes": 212459,
         "format": "STEP AP242",
-        "sha256": "fe7446d35fc2d1e349fa5c6a2250c04d58af103134641b1e0b640cad5a60f2d9",
+        "sha256": "e40dc43a41183ce4da872a1b724f95a2fbb37869d28f5236ddda3f617f19243c",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.9e-15",
-        "volume_mm3": 42511.609
+        "volume_error": "1.4e-15",
+        "volume_mm3": 42507.271
       },
       "cnc/plate.brep": {
-        "bytes": 69501,
+        "bytes": 69740,
         "format": "BREP",
-        "sha256": "531a3d2fbe49e73b788a63d4018f408ffcd40eb3357b3bbbdf95eaa3ba2e1ef5",
+        "sha256": "8463ef438da018b60cc37c84adc7234f514bd2c5777c34f5bd04bc517494c7fe",
         "solids": 1,
         "valid": true,
-        "volume_error": "1.7e-16",
-        "volume_mm3": 42511.609
+        "volume_error": "3.4e-16",
+        "volume_mm3": 42507.271
       },
       "cnc/plate.igs": {
         "bytes": 192051,
         "format": "IGES",
-        "sha256": "fbcb2edf5d5b54cee8a4cbac48547d56b96e5356930a01fe6d18068e33a8eb26",
+        "sha256": "25a43b4a926fb002a0ecc17d4a61e845757dea33d9a36eacbb58fc2a43f1f3d2",
         "solids": 1,
         "valid": true,
-        "volume_error": "8.3e-13",
-        "volume_mm3": 42511.609
+        "volume_error": "6.8e-13",
+        "volume_mm3": 42507.271
       },
       "cnc/plate.step": {
-        "bytes": 212377,
+        "bytes": 212424,
         "format": "STEP AP214",
-        "sha256": "4f3de9c27309c98b86799ff04a0950567d224ce4b7a818f7dfffd3fab8342065",
+        "sha256": "1dee35628a8e086671df461fecb370e20234bac149208b83af608448532f6d0a",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.9e-15",
-        "volume_mm3": 42511.609
+        "volume_error": "1.4e-15",
+        "volume_mm3": 42507.271
       },
       "cnc/plate.stl": {
         "bodies": {
           "OBS-CASE-PLATE-CNC": {
-            "triangles": 12142,
-            "volume_error": "6.0e-06",
+            "triangles": 12150,
+            "volume_error": "5.9e-06",
             "watertight": true
           }
         },
-        "bytes": 607184,
+        "bytes": 607584,
         "format": "STL",
-        "sha256": "8e8802a7f83a9859bd7f7e6f4ff88edf159991a340c17d10e6e7009e83f94650"
+        "sha256": "53cc892125036ceafc1c2e219fb4dabfdeffaafa56282b290f041d98291839e8"
       },
       "cnc/shell.3mf": {
         "bodies": {

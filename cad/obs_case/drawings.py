@@ -11,6 +11,7 @@ tolerances below are the drawing's own. Nothing here has been milled, anodised o
 import shutil
 import subprocess
 import textwrap
+from collections import Counter
 from dataclasses import dataclass
 from xml.sax.saxutils import escape
 
@@ -206,11 +207,41 @@ def _plate_tolerances():
     )
 
 
+# How each milled part is held in each setup and what it cuts there besides its dog-bones. The
+# drawing numbers the setups in variants.SETUPS order and lists each dog-bone in its corner's setup.
+SETUP_WORK = {
+    "shell": {variants.BELOW: ("underside up", "cavity, display pocket walls, insert pocket, USB opening and the "
+                                               "thinned wall round it"),
+              variants.ABOVE: ("top up", "key well, MX cut-outs, lens recesses, holes, insert pocket deck rim, "
+                                         "chamfers")},
+    "plate": {variants.ABOVE: ("inside face up, outer face down on a fixture through the six screw holes",
+                               "posts, USB notch, antenna relief and insert footprint")},
+}
+
+
+def _setup_notes(name):
+    """One 'Setup N, how held: what it cuts; its dog-bones.' note per setup of part `name`."""
+    notes = []
+    for number, setup in enumerate(variants.SETUPS[name], start=1):
+        held, work = SETUP_WORK[name][setup]
+        notes.append(f"Setup {number}, {held}: {work}; {_dog_bones(name, setup)}.")
+    return tuple(notes)
+
+
+def _dog_bones(name, setup):
+    """The dog-bones `setup` cuts in part `name`, as counts of each radius, sized for its depth."""
+    radii = Counter(round(corner.relief_radius, 2) for corner in variants.relief_corners(name)
+                    if corner.setup == setup)
+    if not radii:
+        return "no dog-bones"
+    return "dog-bones " + ", ".join(f"{count} x R{_mm(radius)}" for radius, count in sorted(radii.items()))
+
+
 def _shell_notes():
     marks = LAYOUT.knobs.index_marks
     return (
-        "3-axis, two setups: underside up (cavity, display pocket walls, insert pocket, plate cut-outs), then top up (key well, lens "
-        "recesses, holes, chamfers).",
+        "3-axis, two setups.",
+        *_setup_notes("shell"),
         "Style A: the top chamfer is machined after the bead blast (setup 2) so it shows bright, then the part is "
         "anodised. Order as \"chamfer machined after blast\".",
         _relief_note("shell"),
@@ -225,8 +256,8 @@ def _shell_notes():
 
 def _plate_notes():
     return (
-        "One setup, outer face down on a fixture through the six screw holes; posts and the notch from the "
-        "inside face.",
+        "3-axis, one setup.",
+        *_setup_notes("plate"),
         _relief_note("plate"),
         "ENGRAVE: none on this part.",
     )

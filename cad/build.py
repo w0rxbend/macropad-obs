@@ -84,7 +84,7 @@ def variants_step() -> int:
         found += checks.variant_problems(variants.parts(variant), variant)
     for problem in found:
         print(problem)
-    reliefs = len(variants.inside_corners(variants.parts(variants.CNC)["shell"]))
+    reliefs = len(variants.inside_corners(variants.parts(variants.CNC)["shell"], variants.SETUPS["shell"]))
     print(f"variants: {', '.join(variants.VARIANTS)} built, {len(found)} problems;"
           f" sharp inside corners left in the cnc shell: {reliefs}")
     return 1 if found else 0

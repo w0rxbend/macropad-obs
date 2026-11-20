@@ -465,7 +465,9 @@ def cnc_problems(parts):
     left, every inside corner radius at least JLCCNC's depth / 10 + 0.5 [J1] and no deeper than
     MAX_TOOL_DEPTH_RATIO cutter diameters, and the corner finder still sees the drawn MX cut-outs."""
     found = [f"cnc {name}: {_corner_text(corner)}" for name in MILLED
-             for corner in variants.inside_corners(parts[name])]
+             for corner in variants.inside_corners(parts[name], variants.SETUPS[name])]
+    found += [f"cnc {name}: inside corner at {corner.middle.X:.2f},{corner.middle.Y:.2f} open to none of its setups"
+              for name in MILLED for corner in variants.relief_corners(name) if corner.setup is None]
     found += [f"cnc {name}: {problem}" for name in MILLED for problem in _radius_problems(parts[name])]
     if LAYOUT.variants.cnc.hole_clearance != LAYOUT.buttons.hole_clearance:
         found.append("variants.cnc.hole_clearance is not buttons.hole_clearance, the drawn deck")
@@ -511,7 +513,7 @@ def _finder_problems():
     """The finder must see the four sharp corners of every drawn MX cut-out in the shell before the
     reliefs go in; seeing none would pass any part."""
     want = 4 * len(LAYOUT.keys.x) * len(LAYOUT.keys.y)
-    seen = len(variants.inside_corners(deck.top_shell()))
+    seen = len(variants.inside_corners(deck.top_shell(), variants.SETUPS["shell"]))
     return [] if seen >= want else [f"corner finder sees {seen} corners in the drawn shell, expected {want} or more"]
 
 
