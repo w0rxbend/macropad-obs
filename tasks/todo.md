@@ -626,7 +626,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   tail. Copy `macropad/cad/macropad_case/coupons.py`. Regenerate `docs/images/*.png` with
   `render.py`.
   - Verify: `just cad`. Deps: 6.4. Files: `cad/obs_case/coupons.py`, `render.py`.
-- [ ] **6.10 Knob dial and B3F caps (S).** Port the dial (EC11 shaft seat, index, set screw,
+- [x] **6.10 Knob dial and B3F caps (S).** Port the dial (EC11 shaft seat, index, set screw,
   flutes) from `git show d3f75a2:cad/obs_case/geometry.py` (`_knob`, `_knob_seat`, `_knob_grooves`,
   `_knob_pointer`). Add the B3F cap: press-on printed or machined floating (spec 6), plunger per
   open question 2. Keycaps are bought DSA (spec 6).

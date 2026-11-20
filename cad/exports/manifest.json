@@ -141,6 +141,136 @@
       "trimesh": "5.2.1"
     }
   },
+  "b3f-cap": {
+    "files": {
+      "b3f-cap/cnc.3mf": {
+        "bodies": {
+          "OBS-B3F-CAP-CNC": {
+            "triangles": 1756,
+            "volume_error": "2.1e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 21527,
+        "format": "3MF",
+        "sha256": "b3a8ffe86cbbbfd7a46fcae01be9c5ebcb2537507b8d4510bd3247057bedbe1d"
+      },
+      "b3f-cap/cnc.ap242.step": {
+        "bytes": 62008,
+        "format": "STEP AP242",
+        "sha256": "c3b2452502914a6ef0f8698226c376b300c5fa6790283d9cc1f8343eda976d64",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.7e-14",
+        "volume_mm3": 167.067
+      },
+      "b3f-cap/cnc.brep": {
+        "bytes": 13778,
+        "format": "BREP",
+        "sha256": "eca1df76f5f8be7272ebe272f94fe1e12f4d35d31ca735f7b635a92a4a82a598",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.7e-16",
+        "volume_mm3": 167.067
+      },
+      "b3f-cap/cnc.igs": {
+        "bytes": 59373,
+        "format": "IGES",
+        "sha256": "5f67361aaf5317d28ed417f4c455207de55f0f53d2a6c4200de3b1f0076bb5fe",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.7e-16",
+        "volume_mm3": 167.067
+      },
+      "b3f-cap/cnc.step": {
+        "bytes": 61973,
+        "format": "STEP AP214",
+        "sha256": "2f86fc98e51705b595433ae3b997d89862d786652a2c15a514320bc14c7f0018",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.7e-14",
+        "volume_mm3": 167.067
+      },
+      "b3f-cap/cnc.stl": {
+        "bodies": {
+          "OBS-B3F-CAP-CNC": {
+            "triangles": 1756,
+            "volume_error": "2.1e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 87884,
+        "format": "STL",
+        "sha256": "e446ea46e4e699331810429cd12685d8eddc80689f49cd3db65c9eae43a72c80"
+      },
+      "b3f-cap/print.3mf": {
+        "bodies": {
+          "OBS-B3F-CAP-PRINT": {
+            "triangles": 1164,
+            "volume_error": "2.6e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 15038,
+        "format": "3MF",
+        "sha256": "7831477aa1fca693cc8c22aec735fbb63a19d5e27553351a3c37c148cef789cb"
+      },
+      "b3f-cap/print.ap242.step": {
+        "bytes": 33667,
+        "format": "STEP AP242",
+        "sha256": "87fa62515e6068e239237c8d7ee4515d9f2172ed525e1ac8a98b85aa6760053c",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.8e-14",
+        "volume_mm3": 186.399
+      },
+      "b3f-cap/print.brep": {
+        "bytes": 7114,
+        "format": "BREP",
+        "sha256": "cbcce5d2706340f96a0f88dbd3d0428267d8896fdb50947f50ef35d9f0155737",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 186.399
+      },
+      "b3f-cap/print.igs": {
+        "bytes": 34668,
+        "format": "IGES",
+        "sha256": "4435801e9f6066dc3fbd7582e2abb714020d895393c3a497b13afe50643ed129",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 186.399
+      },
+      "b3f-cap/print.step": {
+        "bytes": 33632,
+        "format": "STEP AP214",
+        "sha256": "483b0f1736d5922e476db713bafb8e25012f29e8add82b93444f2db850eba7d0",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.8e-14",
+        "volume_mm3": 186.399
+      },
+      "b3f-cap/print.stl": {
+        "bodies": {
+          "OBS-B3F-CAP-PRINT": {
+            "triangles": 1164,
+            "volume_error": "2.6e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 58284,
+        "format": "STL",
+        "sha256": "9bf78cbd5a0bc69236f5f54c1163bd295be019b221e4bdde1b72c0875c43ce81"
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
   "case": {
     "files": {
       "cnc/assembly.3mf": {
@@ -732,6 +862,76 @@
       "case.FCStd": {
         "built": false,
         "reason": "not built: the FCStd needs FreeCAD (freecadcmd), which task 6.6 may use only after the owner says yes; nyxilab freecad_doc.py is not copied until then"
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
+  "knob": {
+    "files": {
+      "knob/dial.3mf": {
+        "bodies": {
+          "OBS-KNOB": {
+            "triangles": 3678,
+            "volume_error": "8.2e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 48342,
+        "format": "3MF",
+        "sha256": "1d9bc8885f4cedda9750ad62b50ac45b6f00e502a61e5970351cb8077760d725"
+      },
+      "knob/dial.ap242.step": {
+        "bytes": 588382,
+        "format": "STEP AP242",
+        "sha256": "c7dcd2ce320cbfa263ce8083e3777eda6f284b7ec5c6ce6e71dbca28daab5c24",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "4.1e-10",
+        "volume_mm3": 3643.84
+      },
+      "knob/dial.brep": {
+        "bytes": 691584,
+        "format": "BREP",
+        "sha256": "e3171f20367166ba8397f462988dc8fddfee1b27b5ab957512688a9e3b3f5a88",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "5.0e-16",
+        "volume_mm3": 3643.84
+      },
+      "knob/dial.igs": {
+        "bytes": 467046,
+        "format": "IGES",
+        "sha256": "42043367ca00474721ac299ef056c8e16ed6899baf3df0ac5d8fe2422a4bc76f",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "3.2e-08",
+        "volume_mm3": 3643.839
+      },
+      "knob/dial.step": {
+        "bytes": 588347,
+        "format": "STEP AP214",
+        "sha256": "d015495f7dc325975a7440f5c9a5ccce725d70ded9832bef478eceae900cc0b5",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "4.1e-10",
+        "volume_mm3": 3643.84
+      },
+      "knob/dial.stl": {
+        "bodies": {
+          "OBS-KNOB": {
+            "triangles": 3678,
+            "volume_error": "8.2e-05",
+            "watertight": true
+          }
+        },
+        "bytes": 183984,
+        "format": "STL",
+        "sha256": "599df49e50eb238c509e8e86011c28f9e3b6e856ba72a7a64c98d3e5fa86719b"
       }
     },
     "tools": {

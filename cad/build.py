@@ -21,7 +21,11 @@ Steps:
   fcstd     record in the "freecad" section that the FCStd is not built, and why.
   laser     check the deck engrave marks (task 6.7) against the shop rules and the deck, write the
             sheet (DXF layers MARK and REF, SVG, PDF), read it back, into cad/exports/laser and the
-            "laser" section. Tests: obs_case/test_laser.py."""
+            "laser" section. Tests: obs_case/test_laser.py.
+  knob      check the knob dial (task 6.10), write its 3D exports, read each back, into
+            cad/exports/knob and the "knob" section. Tests: obs_case/test_knob_caps.py.
+  b3f       check the B3F caps, press-on (print) and floating (cnc) (task 6.10), write their 3D
+            exports, read each back, into cad/exports/b3f-cap and the "b3f-cap" section."""
 
 import os
 import subprocess
@@ -108,6 +112,16 @@ def laser_step() -> int:
     return _fresh_process("obs_case.laser")
 
 
+def knob_step() -> int:
+    """In a fresh process with a fixed hash seed, as export: the same bytes from any step order."""
+    return _fresh_process("obs_case.knob")
+
+
+def b3f_step() -> int:
+    """In a fresh process with a fixed hash seed, as export."""
+    return _fresh_process("obs_case.b3f_cap")
+
+
 def envelopes_step() -> int:
     from obs_case import envelopes
 
@@ -131,7 +145,7 @@ def fcstd_step() -> int:
 
 STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step, "variants": variants_step,
          "cnc": cnc_step, "export": export_step, "export2d": export2d_step, "envelopes": envelopes_step,
-         "fcstd": fcstd_step, "laser": laser_step}
+         "fcstd": fcstd_step, "laser": laser_step, "knob": knob_step, "b3f": b3f_step}
 
 
 def main(argv: list[str]) -> int:

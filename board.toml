@@ -342,3 +342,34 @@ big_width_px = 320             # [big_display] part: 320 px across the active wi
 # Open question 5: no logo chosen. The wordmark holds the logo's place, top left above the big
 # window (report 17), x, y of its lower-left corner; cap height spec 13: at least 2.0.
 wordmark = { text = "macropad-obs", cap_height = 2.5, at = [5.8, 163.6] }
+
+[knob_dial]
+# The dial on each EC11 shaft (task 6.10, cad/obs_case/knob.py; report 08 knob note 5, report 11 s6),
+# ported from the rev 1 dial (git d3f75a2 cad/obs_case/numbers.py). Diameter in [knobs], shaft and
+# bushing in [envelopes]. One dial for both variants: turned 6061 or printed. A size that is also a
+# cad/ sheet constant (0.2, 1.3, 3.6) is written as a pair, a z or a radius: test_spec.py fails on a
+# float that is both here and a literal under cad/.
+shaft_flat = [4.5, 10.0]       # report 08 [A1]: flat 4.5 across, 10 long down from the shaft end (from 14.5 up)
+bore = [6.2, 4.7]              # design: round bore, D across the flat; shaft and flat + 0.2. Shaft fit MEASURE on the knob bore coupon
+bushing_pocket = [8.0, 1.4]    # report 08/11: 8 mm counterbore over the 7 mm bushing; design: roof 1.4 above the bushing top
+skirt = 9.3                    # report 11 s6: dial skirt z, 1.3 of air over the deck top
+push_travel = 0.8              # report 08 [A1]: EC11 push 0.5 +/- 0.3, the most; must stay under the air below the skirt
+top_cover = 2.0                # design: solid over the shaft end
+flat_margin = 1.0              # design: the D starts this far above the start of the shaft flat
+chamfer = 0.5                  # design: top and bottom rims, inside the plain bands
+plain_band = 1.6               # design: no flutes this far from the skirt and from the top
+flutes = { count = 36, depth = 0.7, half_width = 0.5, land = 0.4 }   # design: one V flute per detent; half width at the rim; land = narrowest land allowed
+index = { width = 1.2, depth = 1.6, inner = 1.5 }   # design: a slot on +y (the flat side) from inner off the axis out through the rim
+set_screw = { hole = 3.0, from_top = 5.5 }   # report 11 s6: M3 on the flat, drawn at the M3 major (tap drill 2.5)
+
+[button_cap]
+# The B3F caps (task 6.10, cad/obs_case/b3f_cap.py; spec 6, report 08 item 4, report 11 s6). Plan,
+# flange plan and corner in [buttons]; the deck hole is [buttons] cap + the variant's hole_clearance.
+# print: a press-on cap, socket on the plunger, no flange. cnc: a floating cap, flange under the deck,
+# round blind bore over the plunger. Both flush with the deck top. Cap fit MEASURE on the cap hole coupon.
+plunger = "B3F-1060"           # open question 2 default: round black plunger, 3.5 ([envelopes] b3f_plunger)
+plunger_top = 7.0              # report 08 [O1]: B3F-1060 plunger top (-1020: 5.0; -1050 stem: 7.3)
+travel = 0.25                  # report 08 [O1] p. 3: pretravel
+flange = 1.0                   # report 11 s6: flange thickness under the deck
+bore_radius = 1.8              # report 08 item 4: the floating cap's 3.6 bore; clears the 3.5 plunger and the -1050 stem diagonal 3.39
+socket_depth = 2.8             # report 08 item 4 [O2]: press-on socket depth (B32 socket)
