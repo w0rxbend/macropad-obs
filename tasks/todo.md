@@ -293,7 +293,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the strip frames match byte for byte (121,552 B). The R14 mock-ups match.
   - Verify: `just test-firmware`. Deps: 2.14a. Files: `test/test_render_strip.c`,
     `test/golden/strip_*`, `test/golden/r14_*`, the deleted files.
-- [ ] **2.15 Panel init tables as data (S).** ST7796U and NV3007 init sequences, and the
+- [x] **2.15 Panel init tables as data (S).** ST7796U and NV3007 init sequences, and the
   CASET/RASET/RAMWR builder.
   - Accept: the tables match vectors cited to the R06 and R07 datasheets. The NV3007 table is
     marked unverified until S.3 records the panel ID read and a drawn frame.
