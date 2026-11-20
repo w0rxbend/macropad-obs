@@ -6,7 +6,7 @@ root := justfile_directory()
 default:
     @just --list
 
-test: test-firmware test-host check numbers cad-check
+test: test-firmware test-host check numbers cad-check pcb-test
 
 test-firmware:
     mkdir -p {{root}}/.build
@@ -36,6 +36,11 @@ test-firmware:
         -o {{root}}/.build/test_wifi
     {{root}}/.build/test_wifi
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -DCONFIG_VECTORS='"{{root}}/firmware/test/config_vectors"' \
+        {{root}}/firmware/core/config.c {{root}}/firmware/test/test_config.c \
+        -o {{root}}/.build/test_config
+    {{root}}/.build/test_config
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware \
         {{root}}/firmware/st7789.c {{root}}/firmware/font8x16.c {{root}}/firmware/test/test_st7789.c \
         -o {{root}}/.build/test_st7789
@@ -57,6 +62,10 @@ numbers:
 # Stdlib python3 only, no cad/.venv: the case params read board.toml, no layout literal in cad/.
 cad-check:
     python3 {{root}}/cad/obs_case/test_spec.py
+
+# Plain python3 over pcb/gen: no Docker, no KiCad symbol libraries.
+pcb-test:
+    python3 -B -m unittest discover -s {{root}}/pcb/gen -p 'test_*.py'
 
 # Not on the test chain. Board-order gate (spec 9 step 6): exits 1 while board.toml carries an
 # open MEASURE on a gated entry. No board order while it exits 1.

@@ -472,7 +472,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
 
 ## Phase 5: PCB (local `kicad/kicad:9.0.9`, `10.0.7-full` for STEP; `just pcb`)
 
-- [ ] **5.1 Copy the greycode writer core (M) [P].** Copy `sexpr`, `symlib`, `schematic` and
+- [x] **5.1 Copy the greycode writer core (M) [P].** Copy `sexpr`, `symlib`, `schematic` and
   `sheet_layout` from `macropad-greycode/pcb/gen/` with their tests, with CERN-OHL-S-2.0 headers
   (D5). `test_schematic.py` gets a small local fixture circuit, not greycode's `circuit.py` (it
   carries SK6812). Bring back `pcb-test` (`unittest discover` over `pcb/gen`) and add it to
