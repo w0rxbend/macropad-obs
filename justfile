@@ -66,6 +66,14 @@ test-firmware:
         {{root}}/firmware/test/test_config.c -o {{root}}/.build/test_config
     {{root}}/.build/test_config
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        -DCONFIG_VECTORS='"{{root}}/firmware/test/config_vectors"' \
+        {{root}}/firmware/core/ui.c {{root}}/firmware/core/config.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c \
+        {{root}}/firmware/test/test_ui.c -o {{root}}/.build/test_ui
+    {{root}}/.build/test_ui
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core -I{{root}}/firmware/test \
         {{root}}/firmware/core/store.c {{root}}/firmware/test/nor_model.c \
         {{root}}/firmware/test/test_store.c -o {{root}}/.build/test_store
