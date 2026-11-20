@@ -131,7 +131,8 @@ class TaskListTest(unittest.TestCase):
         accept = between(card("1.2"), "Accept:", "Verify:")
         app_dependency = re.search(r"`(obs_core = [^`]+)`", accept).group(1)
         self.assertIn(app_dependency, flat("app/src-tauri/Cargo.toml"))
-        self.assertIn('members = ["obs_core"]', flat("host/Cargo.toml"))
+        members = re.search(r"members = \[([^\]]*)\]", flat("host/Cargo.toml")).group(1)
+        self.assertIn('"obs_core"', members)  # 3.2 adds "app_core" beside it
         moved = ["host/obs_core/src/protocol.rs", *(f"firmware/core/{name}" for name in MOVED_CORE)]
         self.assertEqual([path for path in moved if not (ROOT / path).is_file()], [])
         self.assertEqual(missing_claude_paths(), [])

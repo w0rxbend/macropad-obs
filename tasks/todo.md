@@ -340,7 +340,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     After D6, `just app`.
   - Deps: none. Files: `app/src-tauri/build.rs`, `src/main.rs`, `capabilities/default.json`,
     `icons/*`.
-- [ ] **3.2 App core: discovery and config session (M).** A Tauri-free crate. It finds the pad by
+- [x] **3.2 App core: discovery and config session (M).** A Tauri-free crate. It finds the pad by
   VID/PID and serial, not a fixed path. It handles `INFO`, read until total, write with `base_seq`,
   and a diff on stale. Adapt `pad.rs`. **Ask first:** `serialport` moving into the `host/`
   workspace brings libudev into `just test`.

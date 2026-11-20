@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["obs_core"]
+members = ["obs_core", "app_core"]
 
 [profile.release]
 lto = true

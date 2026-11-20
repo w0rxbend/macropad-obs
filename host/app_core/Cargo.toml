@@ -1,0 +1,13 @@
+[package]
+name = "app_core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+description = "The app's pad session for macropad-obs: discovery, INFO, config read and write. No window."
+license = "MIT"
+publish = false
+
+[dependencies]
+obs_core = { path = "../obs_core" }
+serde_json = { version = "1", default-features = false, features = ["std"] }
+serialport = "4.10"
