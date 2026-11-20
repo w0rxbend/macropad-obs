@@ -422,12 +422,16 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Status: builds; not wired yet. 4.7 calls `usb_port_start`, `usb_port_feed`, `usb_port_send`,
     and `boot_dl_enter` after the BOOTLOADER reply. A write blocks only while DTR is set; with the
     port closed it drops the frame. Not run on hardware.
-- [ ] **4.3 Wi-Fi, stream and cred port (M) [P].** `esp_wifi` STA with `WIFI_STORAGE_RAM` set after
+- [x] **4.3 Wi-Fi, stream and cred port (M) [P].** `esp_wifi` STA with `WIFI_STORAGE_RAM` set after
   init and before `set_config`. The PSK loads from `cred` on each boot. An lwIP socket `stream`.
   `cred_nvs.c` owns `nvs_flash_init_partition("cred")` and `nvs_flash_erase_partition("cred")`.
   - Accept: it builds. `grep` finds `WIFI_STORAGE_RAM` before `esp_wifi_set_config` in the source.
   - Verify: `just firmware`. Deps: 4.1. Files: `main/wifi_port.c`, `main/stream_lwip.c`,
     `main/cred_nvs.c`.
+  - Status: builds with no warning; not wired yet. 4.7 calls `cred_nvs_init`, `wifi_port_init`,
+    `wifi_port_act` with each fw-wifi action, `wifi_port_next_event` into `wifi_on_event`, and
+    `stream_lwip_init` for fw-ws. Unreferenced, so the linker drops them until then. Not run on
+    hardware.
 - [ ] **4.4 Config slot port (S).** `esp_partition` backend for `cfg_a`/`cfg_b` behind the
   `fw-store` NOR seam. Calls the 4.3 cred erase; does not edit `cred_nvs.c`.
   - Verify: `just firmware`. Deps: 4.3. Files: `main/store_flash.c`.
