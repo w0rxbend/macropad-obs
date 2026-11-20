@@ -562,7 +562,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
 D5 copies: never edit the sibling repos. Each copied file carries
 `# SPDX-License-Identifier: CERN-OHL-S-2.0` under `cad/` and names its source path in its header.
 
-- [ ] **6.1 Params from board.toml (S) [P].** `cad/obs_case/spec.py` reads `board.toml` at run time
+- [x] **6.1 Params from board.toml (S) [P].** `cad/obs_case/spec.py` reads `board.toml` at run time
   (greycode pattern). No layout literal stays in `cad/`. Bring back `cad-check` running
   `test_spec.py` with the stdlib only, in `just test`.
   - Verify: `just test`. Deps: 1.4b. Files: `cad/obs_case/spec.py`, `test_spec.py`, `justfile`.

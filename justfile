@@ -6,7 +6,7 @@ root := justfile_directory()
 default:
     @just --list
 
-test: test-firmware test-host check numbers
+test: test-firmware test-host check numbers cad-check
 
 test-firmware:
     mkdir -p {{root}}/.build
@@ -53,6 +53,10 @@ numbers:
     python3 {{root}}/tools/check_numbers.py
     python3 {{root}}/tools/test_check_numbers.py
     python3 {{root}}/tools/test_check_measure.py
+
+# Stdlib python3 only, no cad/.venv: the case params read board.toml, no layout literal in cad/.
+cad-check:
+    python3 {{root}}/cad/obs_case/test_spec.py
 
 # Not on the test chain. Board-order gate (spec 9 step 6): exits 1 while board.toml carries an
 # open MEASURE on a gated entry. No board order while it exits 1.
