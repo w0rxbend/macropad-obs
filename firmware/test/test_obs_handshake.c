@@ -321,6 +321,50 @@ static void test_start_is_refused_while_running(void) {
 	CHECK(client.posix.open_calls == 1);
 }
 
+// A wrong address retries forever. Stop, then start on the right one: it is used at once.
+static void test_stop_lets_a_retrying_client_take_a_new_address(void) {
+	client_t client;
+	client_init(&client);
+	CHECK(obs_start(&client.obs, LOOPBACK, free_port(), NULL, 0, now_ms()));
+	CHECK(client.obs.status == OBS_UNREACHABLE);
+	obs_stop(&client.obs);
+	CHECK(client.obs.status == OBS_IDLE);
+	check_no_retry(&client);
+
+	fake_obs_t fake = fake_obs_start(0, (const char *const[]){NULL});
+	CHECK(obs_start(&client.obs, LOOPBACK, fake.port, NULL, 0, now_ms()));
+	CHECK(run_until(&client.obs, OBS_UP));
+	fake_obs_stop(&fake);
+}
+
+// A session that is up drops at once, and the next start dials and identifies again.
+static void test_stop_while_up_lets_a_new_start_identify(void) {
+	const char *const args[] = {"--password", PASSWORD, NULL};
+	fake_obs_t first = fake_obs_start(0, args);
+	client_t client;
+	client_init(&client);
+	CHECK(obs_start(&client.obs, LOOPBACK, first.port, PASSWORD, PASSWORD_LEN, now_ms()));
+	CHECK(run_until(&client.obs, OBS_UP));
+	obs_stop(&client.obs);
+	CHECK(client.obs.status == OBS_IDLE);
+	CHECK(client.posix.fd == -1);
+
+	fake_obs_t second = fake_obs_start(0, args);
+	CHECK(obs_start(&client.obs, LOOPBACK, second.port, PASSWORD, PASSWORD_LEN, now_ms()));
+	CHECK(run_until(&client.obs, OBS_UP));
+	CHECK(client.posix.open_calls == 2);
+	fake_obs_stop(&second);
+	fake_obs_stop(&first);
+}
+
+static void test_stop_on_an_idle_client_changes_nothing(void) {
+	client_t client;
+	client_init(&client);
+	obs_stop(&client.obs);
+	CHECK(client.obs.status == OBS_IDLE);
+	CHECK(client.posix.open_calls == 0);
+}
+
 static void test_each_failure_has_its_own_printable_line_with_no_secret(void) {
 	static const obs_status_t FAILURES[] = {OBS_UNREACHABLE, OBS_NO_PASSWORD, OBS_WRONG_PASSWORD,
 	                                        OBS_TOO_OLD,     OBS_RPC_REFUSED, OBS_KICKED};
@@ -363,6 +407,9 @@ int main(void) {
 	test_unreachable_then_reconnect_after_obs_restarts();
 	test_retry_waits_are_0_5_1_2_s_then_2_s();
 	test_start_is_refused_while_running();
+	test_stop_lets_a_retrying_client_take_a_new_address();
+	test_stop_while_up_lets_a_new_start_identify();
+	test_stop_on_an_idle_client_changes_nothing();
 	test_each_failure_has_its_own_printable_line_with_no_secret();
 	if (failures) {
 		fprintf(stderr, "%d check(s) failed\n", failures);

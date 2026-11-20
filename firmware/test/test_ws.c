@@ -585,6 +585,43 @@ static void test_the_link_reopens_after_a_close(void) {
 	CHECK(read_message(&ws, 50, text, sizeof text, &slices) == 3);
 }
 
+static void test_abort_sends_the_close_drops_at_once_and_reopens(void) {
+	ws_t ws;
+	static fake_stream_t fake;
+	CHECK(upgraded(&ws, &fake, 1));
+	ws_abort(&ws, WS_CLOSE_NORMAL);
+	CHECK(sent_is_close(&fake, WS_CLOSE_NORMAL));
+	CHECK(!fake.is_open);
+	CHECK(ws_poll(&ws, 0).kind == WS_EVT_NONE);
+	CHECK(ws_open(&ws, OBS_IP, OBS_PORT, 0) == WS_OK);
+}
+
+static void test_abort_mid_upgrade_drops_without_a_frame(void) {
+	ws_t ws;
+	static fake_stream_t fake;
+	start(&ws, &fake, 1);
+	CHECK(ws_open(&ws, OBS_IP, OBS_PORT, 0) == WS_OK);
+	fake.sent_len = 0;
+	ws_abort(&ws, WS_CLOSE_NORMAL);
+	CHECK(fake.sent_len == 0);
+	CHECK(!fake.is_open);
+	CHECK(ws_poll(&ws, 0).kind == WS_EVT_NONE);
+	CHECK(ws_open(&ws, OBS_IP, OBS_PORT, 0) == WS_OK);
+}
+
+static void test_abort_while_closing_drops_at_once(void) {
+	ws_t ws;
+	static fake_stream_t fake;
+	CHECK(upgraded(&ws, &fake, 1));
+	CHECK(ws_close(&ws, WS_CLOSE_NORMAL, 0) == WS_OK);
+	fake.sent_len = 0;
+	ws_abort(&ws, WS_CLOSE_NORMAL);
+	CHECK(fake.sent_len == 0);
+	CHECK(!fake.is_open);
+	CHECK(ws_poll(&ws, 0).kind == WS_EVT_NONE);
+	CHECK(ws_open(&ws, OBS_IP, OBS_PORT, 0) == WS_OK);
+}
+
 int main(void) {
 	test_upgrade_request_carries_the_nonce_key();
 	test_the_sha1_base64_accept_opens_the_link();
@@ -610,6 +647,9 @@ int main(void) {
 	test_a_tcp_drop_mid_frame_reports_1006_once();
 	test_a_failed_send_drops_the_link();
 	test_the_link_reopens_after_a_close();
+	test_abort_sends_the_close_drops_at_once_and_reopens();
+	test_abort_mid_upgrade_drops_without_a_frame();
+	test_abort_while_closing_drops_at_once();
 	if (failures != 0) {
 		fprintf(stderr, "test_ws: %d failures\n", failures);
 		return 1;

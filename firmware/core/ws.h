@@ -100,3 +100,7 @@ ws_status_t ws_send_text(ws_t *ws, const char *text, size_t len);
 // Sends a close frame with `code` and waits WS_CLOSE_WAIT_MS for the peer's. ws_poll then gives
 // WS_EVT_CLOSED with the peer's code, or 1006 when none came. Only after WS_EVT_OPEN.
 ws_status_t ws_close(ws_t *ws, uint16_t code, uint32_t now_ms);
+
+// Drops the link now, in any state: an open link gets a close frame with `code` as a courtesy
+// and no wait for the peer's. No event follows, and ws_open may run at once.
+void ws_abort(ws_t *ws, uint16_t code);

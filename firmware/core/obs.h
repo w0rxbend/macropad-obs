@@ -79,6 +79,11 @@ void obs_attach_state(obs_t *obs, obs_state_t *state);
 bool obs_start(obs_t *obs, const uint8_t ip[4], uint16_t port, const char *password,
                size_t password_len, uint32_t now_ms);
 
+// Drops any link at once, with a courtesy close 1000 to an open one, and goes back to idle from
+// any state: no retry follows, the password pointer is dropped, and obs_start may run next.
+// Call when the address, auth mode or password changes, or the network or the OBS entry goes.
+void obs_stop(obs_t *obs);
+
 // Call on every pass of the main loop. A failed try waits 0.5, 1, 2 s, then 2 s each time, and
 // the waits start again after Identified. The 2 s cap keeps criterion 3 (reconnect within 5 s
 // of an OBS restart) with room for the handshake. A failure state stays through its retries.

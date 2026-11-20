@@ -157,19 +157,6 @@ static void serve_wifi(uint32_t now) {
 	wifi_do(wifi_tick(&pad.wifi, now));
 }
 
-// obs.c has no stop: a client takes a new address or password once it is idle or has stopped.
-static bool obs_can_start(obs_status_t status) {
-	switch (status) {
-	case OBS_IDLE:
-	case OBS_NO_PASSWORD:
-	case OBS_WRONG_PASSWORD:
-	case OBS_TOO_OLD:
-	case OBS_RPC_REFUSED:
-	case OBS_KICKED: return true;
-	default: return false;
-	}
-}
-
 static void start_obs(uint32_t now) {
 	const settings_t *s = &pad.settings;
 	size_t len = 0;
@@ -183,9 +170,15 @@ static void start_obs(uint32_t now) {
 	}
 }
 
+// A changed address, auth mode or password stops the client, retrying or up, and starts it on
+// the new ones. Without Wi-Fi or an OBS entry it stays idle; it starts when both are back. A
+// stopped client (wrong password, too old, refused, kicked) waits for a change.
 static void serve_obs(uint32_t now) {
-	bool wifi_up = pad.wifi.status.state == LINK_WIFI_UP;
-	if (wifi_up && pad.settings.has_obs && pad.obs_dirty && obs_can_start(pad.obs.status)) {
+	bool wanted = pad.wifi.status.state == LINK_WIFI_UP && pad.settings.has_obs;
+	if (!wanted || pad.obs_dirty) {
+		obs_stop(&pad.obs);
+	}
+	if (wanted && pad.obs.status == OBS_IDLE) {
 		start_obs(now);
 	}
 	obs_poll(&pad.obs, now);
@@ -198,7 +191,7 @@ static void on_credentials_erased(uint32_t now) {
 	wifi_select(now);
 }
 
-// A new passphrase joins again; a new password logs in again once the client may start.
+// A new passphrase joins again; a new password logs in again on the next pass.
 static void on_credential_stored(enum link_credential_kind kind, uint32_t now) {
 	if (kind == LINK_CREDENTIAL_OBS_PASSWORD) {
 		pad.obs_dirty = true;

@@ -291,6 +291,18 @@ bool obs_start(obs_t *obs, const uint8_t ip[4], uint16_t port, const char *passw
 	return true;
 }
 
+void obs_stop(obs_t *obs) {
+	if (obs->step == STEP_IDLE) {
+		return;
+	}
+	ws_abort(&obs->ws, WS_CLOSE_NORMAL);
+	obs->status = OBS_IDLE;
+	obs->step = STEP_IDLE;
+	obs->password = NULL;
+	obs->password_len = 0;
+	begin_message(obs);
+}
+
 static void poll_wait(obs_t *obs, uint32_t now_ms) {
 	uint16_t wait_ms = RETRY_WAITS_MS[obs->retry_step];
 	// Unsigned difference: the wait ends on time when the millisecond clock wraps.

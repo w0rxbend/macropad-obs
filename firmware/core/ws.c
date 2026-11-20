@@ -517,3 +517,11 @@ ws_status_t ws_close(ws_t *ws, uint16_t code, uint32_t now_ms) {
 	ws->timer_started_ms = now_ms;
 	return WS_OK;
 }
+
+void ws_abort(ws_t *ws, uint16_t code) {
+	if (ws->state == STATE_OPEN) {
+		(void)send_close(ws, code);
+	}
+	ws->stream->close(ws->stream);
+	ws->state = STATE_CLOSED;
+}
