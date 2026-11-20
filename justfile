@@ -138,6 +138,19 @@ test-firmware:
         {{root}}/firmware/test/nor_model.c {{root}}/firmware/test/test_device_obs.c \
         -o {{root}}/.build/test_device_obs
     {{root}}/.build/test_device_obs
+    # The port's pure glue (task 4.7): power cap and document settings, no IDF header.
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/esp32s3/main \
+        {{root}}/firmware/esp32s3/main/power.c {{root}}/firmware/test/test_power.c \
+        -o {{root}}/.build/test_power
+    {{root}}/.build/test_power
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/esp32s3/main -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        {{root}}/firmware/esp32s3/main/settings.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c \
+        {{root}}/firmware/test/test_settings.c -o {{root}}/.build/test_settings
+    {{root}}/.build/test_settings
 
 # The whole firmware core on the host, ASan/UBSan: CDC on a pty, OBS over TCP, flash in a file.
 padsim-build:
@@ -227,8 +240,19 @@ firmware:
     docker run --rm -u "$(id -u):$(id -g)" -e HOME={{root}}/.build/idf-home \
         -v "{{root}}:{{root}}" -w "{{root}}/firmware/esp32s3" espressif/idf:v6.1.1 \
         idf.py -B {{root}}/.build/esp32s3 -D SDKCONFIG={{root}}/.build/esp32s3/sdkconfig \
-        build merge-bin -o macropad-obs-merged.bin
+        build size merge-bin -o macropad-obs-merged.bin
     python3 {{root}}/tools/check_partitions.py --built {{root}}/.build/esp32s3
+
+# Not on the test chain, needs the pad. Writes the merged image of `just firmware` (bootloader,
+# partition table, app) over the ROM USB port: hold BOOT at reset, or send BOOTLOADER first.
+# esptool in the same IDF image, since espflash is not on the host (no host install); PORT is the
+# ROM port's tty. Not run: no hardware yet.
+flash PORT="/dev/ttyACM0":
+    test -f {{root}}/.build/esp32s3/macropad-obs-merged.bin
+    docker run --rm -u "$(id -u):$(id -g)" --group-add "$(stat -c %g {{PORT}})" --device {{PORT}} \
+        -e HOME={{root}}/.build/idf-home -v "{{root}}:{{root}}" -w "{{root}}/.build/esp32s3" espressif/idf:v6.1.1 \
+        python -m esptool --chip esp32s3 -p {{PORT}} --before default-reset --after hard-reset \
+        write-flash 0x0 macropad-obs-merged.bin
 
 # Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (erc, route, fab);
 # `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;

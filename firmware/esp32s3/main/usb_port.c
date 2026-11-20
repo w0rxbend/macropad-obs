@@ -105,6 +105,10 @@ size_t usb_port_feed(link_rx_t *rx, uint32_t timeout_ms) {
 	return link_rx_push(rx, chunk, got);
 }
 
+bool usb_port_configured(void) {
+	return tud_mounted();
+}
+
 // The host has the port open: DTR is set.
 static bool host_listening(void) {
 	return tud_cdc_n_connected(CDC_PORT);

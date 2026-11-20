@@ -459,13 +459,22 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     `backlight_init` (both off), `lcd_port_start`, passes `lcd_port_push` as the `render_sink_t`
     push, then `backlight_set` under the power cap. One 10,240 B DMA band buffer, freed by the
     done callback. Backlight PWM 20 kHz, 10 bit. Not run on hardware.
-- [ ] **4.7 Main, watchdog and power cap (M).** The task layout and the watchdog. Backlights and
+- [x] **4.7 Main, watchdog and power cap (M).** The task layout and the watchdog. Backlights and
   Wi-Fi stay off until USB configures, or for 2 s with no enumeration. The cap comes from
   `board.toml`, and a 1.5 A CC advert lifts it. Add the `just flash` recipe.
   - Accept: the image builds. The size and free-RAM report is logged. The cap values are cited to
     the S.3 3V3 current.
   - Verify: `just firmware`. Deps: 4.2-4.6, S.3. Files: `main/main.c`, `main/power.c`, `justfile`,
     `board.toml`.
+  - Status: builds with no warning; `just firmware` prints `idf.py size` (image 1,040,564 B, DIRAM
+    93,058 B free) and the boot log prints free RAM and the reset reason. One app task on core 1
+    owns the core; input_scan sits above it. The task watchdog (10 s, panic) watches it and both
+    idle tasks. Cap: board.toml `[power]` into pins.h by check_pins.py, 600 permille, MEASURE:
+    S.3 has no 3V3 current, so it is report 18's 502 mA arithmetic. CC over 746 mV lifts it.
+    `power.c` and `settings.c` (SSID, OBS URL, brightness from the document) are host-tested in
+    `just test`. `main.c` reuses padsim's `view.c`. obs.c has no stop: a new URL or password
+    applies once the client is idle or stopped. `just flash` uses esptool in the IDF image, not
+    espflash. Not run on hardware.
 - [ ] **4.8 Dev kit acceptance (M) [HW].** The spec 11 `fw-port-esp32s3` row and criteria 3 and 12
   on the DevKitC-1. Use throwaway test secrets kept outside the repo in a secrets file. `esptool`
   runs in the IDF image; offsets and sizes come from `partitions.csv`.

@@ -38,3 +38,8 @@
 // pid.codes PID is pending: not submitted yet.
 #define USB_VID 0x1209
 #define USB_PID 0x4F42
+
+// Power cap, board.toml [power] (power.c). The backlight cap is MEASURE until S.3.
+#define POWER_BACKLIGHT_CAP_PERMILLE 600
+#define POWER_ENUMERATION_WAIT_MS 2000
+#define POWER_CC_1A5_THRESHOLD_MV 746

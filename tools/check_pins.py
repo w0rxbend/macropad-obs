@@ -71,6 +71,9 @@ def render_pins_h(board: dict) -> str:
         "// pid.codes PID is pending: not submitted yet.",
         f"#define USB_VID 0x{usb['vid']:04X}",
         f"#define USB_PID 0x{usb['pid']:04X}",
+        "",
+        "// Power cap, board.toml [power] (power.c). The backlight cap is MEASURE until S.3.",
+        *(f"#define POWER_{key.upper()} {value}" for key, value in board["power"].items()),
     ]
     return "\n".join(lines) + "\n"
 

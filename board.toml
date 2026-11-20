@@ -373,3 +373,15 @@ travel = 0.25                  # report 08 [O1] p. 3: pretravel
 flange = 1.0                   # report 11 s6: flange thickness under the deck
 bore_radius = 1.8              # report 08 item 4: the floating cap's 3.6 bore; clears the 3.5 plunger and the -1050 stem diagonal 3.39
 socket_depth = 2.8             # report 08 item 4 [O2]: press-on socket depth (B32 socket)
+
+[power]
+# The firmware power cap (task 4.7, firmware/esp32s3/main/power.c; spec 13 criterion 15, spec 14,
+# report 18 section 4). `python3 tools/check_pins.py --write` copies these into pins.h. Not a board
+# part: tools/check_measure.py does not gate this table.
+# The cap holds both backlights to this share of full PWM while Wi-Fi may run. S.3 has no 3V3
+# current yet (no hardware), so it is the conservative figure of report 18 section 4, arithmetic:
+# 3V3 worst 394 mA (TX peak 355 + panel logic 30 + pull-ups 9) + CPU 108 = 502 mA; through the buck
+# at 90 %: 502 x 3.3 / 0.9 / 5.0 = 368 mA on VBUS; 500 - 368 = 132 mA left of the 220 mA backlights.
+backlight_cap_permille = 600   # MEASURE: set from the S.3 3V3 peak current (spec 13 criterion 15), then H.8 VBUS
+enumeration_wait_ms = 2000     # report 18 s4 item 4 (design): no USB configuration in this time means a charger
+cc_1a5_threshold_mv = 746      # report 10 [U1] table 4-36: a 1.5 A or 3 A source shows 0.746 V or more on CC

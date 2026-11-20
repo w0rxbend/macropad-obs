@@ -16,6 +16,10 @@ esp_err_t usb_port_start(void);
 // The 6 base-MAC bytes the USB serial number spells: INFO `unique_id`.
 esp_err_t usb_port_unique_id(uint8_t out[LINK_UNIQUE_ID_LEN]);
 
+// True once the host has configured the device (SET_CONFIGURATION): from then on it may draw
+// 500 mA, before it 100 mA (USB 2.0, report 10). False again after a bus reset or detach.
+bool usb_port_configured(void);
+
 // Pull read: moves into `rx` what the host sent, no more than `rx` has room for. TinyUSB keeps
 // the rest and NAKs the host while its own FIFO is full, so no byte is dropped. Waits up to
 // `timeout_ms` when nothing is there. Returns the bytes moved; 0 when `rx` is full (link_pull
