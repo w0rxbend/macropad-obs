@@ -108,7 +108,7 @@ replacement. Tests are deleted only with the code they test.
 | `app/src-tauri/src/logbuf.rs`, `app/udev/70-macropad-obs.rules`, `.gitignore` | keep. The udev rule gains 303a:1001 | 3.9 |
 | `docs/design.md`, `docs/protocol.md`, `docs/obs.md`, `README.md`, old `docs/images/*.png` | replace or regenerate | 1.6b, 7.2, 7.3, 6.9 |
 | `docs/images/sketch.jpg`, `docs/spec/`, `docs/research/`, `tools/draw_layout.py` | keep (untracked today) | none |
-| `.grok/workflows/` | remove. Ask first (spec 12) | owner |
+| `.grok/workflows/` | removed 2026-11-20, owner approved | owner |
 | `LICENSE`, `LICENSE.cern-ohl-s` | add full texts and a holder. Ask first | owner |
 
 ## Gates that need the owner

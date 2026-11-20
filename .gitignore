@@ -1,6 +1,4 @@
 .build/
-firmware/.build/
-firmware/dist/*.uf2
 host/target/
 app/src-tauri/target/
 cad/.venv/
