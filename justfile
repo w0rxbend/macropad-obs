@@ -134,6 +134,28 @@ test-firmware:
         -o {{root}}/.build/test_device_obs
     {{root}}/.build/test_device_obs
 
+# The whole firmware core on the host, ASan/UBSan: CDC on a pty, OBS over TCP, flash in a file.
+padsim-build:
+    mkdir -p {{root}}/.build
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/test -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        {{root}}/firmware/padsim/main.c {{root}}/firmware/padsim/pty.c {{root}}/firmware/padsim/panel_model.c \
+        {{root}}/firmware/padsim/nor_file.c {{root}}/firmware/padsim/view.c {{root}}/firmware/test/posix_stream.c \
+        {{root}}/firmware/core/device.c {{root}}/firmware/core/link.c {{root}}/firmware/core/store.c \
+        {{root}}/firmware/core/config.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c \
+        {{root}}/firmware/core/crypto.c {{root}}/firmware/core/ws.c {{root}}/firmware/core/obs.c \
+        {{root}}/firmware/core/obs_state.c {{root}}/firmware/core/wifi.c {{root}}/firmware/core/input.c \
+        {{root}}/firmware/core/actions.c {{root}}/firmware/core/ui.c {{root}}/firmware/core/render.c \
+        {{root}}/firmware/core/panels.c {{root}}/firmware/core/font_noto14.c \
+        {{root}}/firmware/core/font_noto20.c {{root}}/firmware/core/font_noto28.c \
+        -lm -o {{root}}/.build/padsim
+
+# padsim answers INFO, reaches tools/fake_obs.py, takes its stdin commands, dies at --cut-after.
+padsim-smoke: padsim-build
+    python3 {{root}}/tools/padsim_smoke.py {{root}}/.build/padsim
+
 test-host:
     cd {{root}}/host && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check
 

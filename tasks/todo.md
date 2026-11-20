@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.16 (padsim).
+Next action: Checkpoint 1 owner review, then 2.17a (padsim e2e: criteria 4 and 4c).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -298,7 +298,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the tables match vectors cited to the R06 and R07 datasheets. The NV3007 table is
     marked unverified until S.3 records the panel ID read and a drawn frame.
   - Verify: `just test-firmware`. Deps: 1.2. Files: `core/panels.[ch]`, `test/test_panels.c`.
-- [ ] **2.16 padsim (M).** The whole core on one PTY plus a POSIX TCP stream. A panel model with
+- [x] **2.16 padsim (M).** The whole core on one PTY plus a POSIX TCP stream. A panel model with
   window and offset. A file-backed NOR image that survives a kill. A `--cut-after N` switch that
   kills the process at program call N. stdin commands `key`, `button`, `knob`, `dump`,
   `wait-idle`, and `wifi <event>` feeding fw-wifi (`no_ssid`, `bad_key`, `no_ap`, `up`).
