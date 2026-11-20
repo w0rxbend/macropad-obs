@@ -16,6 +16,7 @@ use serialport::SerialPort;
 
 use crate::diff::Change;
 use crate::discover::{self, DiscoverError, UsbPort};
+use crate::forms::{self, Mapping, ObsList, Reference};
 use crate::provision::{self, wipe, Credential, Status};
 use crate::session::{schemas, Session, SessionError, Stored, Written};
 
@@ -26,7 +27,7 @@ const STATUS_LISTEN: Duration = Duration::from_millis(50);
 /// a secret byte.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
-pub struct Failure(String);
+pub struct Failure(pub(crate) String);
 
 impl fmt::Display for Failure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -194,6 +195,23 @@ impl<P: Read + Write> Connection<P> {
                 Ok(Saved::Stale { pad: config, changes })
             }
         }
+    }
+
+    /// Reads the document and gives its mapping, for the editor.
+    pub fn read_mapping(&mut self) -> Result<Mapping, Failure> {
+        forms::mapping(&self.read()?.document)
+    }
+
+    /// Writes `mapping` into the last document read, everything else in it kept, as `write` does.
+    pub fn write_mapping(&mut self, mapping: &Mapping) -> Result<Saved, Failure> {
+        let stored = self.opened()?.stored.as_ref().ok_or_else(not_read)?;
+        let edited = forms::apply(&Config::from(stored).document, mapping)?;
+        self.write(edited)
+    }
+
+    /// The picker's choices from the pad's own OBS session.
+    pub fn obs_list(&mut self, list: ObsList) -> Result<Vec<Reference>, Failure> {
+        Ok(forms::choices(&self.opened_mut()?.session.obs_list(list.code())?))
     }
 
     /// Sends `secret` and zeroes its bytes whatever the outcome; answers the new `INFO` flags.

@@ -2,139 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>macropad-obs</title>
   <style>
-    :root { color-scheme: dark; }
-    body {
-      margin: 0;
-      background: #161616;
-      color: #e6e2dc;
-      font: 15px/1.4 ui-sans-serif, system-ui, sans-serif;
+    :root {
+      color-scheme: dark;
+      --bg: #161616;
+      --surface: #222;
+      --field: #111;
+      --text: #e6e2dc;
+      --muted: #a39c92;
+      --line: #3a3a3a;
+      --edge: #555;
+      --bad: #ff6b5e;
+      --focus: #f2b84b;
     }
-    main { display: grid; gap: 16px; padding: 20px; max-width: 960px; }
-    section { background: #222; border: 1px solid #3a3a3a; padding: 12px 14px; }
-    h1 { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
-    h2 { font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 8px; color: #b7b1a8; }
-    label { display: grid; gap: 4px; font-size: 13px; }
-    input, select, button { font: inherit; background: #111; color: inherit; border: 1px solid #555; padding: 6px 8px; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 ui-sans-serif, system-ui, sans-serif; }
+    main { display: grid; gap: 16px; padding: 16px; max-width: 1040px; }
+    h1 { font-size: 18px; font-weight: 600; margin: 0; }
+    h2 { font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 8px; color: var(--muted); }
+    section, form > section { background: var(--surface); border: 1px solid var(--line); padding: 12px; }
+    form { display: grid; gap: 16px; }
+    label { display: grid; gap: 4px; font-size: 13px; min-width: 0; }
+    input, select, button { font: inherit; background: var(--field); color: inherit; border: 1px solid var(--edge); padding: 6px 8px; min-width: 0; }
     button { cursor: pointer; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .key { min-height: 72px; display: grid; align-content: space-between; }
-    .key.on { border-color: #ff3b30; }
-    ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
-    li button { width: 100%; text-align: left; }
-    .muted { color: #9a938a; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+    [aria-invalid="true"] { border-color: var(--bad); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+    .grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .keys { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .control { border: 1px solid var(--line); margin: 0; padding: 8px; display: grid; gap: 8px; min-width: 0; }
+    .control legend { font-size: 13px; color: var(--muted); padding: 0 4px; }
+    .parts { display: grid; gap: 8px; }
+    .note { color: var(--bad); font-size: 13px; margin: 4px 0 0; min-height: 1.4em; }
+    #status { color: var(--muted); margin: 0; }
+    #changes { margin: 8px 0 0; padding-left: 20px; font-family: ui-monospace, monospace; font-size: 13px; }
+    @media (max-width: 560px) { .keys { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 <main>
   <h1>macropad-obs</h1>
-  <section>
-    <h2>Connection</h2>
-    <form id="conn" class="row">
-      <label>URL <input id="url" name="url" value="ws://127.0.0.1:4455" autocomplete="off"></label>
-      <label>Password <input id="password" name="password" type="password" autocomplete="current-password"></label>
-      <label><span>Allow OBS on another machine</span>
-        <input id="remote" type="checkbox"></label>
-      <button type="submit">Save</button>
+  <section aria-labelledby="pad-title">
+    <h2 id="pad-title">Pad</h2>
+    <div class="row">
+      <label>Pad <select id="pad"></select></label>
+      <button type="button" id="find">Find</button>
       <button type="button" id="connect">Connect</button>
       <button type="button" id="disconnect">Disconnect</button>
-    </form>
-    <p id="status" class="muted"></p>
-  </section>
-  <section>
-    <h2>Scenes</h2>
-    <ul id="scenes"></ul>
-  </section>
-  <section>
-    <h2>Inputs</h2>
-    <ul id="inputs"></ul>
-  </section>
-  <section>
-    <h2>Keys</h2>
-    <div id="keys" class="grid"></div>
-  </section>
-  <section>
-    <h2>Profile</h2>
-    <div class="row">
-      <select id="profile"></select>
-      <button type="button" id="use-profile">Use profile</button>
     </div>
+    <p id="status" role="status" aria-live="polite"></p>
   </section>
+  <form id="editor" hidden>
+    <section aria-labelledby="obs-title">
+      <h2 id="obs-title">OBS</h2>
+      <label>WebSocket URL
+        <input id="url" autocomplete="off" spellcheck="false" aria-describedby="url-note" placeholder="ws://192.168.1.20:4455">
+      </label>
+      <p id="url-note" class="note" aria-live="polite"></p>
+      <div class="row">
+        <button type="button" id="lists">Load OBS lists</button>
+      </div>
+    </section>
+    <section aria-labelledby="keys-title">
+      <h2 id="keys-title">Keys</h2>
+      <div id="keys" class="grid keys"></div>
+    </section>
+    <section aria-labelledby="buttons-title">
+      <h2 id="buttons-title">Buttons</h2>
+      <div id="buttons" class="grid"></div>
+    </section>
+    <section aria-labelledby="knobs-title">
+      <h2 id="knobs-title">Knobs</h2>
+      <div id="knobs" class="grid"></div>
+    </section>
+    <section id="stale" hidden aria-labelledby="stale-title">
+      <h2 id="stale-title">The pad changed since your read</h2>
+      <ul id="changes"></ul>
+    </section>
+    <div class="row">
+      <button type="button" id="read">Read</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
 </main>
-<script>
-const actions = ["scene", "mute", "transition", "stream", "record", "profile_next", "profile_prev"];
-const invoke = (cmd, args = {}) => window.__TAURI__.core.invoke(cmd, args);
-
-function option(value, label, selected) {
-  const node = document.createElement("option");
-  node.value = value;
-  node.textContent = label;
-  node.selected = selected;
-  return node;
-}
-
-async function refresh() {
-  const state = await invoke("get_state");
-  document.querySelector("#url").value = state.url;
-  document.querySelector("#remote").checked = state.allow_non_loopback;
-  const status = document.querySelector("#status");
-  const latency = state.latency_ms == null ? "" : ` last key ${state.latency_ms} ms`;
-  status.textContent = `${state.connected ? "connected" : "down"} ${state.profile}${latency}`;
-  const scenes = document.querySelector("#scenes");
-  scenes.replaceChildren(...state.scenes.map((name) => {
-    const li = document.createElement("li");
-    li.textContent = name;
-    return li;
-  }));
-  const inputs = document.querySelector("#inputs");
-  inputs.replaceChildren(...state.inputs.map((input) => {
-    const li = document.createElement("li");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = `${input.name}  ${input.muted ? "muted" : "open"}  ${input.db} dB`;
-    button.addEventListener("click", () => invoke("select_input", { name: input.name }).then(refresh));
-    li.append(button);
-    return li;
-  }));
-  const keys = document.querySelector("#keys");
-  keys.replaceChildren(...state.slots.map((slot, index) => {
-    const box = document.createElement("div");
-    box.className = slot.program ? "key on" : "key";
-    const name = document.createElement("div");
-    name.textContent = slot.name || "empty";
-    const select = document.createElement("select");
-    actions.forEach((action) => select.append(option(action, action, action === state.keys[index])));
-    select.addEventListener("change", () => {
-      invoke("set_key", { index, action: select.value }).then(refresh);
-    });
-    box.append(name, select);
-    return box;
-  }));
-  const profile = document.querySelector("#profile");
-  profile.replaceChildren(...state.profiles.map((name) => option(name, name, name === state.profile)));
-}
-
-document.querySelector("#conn").addEventListener("submit", (event) => {
-  event.preventDefault();
-  invoke("set_connection", {
-    url: document.querySelector("#url").value,
-    password: document.querySelector("#password").value,
-    allow_non_loopback: document.querySelector("#remote").checked,
-  }).then(() => {
-    document.querySelector("#password").value = "";
-    return refresh();
-  });
-});
-document.querySelector("#connect").addEventListener("click", () => invoke("connect").then(refresh));
-document.querySelector("#disconnect").addEventListener("click", () => invoke("disconnect").then(refresh));
-document.querySelector("#use-profile").addEventListener("click", () => {
-  invoke("set_profile", { name: document.querySelector("#profile").value }).then(refresh);
-});
-refresh().catch(() => {
-  document.querySelector("#status").textContent = "shell idle";
-});
-</script>
+<script type="module" src="mapping.js"></script>
 </body>
 </html>

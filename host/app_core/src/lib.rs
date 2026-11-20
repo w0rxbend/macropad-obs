@@ -7,6 +7,7 @@
 mod connection;
 mod diff;
 pub mod discover;
+pub mod forms;
 mod link;
 pub mod preview;
 mod provision;
@@ -19,4 +20,4 @@ pub use link::LinkError;
 pub use obs_core::document::{Document, Rejected, WriteRefused};
 pub use obs_core::protocol::{Info, Secret};
 pub use provision::{export, Credential, Status};
-pub use session::{Session, SessionError, Stored, Written};
+pub use session::{ObsItem, Session, SessionError, Stored, Written};

@@ -22,6 +22,10 @@ fn main() {
             commands::clear_credentials,
             commands::pad_status,
             commands::export_config,
+            commands::read_mapping,
+            commands::write_mapping,
+            commands::obs_list,
+            commands::check_url,
         ])
         .run(tauri::generate_context!());
     if let Err(err) = ran {

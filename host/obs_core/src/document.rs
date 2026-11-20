@@ -280,8 +280,8 @@ fn check_document(root: &Scope, schemas: RangeInclusive<u64>) -> Check {
     Ok(())
 }
 
-/// `ws://<private IPv4>[:port]` and nothing else.
-fn is_private_ws_url(url: &str) -> bool {
+/// `ws://<private IPv4>[:port]` and nothing else. The app's URL field checks with it too.
+pub fn is_private_ws_url(url: &str) -> bool {
     let Some(authority) = url.strip_prefix("ws://") else {
         return false;
     };

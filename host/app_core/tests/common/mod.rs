@@ -58,11 +58,21 @@ pub struct Padsim {
 
 impl Padsim {
     pub fn start(nor: &Path) -> Self {
+        Self::start_with(nor, &[])
+    }
+
+    /// With OBS at `127.0.0.1:obs_port` (padsim's `--obs`).
+    pub fn start_with_obs(nor: &Path, obs_port: u16) -> Self {
+        Self::start_with(nor, &["--obs".to_owned(), format!("127.0.0.1:{obs_port}")])
+    }
+
+    fn start_with(nor: &Path, flags: &[String]) -> Self {
         let padsim = std::env::var_os("PADSIM").map_or_else(|| repo_root().join(".build/padsim"), PathBuf::from);
         assert!(padsim.is_file(), "no padsim at {}: run `just padsim-build`", padsim.display());
         let mut child = Command::new(&padsim)
             .arg("--nor")
             .arg(nor)
+            .args(flags)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -115,5 +125,38 @@ impl Drop for Padsim {
             let _ = self.child.kill();
             let _ = self.child.wait();
         }
+    }
+}
+
+/// `tools/fake_obs.py` on a free loopback port, with `flags` such as `--scenes 500`.
+pub struct FakeObs {
+    child: Child,
+    pub port: u16,
+}
+
+impl FakeObs {
+    pub fn start(log: &Path, flags: &[&str]) -> Self {
+        let mut child = Command::new("python3")
+            .arg(repo_root().join("tools/fake_obs.py"))
+            .arg("--log")
+            .arg(log)
+            .args(flags)
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("python3 runs tools/fake_obs.py");
+        let mut stdout = BufReader::new(child.stdout.take().expect("fake_obs stdout"));
+        let mut first = String::new();
+        stdout.read_line(&mut first).expect("fake_obs line");
+        thread::spawn(move || stdout.lines().map_while(Result::ok).for_each(drop));
+        let port = first.trim_end().strip_prefix("listening ").and_then(|port| port.parse().ok());
+        let port = port.unwrap_or_else(|| panic!("fake_obs first line names its port: {first:?}"));
+        Self { child, port }
+    }
+}
+
+impl Drop for FakeObs {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
     }
 }

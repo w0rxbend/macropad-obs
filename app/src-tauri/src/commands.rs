@@ -6,6 +6,7 @@
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use app_core::discover::UsbPort;
+use app_core::forms::{self, Mapping, ObsList, Reference};
 use app_core::{Config, Connection, Credential, Failure, PadInfo, Saved, Status};
 use serde_json::Value;
 use serialport::SerialPort;
@@ -88,4 +89,25 @@ pub fn pad_status(shared: State<'_, Shared>) -> Result<Option<Status>, Failure> 
 #[tauri::command(async)]
 pub fn export_config(shared: State<'_, Shared>) -> Result<String, Failure> {
     shared.logged("export_config", shared.connection().export())
+}
+
+#[tauri::command(async)]
+pub fn read_mapping(shared: State<'_, Shared>) -> Result<Mapping, Failure> {
+    shared.logged("read_mapping", shared.connection().read_mapping())
+}
+
+#[tauri::command(async)]
+pub fn write_mapping(shared: State<'_, Shared>, mapping: Mapping) -> Result<Saved, Failure> {
+    shared.logged("write_mapping", shared.connection().write_mapping(&mapping))
+}
+
+#[tauri::command(async)]
+pub fn obs_list(shared: State<'_, Shared>, list: ObsList) -> Result<Vec<Reference>, Failure> {
+    shared.logged("obs_list", shared.connection().obs_list(list))
+}
+
+/// The URL field's rule as the user types; no pad needed, so nothing is logged.
+#[tauri::command]
+pub fn check_url(url: String) -> Result<(), Failure> {
+    forms::check_url(&url)
 }

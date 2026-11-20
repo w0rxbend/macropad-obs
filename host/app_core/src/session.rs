@@ -8,7 +8,7 @@ use std::ops::RangeInclusive;
 use std::time::Duration;
 
 use obs_core::document::{self, Document, Rejected, WriteRefused};
-use obs_core::protocol::{Info, Message, CFG_DATA_MAX, RESULT_OK, RESULT_STALE_SEQ};
+use obs_core::protocol::{Info, Message, CFG_DATA_MAX, RESULT_OK, RESULT_STALE_SEQ, UUID_LEN};
 use serde_json::Value;
 
 use crate::diff::{changes, Change};
@@ -83,6 +83,13 @@ impl Stored {
         json["seq"] = Value::from(self.seq);
         Document::parse(json.to_string().as_bytes(), schemas(info))
     }
+}
+
+/// One `OBS_ITEM` as the pad sent it: the 16 UUID bytes and the name bytes, unchecked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObsItem {
+    pub uuid: [u8; UUID_LEN],
+    pub name: Vec<u8>,
 }
 
 /// How a write ended.
@@ -184,6 +191,30 @@ impl<P: Read + Write> Session<P> {
         Err(SessionError::BadReply("the write ended without a commit RESULT"))
     }
 
+    /// `OBS_LIST` from index 0 until the `total` of the first `OBS_ITEM`. Each reply must answer the
+    /// list and index asked and keep that `total` (trust boundary): a list that changed mid-read
+    /// is refused, and the caller asks again.
+    pub fn obs_list(&mut self, list: u8) -> Result<Vec<ObsItem>, SessionError> {
+        let mut items = Vec::new();
+        let mut total = None;
+        let mut index = 0u16;
+        while total.is_none_or(|total| index < total) {
+            let Message::ObsItem { list: got, index: at, total: count, uuid, name } =
+                self.link.ask(&Message::ObsList { list, index })?
+            else {
+                return Err(SessionError::BadReply("OBS_LIST answered without OBS_ITEM"));
+            };
+            if (got, at) != (list, index) || *total.get_or_insert(count) != count {
+                return Err(SessionError::BadReply("OBS_ITEM does not continue the list"));
+            }
+            if index < count {
+                items.push(ObsItem { uuid, name });
+            }
+            index = index.saturating_add(1);
+        }
+        Ok(items)
+    }
+
     fn stale(&mut self, mine: &Document) -> Result<Written, SessionError> {
         let pad = self.read()?;
         // Bytes that are not JSON (an empty pad, a torn store) diff as null: one change at the root.
@@ -203,4 +234,124 @@ fn ask_info<P: Read + Write>(link: &mut Link<P>) -> Result<Info, SessionError> {
 
 pub(crate) fn schemas(info: &Info) -> RangeInclusive<u64> {
     u64::from(info.schema_min)..=u64::from(info.schema_max)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use obs_core::protocol::{self, Pulled, Size, LIST_SCENES};
+    use obs_core::LinkRx;
+    use std::cell::RefCell;
+    use std::io::{self, ErrorKind};
+    use std::rc::Rc;
+
+    fn info() -> Info {
+        Info {
+            proto: 2,
+            obs_password_set: false,
+            wifi_psk_set: false,
+            schema_min: 1,
+            schema_max: 1,
+            max_doc_bytes: 16384,
+            keys: 9,
+            buttons: 4,
+            knobs: 3,
+            main_display: Size { width: 320, height: 480 },
+            strip_display: Size { width: 142, height: 428 },
+            capabilities: 0,
+            board_rev: 1,
+            git_hash: [0; 4],
+            unique_id: [0; 6],
+            fw_version: "0.2.0".into(),
+        }
+    }
+
+    /// A pad that answers `INFO_GET`, and `OBS_LIST` with `item(list, index)`.
+    struct ListPad {
+        item: fn(u8, u16) -> Message,
+        asked: Rc<RefCell<Vec<u16>>>,
+        rx: LinkRx,
+        pending: Vec<u8>,
+    }
+
+    impl ListPad {
+        /// The pad, and the indexes it was asked for.
+        fn new(item: fn(u8, u16) -> Message) -> (Self, Rc<RefCell<Vec<u16>>>) {
+            let asked = Rc::new(RefCell::new(Vec::new()));
+            (Self { item, asked: Rc::clone(&asked), rx: LinkRx::default(), pending: Vec::new() }, asked)
+        }
+    }
+
+    impl Write for ListPad {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.rx.push(buf);
+            while let Some(Pulled::Frame(frame)) = self.rx.pull() {
+                let reply = match Message::decode(&frame) {
+                    Some(Message::InfoGet) => Message::Info(info()),
+                    Some(Message::ObsList { list, index }) => {
+                        self.asked.borrow_mut().push(index);
+                        (self.item)(list, index)
+                    }
+                    other => panic!("the session sent {other:?}"),
+                };
+                let frame = reply.encode(frame.id).expect("reply encodes");
+                self.pending.extend(protocol::encode(&frame).expect("reply fits"));
+            }
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl Read for ListPad {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            if self.pending.is_empty() {
+                return Err(ErrorKind::TimedOut.into());
+            }
+            let got = self.pending.len().min(buf.len());
+            buf[..got].copy_from_slice(&self.pending[..got]);
+            self.pending.drain(..got);
+            Ok(got)
+        }
+    }
+
+    fn item(list: u8, index: u16, total: u16) -> Message {
+        Message::ObsItem { list, index, total, uuid: [1; UUID_LEN], name: format!("Scene {index}").into_bytes() }
+    }
+
+    #[test]
+    fn obs_list_asks_each_index_until_the_total() {
+        let (pad, asked) = ListPad::new(|list, index| item(list, index, 3));
+        let items = Session::start(pad).expect("session").obs_list(LIST_SCENES).expect("list");
+        assert_eq!(
+            items.iter().map(|item| item.name.as_slice()).collect::<Vec<_>>(),
+            [b"Scene 0", b"Scene 1", b"Scene 2"]
+        );
+        assert_eq!(*asked.borrow(), [0, 1, 2]);
+    }
+
+    #[test]
+    fn an_empty_list_is_one_request() {
+        let (pad, asked) = ListPad::new(|list, index| item(list, index, 0));
+        assert_eq!(Session::start(pad).expect("session").obs_list(LIST_SCENES).expect("list"), []);
+        assert_eq!(*asked.borrow(), [0]);
+    }
+
+    #[test]
+    fn a_list_that_changes_mid_read_is_refused() {
+        let (pad, _) = ListPad::new(|list, index| item(list, index, 3 + index));
+        let listed = Session::start(pad).expect("session").obs_list(LIST_SCENES);
+        assert!(matches!(listed, Err(SessionError::BadReply(_))));
+    }
+
+    #[test]
+    fn an_item_for_another_index_or_list_is_refused() {
+        for answer in [|list, _| item(list, 7, 9), |_, index| item(LIST_SCENES + 1, index, 9)] {
+            let (pad, _) = ListPad::new(answer);
+            let listed = Session::start(pad).expect("session").obs_list(LIST_SCENES);
+            assert!(matches!(listed, Err(SessionError::BadReply(_))));
+        }
+    }
 }
