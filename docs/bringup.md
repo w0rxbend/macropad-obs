@@ -43,9 +43,12 @@ Each one blocks or weakens a step above. None is fixed here.
 - Step 6: no test-pattern image is in the tree (`grep -rni pattern firmware/` finds no such mode).
   The panel init tables are unverified until S.3: `firmware/esp32s3/main/lcd_port.c` logs
   "init table unverified until S.3" for each panel. Pending S.3, H.2.
-- Step 7: no host tool reads `INPUT` frames from a real port. The app's press-to-select is task 3.7,
-  not done. Pending 3.7 or a script over `host/obs_core/src/protocol.rs`.
-- Step 8: the app pages that write the SSID and the secrets are task 3.8, not done. Pending 3.8.
+- Step 7: no host tool shows `INPUT` frames from a real port. The mapping editor of task 3.7
+  (`app/ui/mapping.js`) shows each control as its own row and reads no presses. Pending a script over
+  `host/obs_core/src/protocol.rs`.
+- Step 8: the Wi-Fi page of task 3.8 (`app/ui/wifi.js`, `Connection::write_network` in
+  `host/app_core/src/connection.rs`) writes the SSID and the secrets. Tested against padsim in
+  `host/app_core/tests/padsim_pages.rs` only; no pad, no look by eye (pending D6, H.2).
 - Step 9: the backlight cap is `board.toml` `[power]` `backlight_cap_permille = 600`, MEASURE: report
   18 arithmetic, not a measured 3V3 current. Pending S.3, then H.8.
 - f_bus: the SPI clock is the provisional 13.3 MHz (80 MHz / 6) until S.3 (task 4.6 status;

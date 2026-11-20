@@ -47,8 +47,13 @@ Source: `firmware/core/obs.c` `RETRY_WAITS_MS`, `firmware/core/obs.h`.
   The 2 s cap is chosen to keep criterion 3 (OBS restart to reconnect within 5 s, spec 13) with
   room for the handshake. Measured on hardware: no (pending 4.8, H.4).
 - Close 4009 (wrong password), 4010 (RPC version) and 4011 (session invalidated) stop the client
-  with no retry (spec 8.3). A new URL or password applies once the client is idle or stopped
-  (task 4.7 status, `tasks/todo.md`).
+  with no retry (spec 8.3). A stopped client waits for a change.
+- A changed address, auth mode or OBS password stops the client at once, retrying or up, and
+  starts it on the new ones. With Wi-Fi down or no OBS entry it stays idle and starts when both are
+  back (`serve_obs` in `firmware/esp32s3/main/main.c`; `obs_stop` in `firmware/core/obs.h`, which
+  drops the link with `ws_abort` and no wait for the close echo). Tested off chip in
+  `firmware/test/test_obs_handshake.c` and `firmware/test/test_ws.c`; not run on a chip (pending
+  4.8).
 
 ## Session state
 

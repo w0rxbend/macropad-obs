@@ -80,7 +80,7 @@ Two layers (spec 5, spec 10):
 | `firmware/esp32s3/main/power.c`, `settings.c`, `cc_sense.c` | backlight cap and the CC 1.5 A lift; SSID, URL and brightness from the document |
 
 `just firmware` builds the merged image `.build/esp32s3/macropad-obs-merged.bin` (bootloader at 0x0,
-table at 0x8000, app at 0x10000; justfile). The 2026-11-20 build: image 1,040,564 bytes, DIRAM
+table at 0x8000, app at 0x10000; justfile). The 2026-11-20 build: image 1,040,608 bytes, DIRAM
 93,058 bytes free (`idf.py size` output of that run).
 
 Partitions (`firmware/esp32s3/partitions.csv`, spec 10): `nvs` (IDF default, no secret), `factory`
@@ -106,7 +106,7 @@ Provisional values in the port, each MEASURE or pending:
 | --- | --- | --- |
 | `obs_core` | `host/obs_core/` | v2 codec and document types, same vectors as the C side; `Secret` for the password and Wi-Fi key (spec 10) |
 | `app_core` | `host/app_core/` | the app without a window: find the pad, read and write the document, provision secrets, preview the panels with the firmware's own C renderer, firmware update with `espflash` as a library (`host/app_core/src/lib.rs`) |
-| Tauri shell | `app/src-tauri/` | builds (`just app`, `just app-check`); fourteen commands in `app/src-tauri/src/commands.rs`, each one call into `app_core` (tasks 3.6, 3.7) |
+| Tauri shell | `app/src-tauri/` | builds (`just app`, `just app-check`); twenty commands in `app/src-tauri/src/commands.rs`, registered in `app/src-tauri/src/main.rs`, each one call into `app_core` (tasks 3.6 to 3.8) |
 | UI | `app/ui/` | no-build ES modules, rules in `host/app_core/src/forms.rs`: the mapping editor (`mapping.js`, task 3.7); the layout editor with the preview (`display.js`), the SSID with the write-only passphrase and password (`wifi.js`), and the update from `just firmware`'s image (`update.js`, task 3.8) |
 | udev | `app/udev/70-macropad-obs.rules` | app port 1209:4f42 and ROM port 303a:1001, `TAG+="uaccess"` |
 

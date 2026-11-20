@@ -43,28 +43,27 @@ Each row is a command run on this machine on 2026-11-20, with its real exit code
 
 | Command | Exit | What the run showed |
 | --- | --- | --- |
-| `just test` | 1 | `test-firmware` (20 C test programs) and `test-host` (cargo test, clippy, fmt; padsim e2e incl. criteria 4, 4b, 4c, 5, 8, 9) passed. `check` failed in `tools/test_docs.py`: the "Next action" line of `tasks/todo.md` and `tasks/plan.md` names 2.18, which is ticked. The chain stopped there, so `numbers`, `cad-check` and `pcb-test` ran alone (next rows) |
-| `just numbers` | 0 | 13 tests OK |
-| `just cad-check` | 0 | 11 tests OK |
-| `just pcb-test` | 0 | 218 tests OK, 39 skipped (the pcbnew tests, which run in `just pcb-test-kicad`) |
+| `just test` | 0 | `test-firmware`: 20 C test programs under ASan/UBSan. `test-host`: 135 cargo tests, clippy and fmt; padsim end to end for criteria 4, 4b, 4c, 5, 8, 9 and the app pages. `check`, `numbers` (13), `cad-check` (11) and `pcb-test` (218, 39 pcbnew tests skipped; they run in `just pcb-test-kicad`) |
 | `just padsim-smoke` | 0 | a cut at program call 3, then the next start read the same NOR image |
 | `just gate` | 1 | 18 open MEASURE tags on gated entries: no board order. Expected until the panels are calipered and the coupons printed |
-| `just firmware` | 0 | image 1,040,564 bytes, DIRAM 93,058 bytes free; 5 partition rows match spec 10 |
+| `just firmware` | 0 | image 1,040,608 bytes, DIRAM 93,058 bytes free; 5 partition rows match spec 10. Built only; never run on a chip |
 | `just pcb-test-kicad` | 0 | 218 tests OK, 1 skipped, in `kicad/kicad:9.0.9` |
 | `just pcb` | 0 | ERC clean; routed DRC at error severity: 0 violations, 0 unconnected, 0 parity, 4 copper layers; fab set byte-repeatable, 48 BOM findings listed. Provisional: J3 and J4 are `PLACEHOLDER_*` FPC footprints, so the set stays in ignored `pcb/.build/` |
-| `just pcb step` | 0 | the STEP reads back 75 solids. Provisional, as above |
-| `just cad` | 0 | every step 0 problems; 42 case, 12 2D, 10 envelope, 3 laser, 6 knob and 54 coupon files read back; FCStd not built (needs FreeCAD, not approved); fit: 0 interferences, DSA keycap seat not checked |
-| `just app` | 0 | the Tauri shell builds on the host, its commands over `app_core` (task 3.6). The window was not opened here |
-| `just app-check` | 0 | the same build in the image; the window "macropad-obs" showed under Xvfb and was alive 5 s later. The UI pages are tasks 3.7, 3.8 |
+| `just pcb step` | 0 | the STEP reads back 75 solids. Provisional, as above. Run it after `just pcb`: `just cad` fit exits 1 on a STEP older than the board |
+| `just cad` | 0 | every step 0 problems; 42 case, 12 2D, 10 envelope, 3 laser, 12 B3F cap, 6 knob and 54 coupon files read back; FCStd not built (needs FreeCAD, not approved); fit: 0 interferences, DSA keycap seat not checked |
+| `just app` | 0 | the Tauri shell and its 20 commands over `app_core` build on the host. The window was not opened here |
+| `just app-check` | 0 | the same build in the image; the window showed under Xvfb within 10 s and was alive 5 s later. No look by eye (D6), no pad |
 | `just flash` | not run: gated | no pad exists |
 
 ## Not built, not run, not proven
 
 - **Not built:** the board (`just gate` exits 1), the printed case, the milled case, the FCStd, the
-  committed fab set (task 5.12), the FPC footprints (task 5.3b), the app
-  UI pages (tasks 3.7, 3.8), the dev kit spike firmware (task S.1).
-- **Not run:** anything on an ESP32-S3, the panels, or a real OBS. No spike results (S.3), no dev kit
-  acceptance (4.8), no bring-up (H.2), no JLCPCB or CNC quote (F.1, F.2).
+  committed fab set (task 5.12), the FPC footprints (task 5.3b), the dev kit spike firmware
+  (task S.1).
+- **Not run:** anything on an ESP32-S3, the panels, or a real OBS. The app pages (tasks 3.7, 3.8)
+  ran only against padsim and under Xvfb: no real pad, no look by eye (D6), no real firmware
+  update. No spike results (S.3), no dev kit acceptance (4.8), no bring-up (H.2), no JLCPCB or CNC
+  quote (F.1, F.2).
 - **Not proven without hardware:** Wi-Fi through the back-wall insert, reconnect times, input to
   scene change under 100 ms, strip update within 200 ms, redraw timing and SPI above 15 MHz, VBUS
   under 500 mA, the panel init tables, the ROM port after `BOOTLOADER`, no secret in the `nvs` and
