@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.11b (device link: OBS lists, status and input) and 2.14b (strip goldens, R14 mock-ups, retire st7789).
+Next action: Checkpoint 1 owner review, then 2.14b (strip goldens, R14 mock-ups, retire st7789).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -263,14 +263,14 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     and leaves `cred` untouched.
   - Verify: `just test-firmware`. Deps: 1.8, 2.3, 2.10. Files: `core/device.[ch]`,
     `test/test_device.c`.
-- [ ] **2.11b Device link: OBS lists, status and input (S).** Serve `OBS_LIST`/`OBS_ITEM` from
+- [x] **2.11b Device link: OBS lists, status and input (S).** Serve `OBS_LIST`/`OBS_ITEM` from
   `obs_state`. Send `STATUS` from fw-wifi and fw-obs on each change. Send `INPUT` on each input
   event (the app's "press to select").
   - Accept: a 500-scene state comes back as 500 `OBS_ITEM` frames in order. A Wi-Fi or OBS state
     change gives one `STATUS`. Each key, button, knob step and push gives one `INPUT`.
   - Verify: `just test-firmware`. Deps: 2.4, 2.8, 2.11a. Files: `core/device.[ch]`,
     `test/test_device_obs.c`.
-- [ ] **2.12 fw-actions (M).** Map inputs to OBS requests. Port `keymap.rs` and `volume.rs`, then
+- [x] **2.12 fw-actions (M).** Map inputs to OBS requests. Port `keymap.rs` and `volume.rs`, then
   delete the old Rust logic (`lib.rs` Core, `keymap`, `paging`, `profile`, `volume`).
   - Accept: each mapped action gives the expected request JSON, including the 4c sequence. Knob
     steps clamp.

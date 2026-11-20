@@ -9,8 +9,6 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::keymap::scene_count;
-
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Secret(String);
@@ -117,7 +115,7 @@ pub fn parse(text: &str) -> Result<Config, ConfigError> {
     for (slot, key) in keys.iter_mut().zip(file.key) {
         *slot = key.action;
     }
-    if scene_count(&keys) == 0 {
+    if !keys.contains(&KeyAction::Scene) {
         return Err(ConfigError::SceneKeys);
     }
     let (host, port) = split_url(&file.obs.url)?;
