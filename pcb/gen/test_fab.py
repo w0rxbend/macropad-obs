@@ -14,7 +14,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HAVE_PCBNEW = importlib.util.find_spec("pcbnew") is not None
+# Only the pcbnew the pipeline pins (kicad/kicad:9.0.9): a host KiCad of another version skips these tests.
+PCBNEW_FOUND = "no pcbnew"
+if importlib.util.find_spec("pcbnew") is not None:
+    import pcbnew
+
+    PCBNEW_FOUND = f"pcbnew {pcbnew.GetMajorMinorVersion()}"
+HAVE_PCBNEW = PCBNEW_FOUND == "pcbnew 9.0"
+PCBNEW_SKIP = f"needs pcbnew 9.0, found {PCBNEW_FOUND}: run `just pcb-test-kicad`"
 if HAVE_PCBNEW:
     import fab
 
@@ -31,7 +38,7 @@ def _bom_row(refs: str, lcsc: str = "UNVERIFIED", maker: str = "Yageo", number: 
             "Manufacturer": maker, "Manufacturer Part #": number}
 
 
-@unittest.skipUnless(HAVE_PCBNEW, "needs pcbnew: run in kicad/kicad:9.0.9")
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class RepeatableTest(unittest.TestCase):
     def test_gerbers_from_two_minutes_are_the_same_bytes(self) -> None:
         first = fab.without_dates("board-F_Cu.gtl", GERBER_HEAD.format(iso="2026-11-20T08:20:04+00:00",
@@ -81,7 +88,7 @@ class RepeatableTest(unittest.TestCase):
         self.assertEqual(fab.differing_files(first / "gerbers", second / "gerbers"), ["only-second.gbl"])
 
 
-@unittest.skipUnless(HAVE_PCBNEW, "needs pcbnew: run in kicad/kicad:9.0.9")
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class ReferencesTest(unittest.TestCase):
     def test_agreeing_lists_give_no_mismatch(self) -> None:
         self.assertEqual(fab.reference_mismatches(["R1", "R2"], ["R2", "R1"], {"R1", "R2"}), [])
@@ -104,7 +111,7 @@ class ReferencesTest(unittest.TestCase):
                          ["R1: twice in the placement list"])
 
 
-@unittest.skipUnless(HAVE_PCBNEW, "needs pcbnew: run in kicad/kicad:9.0.9")
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class OrderBlockersTest(unittest.TestCase):
     def test_a_numbered_line_with_its_maker_is_orderable(self) -> None:
         self.assertEqual(fab.order_blockers([_bom_row("R1", lcsc="C25744")]), [])

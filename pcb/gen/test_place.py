@@ -20,10 +20,15 @@ import circuit_hmi
 import place
 import sexpr
 
-HAVE_PCBNEW = importlib.util.find_spec("pcbnew") is not None
-if HAVE_PCBNEW:
+# Only the pcbnew the pipeline pins (kicad/kicad:9.0.9): a host KiCad of another version skips these tests.
+PCBNEW_FOUND = "no pcbnew"
+if importlib.util.find_spec("pcbnew") is not None:
     import pcbnew
 
+    PCBNEW_FOUND = f"pcbnew {pcbnew.GetMajorMinorVersion()}"
+HAVE_PCBNEW = PCBNEW_FOUND == "pcbnew 9.0"
+PCBNEW_SKIP = f"needs pcbnew 9.0, found {PCBNEW_FOUND}: run `just pcb-test-kicad`"
+if HAVE_PCBNEW:
     import contract
     import layout
     import route
@@ -189,7 +194,7 @@ def _moved(ref: str, x: float, y: float) -> tuple[place.PlacedPart, ...]:
                  for part in place.board_parts())
 
 
-@unittest.skipUnless(HAVE_PCBNEW, "needs pcbnew: run in kicad/kicad:9.0.9")
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class PlacedBoardTest(unittest.TestCase):
     def setUp(self) -> None:
         self.board_path = Path(tempfile.mkdtemp()) / "probe.kicad_pcb"

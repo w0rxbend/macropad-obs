@@ -17,10 +17,15 @@ import unittest
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-HAVE_PCBNEW = importlib.util.find_spec("pcbnew") is not None
-if HAVE_PCBNEW:
+# Only the pcbnew the pipeline pins (kicad/kicad:9.0.9): a host KiCad of another version skips these tests.
+PCBNEW_FOUND = "no pcbnew"
+if importlib.util.find_spec("pcbnew") is not None:
     import pcbnew
 
+    PCBNEW_FOUND = f"pcbnew {pcbnew.GetMajorMinorVersion()}"
+HAVE_PCBNEW = PCBNEW_FOUND == "pcbnew 9.0"
+PCBNEW_SKIP = f"needs pcbnew 9.0, found {PCBNEW_FOUND}: run `just pcb-test-kicad`"
+if HAVE_PCBNEW:
     import build
     import contract
     import fab
@@ -49,7 +54,7 @@ def _holes() -> tuple[Part, ...]:
                  for n, (x, y) in enumerate(BOARD_TOML["pcb"]["holes"], start=1))
 
 
-@unittest.skipUnless(HAVE_PCBNEW, "needs pcbnew: run in kicad/kicad:9.0.9")
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class BoardTest(unittest.TestCase):
     def setUp(self) -> None:
         self.dir = Path(tempfile.mkdtemp())
@@ -113,7 +118,7 @@ class BoardTest(unittest.TestCase):
         build.check_rules_reach_drc(self.board_path, self.dir)
 
 
-@unittest.skipUnless(HAVE_PCBNEW, "needs pcbnew: run in kicad/kicad:9.0.9")
+@unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class FabTest(unittest.TestCase):
     def test_drill_hits_are_counted_per_tool(self) -> None:
         drill = Path(tempfile.mkdtemp()) / "probe.drl"
