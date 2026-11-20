@@ -5,19 +5,28 @@ is one line of text, and no problem means the part passes.
 
 Probes are points tested inside or outside the solid, so a missing or misplaced cut shows up
 even when the solid itself is valid. The carrier and foam numbers go through the rules of
-tools/check_numbers.py, measured off the solids, so the model and the numbers test agree."""
+tools/check_numbers.py, measured off the solids, so the model and the numbers test agree.
+
+`variant_problems` runs these on the print and cnc variants (variants.py) and adds the CNC-only
+shop rules, ported from macropad/cad/macropad_case/checks.py and measure.py (`machinability`,
+`_tool_reach`): no sharp inside corner, corner radius against depth, cutter reach."""
 
 import importlib.util
+from math import pi
 
-from build123d import Box, Pos
+from build123d import Box, GeomType, Pos, Vector
+from OCP.BRepAdaptor import BRepAdaptor_Surface
 
-from obs_case import body, bottom, carriers, deck, spec
+from obs_case import body, bottom, carriers, deck, spec, variants
 from obs_case.spec import LAYOUT
 
 CNC_MIN_WALL = 2.0  # report 11: walls 2.0 mm or more (JLCCNC: above 1.5 for bead blast)
 TOLERANCE = 1e-6  # mm, the build123d point and bounding-box tolerance
 PAST_EDGE = 1e-3  # mm a probe sits past an edge it tests, well above TOLERANCE
 CHECK_NUMBERS = spec.BOARD_TOML.parent / "tools" / "check_numbers.py"
+MILLED = ("shell", "plate")  # the 6061 parts; the insert is plastic ([antenna] insert.material)
+MAX_TOOL_DEPTH_RATIO = 3  # JLCCNC [J1]: a pocket is best at 2 to 3 cutter diameters deep
+FULL_TURN = 1e-3  # share of a cylinder's area by which a drilled hole may miss a full turn
 
 
 def _load_check_numbers():
@@ -373,6 +382,103 @@ def _insert_extent_problems(part):
     if all(abs(have - need) <= TOLERANCE for have, need in zip(got, want, strict=True)):
         return []
     return [f"insert bounding box {tuple(round(value, 4) for value in got)}, expected {want}"]
+
+
+def variant_problems(parts, variant):
+    """Every broken rule of one variant's {"shell", "plate", "insert"}: the shell and insert rules
+    above, the variant's own fits found where they should be, and for cnc the shop rules."""
+    found = [f"{variant} shell: {problem}" for problem in problems(parts["shell"])]
+    if variant == variants.PRINT:
+        found += [f"{variant}: {problem}" for problem in insert_problems(parts)]
+    else:  # the cnc reliefs and lobes run past the drawn outlines that insert_problems checks
+        found += [f"{variant}: {problem}" for problem in _metal_and_overlap_problems(parts)]
+        found += cnc_problems(parts)
+    return found + [f"{variant} probe {name}: expected {_word(inside)}" for name, solid, point, inside
+                    in variant_probes(parts, variant) if solid.is_inside(point) != inside]
+
+
+def _metal_and_overlap_problems(parts):
+    found = [problem for name, solid in parts.items() for problem in _one_solid(name, solid)]
+    found += [f"{name} is metal in the antenna board cut" for name in ("shell", "plate")
+              if _shared_volume(parts[name], _antenna_cut()) > TOLERANCE]
+    names = list(parts)
+    return found + [f"{first} and {second} overlap" for index, first in enumerate(names)
+                    for second in names[index + 1 :] if _shared_volume(parts[first], parts[second]) > TOLERANCE]
+
+
+def variant_probes(parts, variant):
+    """(name, part, point, expected inside): just inside each print fit and just outside each cnc
+    fit, so a variant that lost its fit shows up. Points sit halfway between the two fits."""
+    fit = variants.fits(variant)
+    other = variants.fits(variants.CNC if variant == variants.PRINT else variants.PRINT)
+    shell, stack = parts["shell"], LAYOUT.stack
+    cap_width = LAYOUT.buttons.cap[0]
+    cap_edge = cap_width / 2 + _mid(fit.hole_clearance, other.hole_clearance)
+    recess_x = LAYOUT.big_display.lens_opening[0] - LAYOUT.window.lens_ledge
+    recess_edge = recess_x - _mid(fit.lens_fit, other.lens_fit) + LAYOUT.variants.cnc.lens_fit
+    recess_y = _mid(LAYOUT.big_display.lens_opening[1], _back(LAYOUT.big_display.lens_opening))
+    loose = fit.hole_clearance > other.hole_clearance
+    wide = fit.lens_fit > other.lens_fit
+    return [(f"button hole {x:g} fit", shell, (x + cap_edge, LAYOUT.buttons.y, _deck_mid()), not loose)
+            for x in LAYOUT.buttons.x] + [
+        ("big lens recess fit", shell,
+         (recess_edge, recess_y, _mid(stack.lens_recess_floor, stack.deck_top - LAYOUT.body.opening_chamfer)), not wide),
+    ]
+
+
+def cnc_problems(parts):
+    """The shop rules on the milled shell and plate (report 11 section 3): no sharp inside corner
+    left, every inside corner radius at least JLCCNC's depth / 10 + 0.5 [J1] and no deeper than
+    MAX_TOOL_DEPTH_RATIO cutter diameters, and the corner finder still sees the drawn MX cut-outs."""
+    found = [f"cnc {name}: {_corner_text(corner)}" for name in MILLED
+             for corner in variants.inside_corners(parts[name])]
+    found += [f"cnc {name}: {problem}" for name in MILLED for problem in _radius_problems(parts[name])]
+    if LAYOUT.variants.cnc.hole_clearance != LAYOUT.buttons.hole_clearance:
+        found.append("variants.cnc.hole_clearance is not buttons.hole_clearance, the drawn deck")
+    return found + _finder_problems()
+
+
+def _corner_text(corner):
+    kind = "square inside corner left sharp" if corner.square else "acute inside corner (no relief fits)"
+    return f"{kind} at {corner.middle.X:.2f},{corner.middle.Y:.2f} z {corner.z_low:g} to {corner.z_high:g}"
+
+
+def concave_walls(part):
+    """(radius, height) of each concave vertical cylinder wall of `part` that is not a full hole:
+    the corners a cutter has to fit. Full round holes are drilled and left out."""
+    found = []
+    for face in part.faces().filter_by(GeomType.CYLINDER):
+        cylinder = BRepAdaptor_Surface(face.wrapped).Cylinder()  # Face.radius is None once trimmed
+        axis, radius = cylinder.Axis(), cylinder.Radius()
+        if abs(axis.Direction().Z()) < 1 - FULL_TURN:
+            continue
+        on_face = face.position_at(0.5, 0.5)
+        centre = axis.Location()
+        toward_axis = Vector(centre.X() - on_face.X, centre.Y() - on_face.Y, 0).normalized()
+        height = face.bounding_box().size.Z
+        full = abs(face.area - 2 * pi * radius * height) < FULL_TURN * face.area
+        if part.is_inside(on_face + toward_axis * variants.PROBE) or full:
+            continue  # material on the axis side: an outside corner, or a drilled hole
+        found.append((radius, height))
+    return found
+
+
+def _radius_problems(part):
+    found = []
+    for radius, height in concave_walls(part):
+        if radius < variants.shop_radius(height) - TOLERANCE:
+            found.append(f"inside corner R {radius:.3f}, {height:g} deep, JLCCNC wants R {variants.shop_radius(height):.3f}")
+        if height > MAX_TOOL_DEPTH_RATIO * 2 * radius + TOLERANCE:
+            found.append(f"inside corner R {radius:.3f} is {height / (2 * radius):.1f} cutter diameters deep")
+    return found
+
+
+def _finder_problems():
+    """The finder must see the four sharp corners of every drawn MX cut-out in the shell before the
+    reliefs go in; seeing none would pass any part."""
+    want = 4 * len(LAYOUT.keys.x) * len(LAYOUT.keys.y)
+    seen = len(variants.inside_corners(deck.top_shell()))
+    return [] if seen >= want else [f"corner finder sees {seen} corners in the drawn shell, expected {want} or more"]
 
 
 def insert_probes(parts):

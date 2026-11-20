@@ -204,7 +204,7 @@ y = 5.60                              # design
 cap = [9.5, 6.0]                      # design: web 3.0 (cnc) / 2.6 (print); MEASURE fit on the stem
 cap_flange = [9.5, 8.0]               # 1.0 flange front and back only; 1.35 clear of the (3, 3) boss
 body = 6.0                            # datasheet, +/-0.2
-hole_clearance = 0.1                  # report 11: deck cap hole = cap + 0.1 a side (cnc); print 0.3 waits for the 6.4 variants
+hole_clearance = 0.1                  # report 11: deck cap hole = cap + 0.1 a side (cnc); print in [variants]
 cap_corner_radius = 1.0               # design: cap plan corner; CNC inside corner in the 2.0 deck >= 0.7 (report 11, JLCCNC)
 footprint = "Button_Switch_THT:SW_TH_Tactile_Omron_B3F-100x"
 # Cap back edge 8.6, front keycap edge 15.6: gap 7.0. Deeper caps would close that gap.
@@ -219,6 +219,13 @@ bushing_hole = 7.4                    # report 08; MEASURE on a coupon
 footprint = "Rotary_Encoder:RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm"
 # Laser-engraved fixed indices left of each knob, the digits the strips show (report 14).
 index_marks = { height = 2.5, at = [[64.0, 67.6], [64.0, 41.1], [64.0, 14.6]], text = ["1", "2", "3"] }
+
+[variants]
+# Report 11 s4: one build123d source, a `print` and a `cnc` case (spec 9). The tables above draw the
+# cnc case. A variant changes fits only; screw holes wait on open question 3. The lens sheet is the
+# cnc recess less cnc.lens_fit a side. CNC inside corners get reliefs in cad/obs_case/variants.py.
+cnc = { lens_fit = 0.1, hole_clearance = 0.1 }      # report 11; hole_clearance = [buttons] hole_clearance
+print = { lens_fit = 0.15, hole_clearance = 0.3 }   # report 11: FDM moving parts need 0.3 (Prusa)
 
 [usb]
 part = "GCT USB4216-03-A, USB 2.0 Type-C, 16 pin, top mount, SMT shell tabs"   # UNVERIFIED LCSC

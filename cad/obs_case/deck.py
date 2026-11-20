@@ -36,26 +36,48 @@ def key_well():
     return [x_low, y_low, max(keys.x) + half - x_low, max(keys.y) + half - y_low]
 
 
-def lens_recess(panel):
-    """The lens recess of one display: its lens opening grown by the ledge."""
-    return grown(panel.lens_opening, LAYOUT.window.lens_ledge)
+def lens_recess(panel, grow=0.0):
+    """The lens recess of one display: its lens opening grown by the ledge, plus `grow` a side."""
+    return grown(panel.lens_opening, LAYOUT.window.lens_ledge + grow)
 
 
-def button_hole():
-    """(width, depth, corner radius) of one cap hole: the cap plus hole_clearance a side."""
+def button_hole(clearance=None):
+    """(width, depth, corner radius) of one cap hole: the cap plus `clearance` a side, by default
+    [buttons] hole_clearance."""
     buttons = LAYOUT.buttons
     width, depth = buttons.cap
-    clearance = buttons.hole_clearance
+    if clearance is None:
+        clearance = buttons.hole_clearance
     return width + 2 * clearance, depth + 2 * clearance, buttons.cap_corner_radius + clearance
 
 
 def plate_block():
     """The MX plate under the well, plate_margin past it on each side, up to the deck underside.
-    It stays out of the cavity, so the well walls stand on it."""
+    It stays out of the cavity, so the well walls stand on it. Where it reaches the left cavity wall
+    it runs square into the wall with a concave fillet of the cavity corner radius each side: its
+    own corner arc would leave an acute wedge there that no cutter reaches (report 11 CNC rules)."""
     keys, stack = LAYOUT.keys, LAYOUT.stack
-    rect = grown(key_well(), keys.plate_margin)
-    return body.prism(rect, keys.well_corner_radius + keys.plate_margin, stack.mx_plate_underside,
-                      stack.deck_underside)
+    x, y, width, depth = grown(key_well(), keys.plate_margin)
+    corner = keys.well_corner_radius + keys.plate_margin
+    wall_x = -LAYOUT.body.pcb_clearance  # the left cavity face
+    z_low, z_high = stack.mx_plate_underside, stack.deck_underside
+    if x >= wall_x + corner:
+        return body.prism([x, y, width, depth], corner, z_low, z_high)
+    right = x + width
+    x = wall_x - corner  # the corner arcs now sit inside the wall, where the cavity tool never cuts
+    block = body.prism([x, y, right - x, depth], corner, z_low, z_high)
+    return block + _wall_fillet(wall_x, y, -1, z_low, z_high) + _wall_fillet(wall_x, y + depth, 1, z_low, z_high)
+
+
+def _wall_fillet(wall_x, face_y, side, z_low, z_high):
+    """A concave fillet of the cavity corner radius between the wall face x = wall_x and the block
+    face y = face_y, on the side of that face given by `side` (-1 in front, +1 behind)."""
+    radius = LAYOUT.pcb.corner_radius + LAYOUT.body.pcb_clearance
+    y_low = face_y if side > 0 else face_y - radius
+    centre_y = face_y + side * radius
+    z_mid = (z_low + z_high) / 2
+    piece = Pos(wall_x + radius / 2, y_low + radius / 2, z_mid) * Box(radius, radius, z_high - z_low)
+    return piece - Pos(wall_x + radius, centre_y, z_mid) * Cylinder(radius, z_high - z_low + 2 * OVERRUN)
 
 
 def top_shell():
@@ -70,9 +92,9 @@ def _cuts():
     return [
         ("key well", _key_well_tool()),
         ("plate holes", _plate_hole_tools()),
-        ("lens recesses", _union(_recess_tool(panel) for panel in panels())),
+        ("lens recesses", _union(recess_tool(panel) for panel in panels())),
         ("windows", _union(_window_tool(panel) for panel in panels())),
-        ("button holes", _button_hole_tools()),
+        ("button holes", button_hole_tools()),
         ("knob holes", _knob_hole_tools()),
     ]
 
@@ -95,9 +117,10 @@ def _plate_hole_tools():
                   for x in keys.x for y in keys.y)
 
 
-def _recess_tool(panel):
+def recess_tool(panel, grow=0.0):
+    """The cut tool of one lens recess, grown by `grow` a side, its corner grown with it."""
     stack = LAYOUT.stack
-    return body.flared_prism(lens_recess(panel), LAYOUT.window.lens_recess_corner_radius,
+    return body.flared_prism(lens_recess(panel, grow), LAYOUT.window.lens_recess_corner_radius + grow,
                              stack.lens_recess_floor, stack.deck_top, LAYOUT.body.opening_chamfer)
 
 
@@ -112,8 +135,9 @@ def _through_deck():
     return stack.deck_underside - OVERRUN, stack.deck_top + OVERRUN
 
 
-def _button_hole_tools():
-    width, depth, corner = button_hole()
+def button_hole_tools(clearance=None):
+    """The four cap hole cut tools, each cap plus `clearance` a side (button_hole)."""
+    width, depth, corner = button_hole(clearance)
     z_low, z_high = _through_deck()
     y = LAYOUT.buttons.y
     return _union(body.prism([x - width / 2, y - depth / 2, width, depth], corner, z_low, z_high)

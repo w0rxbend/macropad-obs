@@ -580,7 +580,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   open question 1 (default black).
   - Accept: no metal solid in the antenna board cut. The insert fit stays MEASURE.
   - Verify: `just cad`. Deps: 6.2b. Files: `cad/obs_case/insert.py`, `bottom.py`, `checks.py`.
-- [ ] **6.4 Print and CNC variants, CNC pack (M).** Variant tolerances. CNC-only checks. Copy the
+- [x] **6.4 Print and CNC variants, CNC pack (M).** Variant tolerances. CNC-only checks. Copy the
   drawing writer from `macropad/cad/macropad_case/drawings.py` and CNC checks from `checks.py`.
   - Accept: both variants build. The CNC pack holds STEP, PDF and DXF. The PDF carries tolerances,
     the D3 style A finish callout (bead blast, black anodise) and the engrave layer.
