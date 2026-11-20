@@ -66,6 +66,11 @@ test-firmware:
         {{root}}/firmware/test/test_config.c -o {{root}}/.build/test_config
     {{root}}/.build/test_config
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/test \
+        {{root}}/firmware/core/store.c {{root}}/firmware/test/nor_model.c \
+        {{root}}/firmware/test/test_store.c -o {{root}}/.build/test_store
+    {{root}}/.build/test_store
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware \
         {{root}}/firmware/st7789.c {{root}}/firmware/font8x16.c {{root}}/firmware/test/test_st7789.c \
         -o {{root}}/.build/test_st7789

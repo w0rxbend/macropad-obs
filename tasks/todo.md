@@ -241,7 +241,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: every `config_vectors/` file gives the same verdict as Rust (1.9), and the same first
     bad path.
   - Verify: `just test`. Deps: 1.9, 2.2. Files: `core/config.[ch]`, `test/test_config.c`.
-- [ ] **2.10 fw-store (M).** Two raw slots, header written last, a NOR flash model, and a
+- [x] **2.10 fw-store (M).** Two raw slots, header written last, a NOR flash model, and a
   credential store seam.
   - Accept: a power cut after every program call boots the old or the new document, never a mix.
     No credential byte reaches `CFG_DATA`. Clear erases the credential partition model: with
