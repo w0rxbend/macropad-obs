@@ -353,7 +353,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     holds a password or PSK byte, and no host-to-device frame other than the `SET_CREDENTIAL`
     payload does (criterion 12, host side). The test checks both directions.
   - Verify: `just test`. Deps: 3.2. Files: `host/app_core/src/provision.rs`, its test.
-- [ ] **3.4 App core: preview and criterion 4b (M).** Build `fw-ui` through `cc` (**new
+- [x] **3.4 App core: preview and criterion 4b (M).** Build `fw-ui` through `cc` (**new
   dependency, ask first**). Render the preview from the same state.
   - Accept: 4b passes byte for byte against the padsim dumps. Changed pixels stay inside the two
     edited widgets. An overlap write gets `invalid` and the frames stay unchanged.

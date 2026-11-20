@@ -3,7 +3,7 @@ name = "app_core"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
-description = "The app's pad session for macropad-obs: discovery, INFO, config read and write. No window."
+description = "The app's pad session for macropad-obs: discovery, INFO, config read and write, display preview. No window."
 license = "MIT"
 publish = false
 
@@ -11,3 +11,6 @@ publish = false
 obs_core = { path = "../obs_core" }
 serde_json = { version = "1", default-features = false, features = ["std"] }
 serialport = "4.10"
+
+[build-dependencies]
+cc = "1.2"
