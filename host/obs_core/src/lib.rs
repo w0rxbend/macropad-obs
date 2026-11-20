@@ -4,14 +4,12 @@
 mod config;
 pub mod document;
 mod keymap;
-mod obs;
 mod paging;
 mod profile;
 pub mod protocol;
 mod volume;
 
 pub use config::{connect_target, default_config_path, load, parse, save, Config, ConfigError, KeyAction, Secret};
-pub use obs::{output_is_on, CoreError, Effect, EventBurst, InputState, ObsRequest, ObsSnapshot};
 pub use protocol::{LinkRx, PadEvent, PageView, USB_PID, USB_VID};
 pub use volume::round_db;
 
@@ -19,6 +17,56 @@ use keymap::{scene_count, scene_slot, INPUT_CAP, KEYS, PROFILE_CAP, SCENE_CAP};
 use paging::{build_page, page_count, step_page, PageFlags};
 use profile::wrap_index;
 use volume::{clamp_db, VolumeGate};
+
+use serde::{Deserialize, Serialize};
+
+// The OBS snapshot, requests and effects of `Core`. The firmware keeps the OBS state now
+// (`firmware/core/obs_state.c`); these go with `Core` in task 2.12.
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputState {
+    pub name: String,
+    pub muted: bool,
+    pub db: i8,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ObsSnapshot {
+    pub scenes: Vec<String>,
+    pub program: Option<String>,
+    pub profile: String,
+    pub profiles: Vec<String>,
+    pub inputs: Vec<InputState>,
+    pub streaming: bool,
+    pub recording: bool,
+    pub studio: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ObsRequest {
+    SetProgramScene { name: String },
+    SetProfile { name: String },
+    SetMute { name: String, muted: bool },
+    SetVolumeDb { name: String, db: i8 },
+    StartStream,
+    StopStream,
+    StartRecord,
+    StopRecord,
+    Transition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Effect {
+    Obs(ObsRequest),
+    Notice(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CoreError {
+    Index,
+    SceneKeys,
+    UnknownInput,
+}
 
 pub struct Core {
     config: Config,

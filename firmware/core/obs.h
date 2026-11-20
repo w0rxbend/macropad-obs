@@ -2,11 +2,12 @@
 // The obs-websocket 5 handshake over fw-ws (spec 8.3, R05): Hello, the 5.4.0 floor, the auth
 // string, Identify with rpcVersion 1 and eventSubscriptions 1118, Identified, and the reconnect
 // backoff. No retry after close 4009, 4010 or 4011. Pure C, no SDK headers, no heap.
-// Requests and events after Identified are task 2.8: until then their messages are not read.
+// After Identified the messages go to an attached obs_state, which sends the requests.
 #pragma once
 
 #include "json.h"
 #include "link.h"
+#include "obs_state.h"
 #include "ws.h"
 
 #include <stdbool.h>
@@ -62,10 +63,15 @@ typedef struct {
 	uint32_t retry_wait_started_ms;
 	json_reader_t reader;
 	obs_message_t message;
+	obs_state_t *state; // NULL: the messages after Identified are not read
 } obs_t;
 
 // Starts idle. `stream` and `next_random` stay the client's for its life.
 void obs_init(obs_t *obs, stream_t *stream, ws_random_t next_random);
+
+// From the next Identified on, `state` reads the session and sends its requests. Call before
+// obs_start. `state` stays the client's for its life.
+void obs_attach_state(obs_t *obs, obs_state_t *state);
 
 // Dials ws://ip:port at once. `password` is the stored OBS password, or NULL when none is
 // stored; its bytes must stay valid until the next obs_start. Only on a client that is idle or

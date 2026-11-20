@@ -39,9 +39,20 @@ test-firmware:
         -DFAKE_OBS='"{{root}}/tools/fake_obs.py"' \
         {{root}}/firmware/core/crypto.c {{root}}/firmware/core/ws.c {{root}}/firmware/core/json.c \
         {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c {{root}}/firmware/core/obs.c \
+        {{root}}/firmware/core/obs_state.c \
         {{root}}/firmware/test/posix_stream.c {{root}}/firmware/test/test_obs_handshake.c \
         -o {{root}}/.build/test_obs_handshake
     {{root}}/.build/test_obs_handshake
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/test -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        -DFAKE_OBS='"{{root}}/tools/fake_obs.py"' \
+        {{root}}/firmware/core/crypto.c {{root}}/firmware/core/ws.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c {{root}}/firmware/core/obs.c \
+        {{root}}/firmware/core/obs_state.c \
+        {{root}}/firmware/test/posix_stream.c {{root}}/firmware/test/test_obs_state.c \
+        -o {{root}}/.build/test_obs_state
+    {{root}}/.build/test_obs_state
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core \
         {{root}}/firmware/core/input.c {{root}}/firmware/test/test_input.c \

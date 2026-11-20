@@ -93,6 +93,11 @@ static void read_handshake_field(void *context, const json_event_t *event) {
 }
 
 static void begin_message(obs_t *obs) {
+	if (obs->step == STEP_UP && obs->state != NULL) {
+		obs_state_begin_message(obs->state);
+		json_reader_init(&obs->reader, obs_state_sink, obs->state);
+		return;
+	}
 	obs->message = (obs_message_t){.op = -1, .negotiated_rpc_version = -1};
 	json_reader_init(&obs->reader, read_handshake_field, &obs->message);
 }
@@ -208,13 +213,29 @@ static void on_identified(obs_t *obs, uint32_t now_ms) {
 		obs->status = OBS_UP;
 		obs->step = STEP_UP;
 		obs->retry_step = 0;
+		if (obs->state != NULL) {
+			obs_state_begin(obs->state);
+		}
+	}
+}
+
+// Broken JSON in a session fails only the message it is in.
+static void on_session_data(obs_t *obs, const ws_event_t *event) {
+	json_status_t status = json_feed(&obs->reader, event->bytes, event->len);
+	if (event->message_end) {
+		obs_state_end_message(obs->state, status == JSON_DONE);
+		begin_message(obs);
 	}
 }
 
 // A bad field fails only the message it is in, as broken JSON does.
 static void on_data(obs_t *obs, const ws_event_t *event, uint32_t now_ms) {
+	if (obs->step == STEP_UP && obs->state != NULL) {
+		on_session_data(obs, event);
+		return;
+	}
 	if (obs->step != STEP_HELLO && obs->step != STEP_IDENTIFIED) {
-		return; // task 2.8 reads the requests and events after Identified
+		return;
 	}
 	json_status_t status = json_feed(&obs->reader, event->bytes, event->len);
 	if (!event->message_end) {
@@ -251,6 +272,10 @@ void obs_init(obs_t *obs, stream_t *stream, ws_random_t next_random) {
 	begin_message(obs);
 }
 
+void obs_attach_state(obs_t *obs, obs_state_t *state) {
+	obs->state = state;
+}
+
 bool obs_start(obs_t *obs, const uint8_t ip[4], uint16_t port, const char *password,
                size_t password_len, uint32_t now_ms) {
 	if (obs->step != STEP_IDLE && obs->step != STEP_STOPPED) {
@@ -278,6 +303,15 @@ static void poll_wait(obs_t *obs, uint32_t now_ms) {
 	dial(obs, now_ms);
 }
 
+// One message a pass. A failed send drops the link, and the next ws_poll reports the close.
+static void send_state_message(obs_t *obs, uint32_t now_ms) {
+	char text[OBS_MESSAGE_MAX];
+	size_t len = obs_state_next_message(obs->state, text, now_ms);
+	if (len > 0) {
+		ws_send_text(&obs->ws, text, len);
+	}
+}
+
 void obs_poll(obs_t *obs, uint32_t now_ms) {
 	if (obs->step == STEP_IDLE || obs->step == STEP_STOPPED) {
 		return;
@@ -294,6 +328,9 @@ void obs_poll(obs_t *obs, uint32_t now_ms) {
 		on_data(obs, &event, now_ms);
 	} else if (event.kind == WS_EVT_CLOSED) {
 		on_closed(obs, event.close_code, now_ms);
+	}
+	if (obs->step == STEP_UP && obs->state != NULL) {
+		send_state_message(obs, now_ms);
 	}
 }
 

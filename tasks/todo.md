@@ -228,7 +228,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     a wrong password and a too-old OBS. Each one ends in its strip state.
   - Verify: `just test-firmware`. Deps: 2.2, 2.5, 2.6. Files: `core/obs.[ch]`,
     `test/posix_stream.c`, `test/test_obs_handshake.c`, `justfile`.
-- [ ] **2.8 fw-obs requests and events (M).** One request in flight. A full re-read after
+- [x] **2.8 fw-obs requests and events (M).** One request in flight. A full re-read after
   `Identified`. State for scenes, inputs, mute, volume and outputs (RESUMED counts as active). Meters
   through `Reidentify` 65536 only while a meter shows. Port the logic of `host/obs.rs`, then delete
   it.
