@@ -203,6 +203,12 @@ cad *STEP:
 pcb-test:
     python3 -B -m unittest discover -s {{root}}/pcb/gen -p 'test_*.py'
 
+# Not on the test chain. The same tests in kicad/kicad:9.0.9, the pcbnew the pipeline pins, where the
+# KiCad-side ones (test_board, test_place, test_fab) run instead of skipping. `just pcb` runs it first.
+pcb-test-kicad:
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "{{root}}:{{root}}" -w "{{root}}" \
+        kicad/kicad:9.0.9 python3 -B -m unittest discover -s pcb/gen -p 'test_*.py'
+
 # Not on the test chain. Board-order gate (spec 9 step 6): exits 1 while board.toml carries an
 # open MEASURE on a gated entry. No board order while it exits 1.
 gate:
@@ -254,7 +260,8 @@ flash PORT="/dev/ttyACM0":
         python -m esptool --chip esp32s3 -p {{PORT}} --before default-reset --after hard-reset \
         write-flash 0x0 macropad-obs-merged.bin
 
-# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (erc, route, fab);
+# Not on the test chain. KiCad 9.0.9 in Docker. Every STEP runs `just pcb-test-kicad` first.
+# No STEP runs the whole pipeline (erc, route, fab);
 # `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
 # `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml;
 # `just pcb route-critical` places, then adds the locked critical copper, the inner planes and the
@@ -271,7 +278,7 @@ flash PORT="/dev/ttyACM0":
 # no 3D models), with the cad envelopes for MX, EC11, the USB jack and the panels, and passes when
 # the STEP reads back the board's and every model's solids; manifest.json records the count and
 # each part's source. Into pcb/step, or pcb/.build/step while PLACEHOLDER_* tails remain.
-pcb *STEP:
+pcb *STEP: pcb-test-kicad
     #!/usr/bin/env bash
     set -euo pipefail
     kicad() {

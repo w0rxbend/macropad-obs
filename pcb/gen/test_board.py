@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 """Tests of layout.py, contract.py, fab.py and build.py. They need pcbnew and kicad-cli, so plain
-`just pcb-test` skips them; run them in the KiCad container:
-
-    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:$PWD" -w "$PWD" kicad/kicad:9.0.9 \\
-        python3 -B -m unittest discover -s pcb/gen -p 'test_*.py'
+`just pcb-test` skips them; `just pcb-test-kicad` runs them in kicad/kicad:9.0.9, and `just pcb` runs that first.
 
 The board here is the board.toml outline with six stock M2 holes: no circuit yet (tasks 5.4 to 5.6).
 """
@@ -11,6 +8,7 @@ The board here is the board.toml outline with six stock M2 holes: no circuit yet
 from __future__ import annotations
 
 import importlib.util
+import re
 import tempfile
 import tomllib
 import unittest
@@ -31,7 +29,24 @@ if HAVE_PCBNEW:
     import fab
     import layout
 
-BOARD_TOML = tomllib.loads((Path(__file__).resolve().parents[2] / "board.toml").read_text())
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BOARD_TOML = tomllib.loads((REPO_ROOT / "board.toml").read_text())
+
+
+class RecipeTest(unittest.TestCase):
+    """The tests above skip on the host, so a recipe runs them in the pinned image, and every board build first."""
+
+    def setUp(self) -> None:
+        self.justfile = (REPO_ROOT / "justfile").read_text()
+
+    def test_the_kicad_tests_run_in_the_pinned_image(self) -> None:
+        recipe = re.search(r"^pcb-test-kicad:\n((?:    .*\n)+)", self.justfile, re.MULTILINE)
+        self.assertIsNotNone(recipe, "no pcb-test-kicad recipe")
+        self.assertIn("kicad/kicad:9.0.9 python3 -B -m unittest discover -s pcb/gen -p 'test_*.py'",
+                      " ".join(recipe.group(1).replace("\\\n", " ").split()))
+
+    def test_every_board_build_runs_the_kicad_tests_first(self) -> None:
+        self.assertRegex(self.justfile, r"(?m)^pcb \*STEP: pcb-test-kicad$")
 
 
 @dataclass(frozen=True)

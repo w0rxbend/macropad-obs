@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 """Tests of place.py. The first class is plain Python and runs in `just pcb-test`; the second needs
-pcbnew and runs in the KiCad container, as test_board.py says:
-
-    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:$PWD" -w "$PWD" kicad/kicad:9.0.9 \\
-        python3 -B -m unittest discover -s pcb/gen -p 'test_place.py'
+pcbnew and runs in `just pcb-test-kicad`, as test_board.py says.
 """
 
 from __future__ import annotations
