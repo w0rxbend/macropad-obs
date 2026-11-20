@@ -14,7 +14,7 @@ mod provision;
 mod session;
 pub mod update;
 
-pub use connection::{pads, Config, Connection, Failure, PadInfo, Saved};
+pub use connection::{pads, Config, Connection, Failure, NetworkPage, NetworkSaved, PadInfo, Saved};
 pub use diff::Change;
 pub use link::LinkError;
 pub use obs_core::document::{Document, Rejected, WriteRefused};

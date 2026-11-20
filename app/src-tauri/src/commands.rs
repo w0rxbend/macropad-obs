@@ -3,13 +3,15 @@
 //! failure reaches the UI as the rejected value, one `Failure` line, and goes to the log; nothing
 //! here panics. `(async)` runs the blocking serial calls off the main thread.
 
+use std::path::Path;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use app_core::discover::UsbPort;
-use app_core::forms::{self, Mapping, ObsList, Reference};
-use app_core::{Config, Connection, Credential, Failure, PadInfo, Saved, Status};
+use app_core::forms::{self, Layout, Mapping, Network, ObsList, Reference, Secrets};
+use app_core::{Config, Connection, Credential, Failure, NetworkPage, NetworkSaved, PadInfo, Saved, Status};
 use serde_json::Value;
 use serialport::SerialPort;
+use tauri::ipc::Response;
 use tauri::State;
 
 use crate::logbuf::Log;
@@ -110,4 +112,38 @@ pub fn obs_list(shared: State<'_, Shared>, list: ObsList) -> Result<Vec<Referenc
 #[tauri::command]
 pub fn check_url(url: String) -> Result<(), Failure> {
     forms::check_url(&url)
+}
+
+#[tauri::command(async)]
+pub fn read_layout(shared: State<'_, Shared>) -> Result<Layout, Failure> {
+    shared.logged("read_layout", shared.connection().read_layout())
+}
+
+#[tauri::command(async)]
+pub fn write_layout(shared: State<'_, Shared>, layout: Layout) -> Result<Saved, Failure> {
+    shared.logged("write_layout", shared.connection().write_layout(&layout))
+}
+
+/// Both panels as one binary answer, the main frame then the strip frame, each big-endian RGB565
+/// row by row (`app_core::preview`). It runs as the user edits, so a refused layout is not logged.
+#[tauri::command(async)]
+pub fn preview(shared: State<'_, Shared>, layout: Layout) -> Result<Response, Failure> {
+    let frames = shared.connection().preview(&layout)?;
+    Ok(Response::new([frames.main, frames.strip].concat()))
+}
+
+#[tauri::command(async)]
+pub fn read_network(shared: State<'_, Shared>) -> Result<NetworkPage, Failure> {
+    shared.logged("read_network", shared.connection().read_network())
+}
+
+/// `secrets` is emptied and zeroed by the call, and dropped with it.
+#[tauri::command(async)]
+pub fn write_network(shared: State<'_, Shared>, network: Network, mut secrets: Secrets) -> Result<NetworkSaved, Failure> {
+    shared.logged("write_network", shared.connection().write_network(&network, &mut secrets))
+}
+
+#[tauri::command(async)]
+pub fn update_firmware(shared: State<'_, Shared>, image: String) -> Result<PadInfo, Failure> {
+    shared.logged("update_firmware", shared.connection().update(Path::new(&image)))
 }

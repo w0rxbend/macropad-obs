@@ -9,7 +9,9 @@
 use std::borrow::Cow;
 use std::error::Error;
 use std::fmt;
-use std::io::{Read, Write};
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -47,6 +49,74 @@ pub struct Segment {
 pub struct Image {
     pub segments: Vec<Segment>,
     pub git_hash: [u8; 4],
+}
+
+/// The first byte of an ESP image header: a merged image starts with the bootloader's.
+const IMAGE_MAGIC: u8 = 0xE9;
+/// The flash of the ESP32-S3-WROOM-1-N16R2 (16 MB).
+const FLASH_BYTES: usize = 16 * 1024 * 1024;
+/// The git hash file beside the image: `just firmware` writes the commit it built from.
+const GIT_HASH_EXTENSION: &str = "git_hash";
+
+/// Why an image file cannot be written to the pad.
+#[derive(Debug)]
+pub enum ImageError {
+    Read {
+        path: PathBuf,
+        err: io::Error,
+    },
+    NotAnImage,
+    TooBig,
+    /// The git hash file does not hold 8 hex digits.
+    BadHash,
+}
+
+impl fmt::Display for ImageError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Read { path, err } => write!(f, "cannot read {}: {err}", path.display()),
+            Self::NotAnImage => f.write_str("the file is not an ESP32-S3 image (run `just firmware`)"),
+            Self::TooBig => write!(f, "the image is larger than the {} MB flash", FLASH_BYTES >> 20),
+            Self::BadHash => write!(f, "the .{GIT_HASH_EXTENSION} file beside the image does not hold 8 hex digits"),
+        }
+    }
+}
+
+impl Error for ImageError {}
+
+impl Image {
+    /// `just firmware`'s merged image at `path`, written from address 0 (bootloader, partition
+    /// table, app), and the commit it was built from in the file beside it with the extension
+    /// `git_hash`: the 8 hex digits the new firmware puts in `INFO`. The files are a trust
+    /// boundary: an image is refused unless it starts with an ESP image header and fits the flash.
+    pub fn load(path: &Path) -> Result<Self, ImageError> {
+        let bytes = read_at_most(path, FLASH_BYTES + 1)?;
+        if bytes.len() > FLASH_BYTES {
+            return Err(ImageError::TooBig);
+        }
+        if bytes.first() != Some(&IMAGE_MAGIC) {
+            return Err(ImageError::NotAnImage);
+        }
+        let hash_text = read_at_most(&path.with_extension(GIT_HASH_EXTENSION), 64)?;
+        let git_hash = git_hash(&hash_text).ok_or(ImageError::BadHash)?;
+        Ok(Self { segments: vec![Segment { addr: 0, bytes }], git_hash })
+    }
+}
+
+fn read_at_most(path: &Path, limit: usize) -> Result<Vec<u8>, ImageError> {
+    let failed = |err| ImageError::Read { path: path.to_owned(), err };
+    let mut bytes = Vec::new();
+    File::open(path).and_then(|file| file.take(limit as u64).read_to_end(&mut bytes)).map_err(failed)?;
+    Ok(bytes)
+}
+
+/// `git rev-parse --short=8` output, a trailing newline allowed, as the `INFO` bytes.
+fn git_hash(text: &[u8]) -> Option<[u8; 4]> {
+    let digits = std::str::from_utf8(text).ok()?.trim_end();
+    if digits.len() != 8 || !digits.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    u32::from_str_radix(digits, 16).ok().map(u32::to_be_bytes)
 }
 
 /// An `espflash` error, or a fake one in the tests.
@@ -267,7 +337,7 @@ mod tests {
     use super::*;
     use obs_core::protocol::{self, Pulled, Size, CRED_STORE_FAIL};
     use obs_core::{LinkRx, USB_PID, USB_VID};
-    use std::io::{self, ErrorKind};
+    use std::io::ErrorKind;
 
     const OLD_HASH: [u8; 4] = [0x00, 0xC0, 0xFF, 0xEE];
     const NEW_HASH: [u8; 4] = [0x51, 0xB0, 0xCD, 0x6E];
@@ -522,6 +592,79 @@ mod tests {
         let mut host = FakeHost::new();
         host.back_info = info(OLD_HASH, false);
         assert!(matches!(run(&mut host, CRED_OK), Err(UpdateError::OldFirmware { git_hash: OLD_HASH })));
+    }
+
+    /// A directory of its own under the system temp dir, removed on drop.
+    struct ImageDir(std::path::PathBuf);
+
+    impl ImageDir {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!("app-core-image-{}-{name}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).expect("image directory");
+            Self(dir)
+        }
+
+        /// Writes `macropad-obs-merged.bin` and, when given, its `.git_hash`; the image's path.
+        fn write(&self, image: &[u8], git_hash: Option<&str>) -> std::path::PathBuf {
+            let path = self.0.join("macropad-obs-merged.bin");
+            std::fs::write(&path, image).expect("image writes");
+            if let Some(text) = git_hash {
+                std::fs::write(self.0.join("macropad-obs-merged.git_hash"), text).expect("hash writes");
+            }
+            path
+        }
+    }
+
+    impl Drop for ImageDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn a_merged_image_loads_as_one_segment_at_zero_with_the_git_hash_beside_it() {
+        let dir = ImageDir::new("good");
+        let path = dir.write(&[0xE9, 0x03, 0x02, 0x4F], Some("51b0cd6e\n"));
+        let image = Image::load(&path).expect("loads");
+        assert_eq!(image.segments, [Segment { addr: 0, bytes: vec![0xE9, 0x03, 0x02, 0x4F] }]);
+        assert_eq!(image.git_hash, NEW_HASH);
+    }
+
+    #[test]
+    fn a_file_that_is_not_an_esp_image_is_refused() {
+        let dir = ImageDir::new("magic");
+        assert!(matches!(
+            Image::load(&dir.write(&[0x7F, b'E', b'L', b'F'], Some("51b0cd6e"))),
+            Err(ImageError::NotAnImage)
+        ));
+        assert!(matches!(Image::load(&dir.write(&[], Some("51b0cd6e"))), Err(ImageError::NotAnImage)));
+    }
+
+    #[test]
+    fn an_image_larger_than_the_flash_is_refused() {
+        let dir = ImageDir::new("big");
+        let mut bytes = vec![0; FLASH_BYTES + 1];
+        bytes[0] = 0xE9;
+        assert!(matches!(Image::load(&dir.write(&bytes, Some("51b0cd6e"))), Err(ImageError::TooBig)));
+        bytes.pop();
+        assert!(Image::load(&dir.write(&bytes, Some("51b0cd6e"))).is_ok(), "exactly the flash size fits");
+    }
+
+    #[test]
+    fn a_missing_or_malformed_git_hash_is_refused() {
+        let dir = ImageDir::new("hash");
+        assert!(matches!(Image::load(&dir.write(&[0xE9], None)), Err(ImageError::Read { .. })));
+        for bad in ["51b0cd6", "51b0cd6e0", "51b0cd6g", "", "0"] {
+            assert!(matches!(Image::load(&dir.write(&[0xE9], Some(bad))), Err(ImageError::BadHash)), "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn a_missing_image_names_its_path() {
+        let dir = ImageDir::new("missing");
+        let err = Image::load(&dir.0.join("none.bin")).expect_err("no file");
+        assert!(err.to_string().contains("none.bin"), "{err}");
     }
 
     #[test]

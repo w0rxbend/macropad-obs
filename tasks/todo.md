@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: 3.8 (UI: display, Wi-Fi and firmware pages).
+Next action: S.1 (spike on the DevKitC-1, owner), which opens 4.8, 4.9 and 5.3b.
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -394,12 +394,19 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     refuses a list that changes mid-read. Four commands: `read_mapping`, `write_mapping`, `obs_list`,
     `check_url`. Criterion 8 passes in `forms.rs` and end to end in `tests/padsim_mapping.rs`
     (padsim plus `fake_obs.py --scenes 500`). `just app-check` exits 0; no look by eye (D6), no pad.
-- [ ] **3.8 UI: display, Wi-Fi and firmware pages (M).** A layout editor with the preview, SSID
+- [x] **3.8 UI: display, Wi-Fi and firmware pages (M).** A layout editor with the preview, SSID
   plus write-only passphrase and password, and the update page.
   - Accept: secret fields never fill from a read and clear after a write (a Rust test on the
     command layer, and a look after D6).
   - Verify: `just test`; after 3.9, `just app-check`. Deps: 3.7. Files: `ui/display.js`,
     `ui/wifi.js`, `ui/update.js`, `host/app_core/src/forms.rs`.
+  - Status: `forms.rs` adds `Layout`, `Network` and `Secrets` (no `Serialize`, zeroed on take and
+    drop). `Connection::write_network` empties the caller's `Secrets` whatever the outcome, writes
+    the SSID and auth mode, then sends each filled secret; `NetworkPage` holds only the set flags.
+    `tests/padsim_pages.rs` proves it, plus preview, layout write and an overlap refused. Preview
+    uses `tools/fixtures/ui_state.json`. `Image::load` takes `just firmware`'s merged image and
+    the new `.git_hash` beside it. Six commands; 3.7's four were missing from the ACL and are
+    now granted. `just app-check` exits 0; no look by eye (D6), no pad, no real update.
 - [x] **3.9 app-check and udev (S).** A `just app-check` image built from the local
   `kicad/kicad:10.0.7` with Tauri's Debian list (**apt packages: ask first**), and `xvfb-run`. Add
   the 303a:1001 ROM port to the udev rule (check_pins is not touched).

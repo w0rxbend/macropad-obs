@@ -26,6 +26,12 @@ fn main() {
             commands::write_mapping,
             commands::obs_list,
             commands::check_url,
+            commands::read_layout,
+            commands::write_layout,
+            commands::preview,
+            commands::read_network,
+            commands::write_network,
+            commands::update_firmware,
         ])
         .run(tauri::generate_context!());
     if let Err(err) = ran {

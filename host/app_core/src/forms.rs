@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
-//! The mapping editor's rules (task 3.7): the form the window edits, how it goes back into the
-//! document with unknown members kept, the URL rule, and the OBS picker from `OBS_LIST`. The
+//! The window's forms. The mapping editor (task 3.7): the form, how it goes back into the document
+//! with unknown members kept, the URL rule, and the OBS picker from `OBS_LIST`. The display and
+//! Wi-Fi pages (task 3.8): the layout, the SSID and auth mode, and the write-only secrets. The
 //! window only draws what these give. Field rules: `docs/config.md`.
+
+use std::fmt;
+use std::mem;
 
 use obs_core::document::is_private_ws_url;
 use obs_core::protocol::{LIST_INPUTS, LIST_SCENES, UUID_LEN};
@@ -9,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::connection::Failure;
+use crate::provision::{wipe, Credential};
 use crate::session::ObsItem;
 
 /// The most bytes of a `label` (`docs/config.md`).
@@ -90,7 +95,7 @@ pub fn mapping(document: &Value) -> Result<Mapping, Failure> {
 /// on the write, not here.
 pub fn apply(document: &Value, mapping: &Mapping) -> Result<Value, Failure> {
     let mut edited = document.clone();
-    let root = edited.as_object_mut().ok_or_else(|| Failure("the pad holds no document to edit".to_owned()))?;
+    let root = root_of(&mut edited)?;
     object_at(root, "obs").insert("url".to_owned(), Value::from(mapping.url.as_str()));
     merge_list(root, "keys", &mapping.keys, |entry, key| merge_action(entry, key, REFERENCED));
     merge_list(root, "buttons", &mapping.buttons, |entry, button| merge_action(entry, button, REFERENCED));
@@ -137,6 +142,106 @@ fn label(name: &[u8]) -> String {
         end -= 1;
     }
     text[..end].to_owned()
+}
+
+/// What the display page edits: each panel's widgets as the document holds them, so a member the
+/// page does not know stays in its widget. The rules are the validator's (`docs/config.md`,
+/// "Widgets"); the preview and the write run it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Layout {
+    pub main_display: Vec<Value>,
+    pub strip_display: Vec<Value>,
+}
+
+/// The layout of a document read from the pad; a document without both widget lists is refused.
+pub fn layout(document: &Value) -> Result<Layout, Failure> {
+    let widgets = |display: &str| Vec::deserialize(&document[display]["widgets"]).ok();
+    let read = || Some(Layout { main_display: widgets("main_display")?, strip_display: widgets("strip_display")? });
+    read().ok_or_else(|| Failure("the pad holds no layout to edit".to_owned()))
+}
+
+/// `document` with both widget lists replaced by `layout`'s; every other member stays.
+pub fn apply_layout(document: &Value, layout: &Layout) -> Result<Value, Failure> {
+    let mut edited = document.clone();
+    let root = root_of(&mut edited)?;
+    for (display, widgets) in [("main_display", &layout.main_display), ("strip_display", &layout.strip_display)] {
+        object_at(root, display).insert("widgets".to_owned(), Value::Array(widgets.clone()));
+    }
+    Ok(edited)
+}
+
+/// The Wi-Fi page's document part. `wifi.ssid` reads back; the secrets never do (`Secrets`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Network {
+    pub ssid: String,
+    /// `stored` (OBS asks for the password the pad holds) or `none`.
+    pub auth_mode: String,
+}
+
+pub fn network(document: &Value) -> Result<Network, Failure> {
+    let read = || {
+        Some(Network {
+            ssid: document["wifi"]["ssid"].as_str()?.to_owned(),
+            auth_mode: document["obs"]["auth_mode"].as_str()?.to_owned(),
+        })
+    };
+    read().ok_or_else(|| Failure("the pad holds no Wi-Fi settings to edit".to_owned()))
+}
+
+/// `document` with `network` in it; every other member stays.
+pub fn apply_network(document: &Value, network: &Network) -> Result<Value, Failure> {
+    let mut edited = document.clone();
+    let root = root_of(&mut edited)?;
+    object_at(root, "wifi").insert("ssid".to_owned(), Value::from(network.ssid.as_str()));
+    object_at(root, "obs").insert("auth_mode".to_owned(), Value::from(network.auth_mode.as_str()));
+    Ok(edited)
+}
+
+/// The Wi-Fi page's write-only fields (R1). It has no `Serialize`, so no answer to the window can
+/// carry one. An empty field leaves that secret as the pad holds it. The bytes are zeroed when a
+/// field is taken and when the form is dropped; `Debug` shows only which fields are filled.
+#[derive(Default, Deserialize)]
+pub struct Secrets {
+    #[serde(default)]
+    pub wifi_passphrase: String,
+    #[serde(default)]
+    pub obs_password: String,
+}
+
+impl Secrets {
+    pub fn is_empty(&self) -> bool {
+        self.wifi_passphrase.is_empty() && self.obs_password.is_empty()
+    }
+
+    /// The field of `credential`, leaving it empty.
+    pub(crate) fn take(&mut self, credential: Credential) -> String {
+        mem::take(match credential {
+            Credential::WifiPassphrase => &mut self.wifi_passphrase,
+            Credential::ObsPassword => &mut self.obs_password,
+        })
+    }
+}
+
+impl Drop for Secrets {
+    fn drop(&mut self) {
+        for credential in [Credential::WifiPassphrase, Credential::ObsPassword] {
+            wipe(self.take(credential).into_bytes());
+        }
+    }
+}
+
+impl fmt::Debug for Secrets {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let filled = |field: &String| if field.is_empty() { "empty" } else { "filled" };
+        f.debug_struct("Secrets")
+            .field("wifi_passphrase", &filled(&self.wifi_passphrase))
+            .field("obs_password", &filled(&self.obs_password))
+            .finish()
+    }
+}
+
+fn root_of(document: &mut Value) -> Result<&mut Map<String, Value>, Failure> {
+    document.as_object_mut().ok_or_else(|| Failure("the pad holds no document to edit".to_owned()))
 }
 
 /// `slot` as an object; anything else in it is replaced by an empty one.
@@ -356,6 +461,62 @@ mod tests {
         let picked = choices(&[long, broken]);
         assert_eq!(picked[0].label, "й".repeat(24));
         assert_eq!(picked[1].label, "A\u{FFFD}B");
+    }
+
+    #[test]
+    fn an_untouched_layout_and_network_give_back_the_same_document() {
+        for text in [FULL, UNKNOWN] {
+            let read = doc(text);
+            assert_eq!(apply_layout(&read, &layout(&read).expect("layout")).expect("apply"), read);
+            assert_eq!(apply_network(&read, &network(&read).expect("network")).expect("apply"), read);
+        }
+    }
+
+    #[test]
+    fn a_layout_edit_replaces_the_widgets_and_keeps_a_widget_s_unknown_members() {
+        let read = doc(UNKNOWN);
+        let mut form = layout(&read).expect("layout");
+        assert_eq!(form.strip_display.len(), 3);
+        form.main_display[0]["y"] = json!(4);
+        form.strip_display.pop();
+        let edited = apply_layout(&read, &form).expect("apply");
+        let mut want = read.clone();
+        want["main_display"]["widgets"][0]["y"] = json!(4);
+        want["strip_display"]["widgets"].as_array_mut().expect("list").pop();
+        assert_eq!(edited, want);
+        assert!(valid(&edited));
+    }
+
+    #[test]
+    fn a_network_edit_changes_the_ssid_and_auth_mode_and_nothing_else() {
+        let read = doc(FULL);
+        assert_eq!(network(&read).expect("network"), Network { ssid: "studio".into(), auth_mode: "stored".into() });
+        let edited = apply_network(&read, &Network { ssid: "guest".into(), auth_mode: "none".into() }).expect("apply");
+        let mut want = read.clone();
+        want["wifi"]["ssid"] = json!("guest");
+        want["obs"]["auth_mode"] = json!("none");
+        assert_eq!(edited, want);
+        assert!(valid(&edited));
+    }
+
+    #[test]
+    fn a_pad_with_no_layout_or_network_gives_a_failure() {
+        assert!(layout(&json!({"main_display": {"widgets": []}})).is_err());
+        assert!(network(&json!({"wifi": {"ssid": "x"}})).is_err());
+        let network_form = Network { ssid: String::new(), auth_mode: "none".into() };
+        assert!(apply_network(&Value::Null, &network_form).is_err());
+    }
+
+    #[test]
+    fn secrets_take_empties_a_field_and_debug_never_shows_one() {
+        let mut secrets: Secrets =
+            serde_json::from_value(json!({"wifi_passphrase": "correct horse", "obs_password": ""})).expect("form");
+        assert_eq!(format!("{secrets:?}"), r#"Secrets { wifi_passphrase: "filled", obs_password: "empty" }"#);
+        assert!(!secrets.is_empty());
+        assert_eq!(secrets.take(Credential::WifiPassphrase), "correct horse");
+        assert!(secrets.is_empty());
+        let missing: Secrets = serde_json::from_value(json!({})).expect("both fields default to empty");
+        assert!(missing.is_empty());
     }
 
     #[test]

@@ -16,6 +16,16 @@ const COMMANDS: &[&str] = &[
     "clear_credentials",
     "pad_status",
     "export_config",
+    "read_mapping",
+    "write_mapping",
+    "obs_list",
+    "check_url",
+    "read_layout",
+    "write_layout",
+    "preview",
+    "read_network",
+    "write_network",
+    "update_firmware",
 ];
 
 fn main() -> tauri_build::Result<()> {

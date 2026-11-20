@@ -6,6 +6,7 @@
 use std::fmt;
 use std::io::{Read, Write};
 use std::mem;
+use std::path::Path;
 use std::time::Duration;
 
 use obs_core::document::{Document, Rejected};
@@ -16,12 +17,19 @@ use serialport::SerialPort;
 
 use crate::diff::Change;
 use crate::discover::{self, DiscoverError, UsbPort};
-use crate::forms::{self, Mapping, ObsList, Reference};
+use crate::forms::{self, Layout, Mapping, Network, ObsList, Reference, Secrets};
+use crate::preview::{self, Frames, PreviewError, SampleState};
 use crate::provision::{self, wipe, Credential, Status};
 use crate::session::{schemas, Session, SessionError, Stored, Written};
+use crate::update::{self, Image, ImageError, UpdateError};
 
 /// How long `status` reads what the pad sends unasked before it answers.
 const STATUS_LISTEN: Duration = Duration::from_millis(50);
+/// What OBS shows in the preview: the state `tools/fake_obs.py` serves to padsim by default, so the
+/// preview matches padsim's frames (criterion 4b).
+const SAMPLE_STATE: &[u8] = include_bytes!("../../../tools/fixtures/ui_state.json");
+/// The order the Wi-Fi page sends its secrets in.
+const SECRETS: [Credential; 2] = [Credential::WifiPassphrase, Credential::ObsPassword];
 
 /// A command that failed, as one line for the UI. No variant of the errors it comes from carries
 /// a secret byte.
@@ -45,6 +53,24 @@ impl From<SessionError> for Failure {
 
 impl From<DiscoverError> for Failure {
     fn from(err: DiscoverError) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl From<PreviewError> for Failure {
+    fn from(err: PreviewError) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl From<ImageError> for Failure {
+    fn from(err: ImageError) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl From<UpdateError> for Failure {
+    fn from(err: UpdateError) -> Self {
         Self(err.to_string())
     }
 }
@@ -119,10 +145,29 @@ pub enum Saved {
     Stale { pad: Config, changes: Vec<Change> },
 }
 
+/// What the Wi-Fi page shows: the document part and whether each secret is set. No member holds
+/// a secret.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NetworkPage {
+    #[serde(flatten)]
+    pub network: Network,
+    pub wifi_psk_set: bool,
+    pub obs_password_set: bool,
+}
+
+/// How a Wi-Fi page write ended, and the page to draw after it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct NetworkSaved {
+    pub saved: Saved,
+    pub page: NetworkPage,
+}
+
 struct Open<P> {
     session: Session<P>,
     /// The last document read or written: the base of the next write and of the export.
     stored: Option<Stored>,
+    /// The port as listed, for finding the pad again after an update. `attach` has none.
+    pad: Option<UsbPort>,
 }
 
 /// One pad or none. Each method is one window command.
@@ -146,7 +191,15 @@ impl Connection<Box<dyn SerialPort>> {
     pub fn connect(&mut self, serial: Option<&str>) -> Result<PadInfo, Failure> {
         let port = discover::pick(&discover::usb_ports()?, serial)?;
         self.disconnect();
-        self.attach(discover::open(&port)?)
+        let opened = discover::open(&port)?;
+        self.start(opened, Some(port))
+    }
+
+    /// Writes the image at `path` (`Image::load`) and answers the new firmware's `INFO`. The
+    /// session ends with `BOOTLOADER` whatever the outcome: connect again after it.
+    pub fn update(&mut self, path: &Path) -> Result<PadInfo, Failure> {
+        let image = Image::load(path)?;
+        self.update_with(&image, &mut update::System::new())
     }
 }
 
@@ -157,8 +210,12 @@ impl<P: Read + Write> Connection<P> {
 
     /// Starts a session on `port` in place of any open one.
     pub fn attach(&mut self, port: P) -> Result<PadInfo, Failure> {
+        self.start(port, None)
+    }
+
+    fn start(&mut self, port: P, pad: Option<UsbPort>) -> Result<PadInfo, Failure> {
         self.disconnect();
-        self.open = Some(Open { session: Session::start(port)?, stored: None });
+        self.open = Some(Open { session: Session::start(port)?, stored: None, pad });
         self.info()
     }
 
@@ -204,9 +261,75 @@ impl<P: Read + Write> Connection<P> {
 
     /// Writes `mapping` into the last document read, everything else in it kept, as `write` does.
     pub fn write_mapping(&mut self, mapping: &Mapping) -> Result<Saved, Failure> {
-        let stored = self.opened()?.stored.as_ref().ok_or_else(not_read)?;
-        let edited = forms::apply(&Config::from(stored).document, mapping)?;
+        let edited = self.edited(|document| forms::apply(document, mapping))?;
         self.write(edited)
+    }
+
+    pub fn read_layout(&mut self) -> Result<Layout, Failure> {
+        forms::layout(&self.read()?.document)
+    }
+
+    /// Writes `layout` into the last document read, everything else in it kept.
+    pub fn write_layout(&mut self, layout: &Layout) -> Result<Saved, Failure> {
+        let edited = self.edited(|document| forms::apply_layout(document, layout))?;
+        self.write(edited)
+    }
+
+    /// Both panels as the pad would draw the last document read with `layout` in it, through the
+    /// validator first. Nothing is sent.
+    pub fn preview(&self, layout: &Layout) -> Result<Frames, Failure> {
+        let open = self.opened()?;
+        let base = open.stored.as_ref().ok_or_else(not_read)?;
+        let edited = self.edited(|document| forms::apply_layout(document, layout))?;
+        let doc = based_on(base, open.session.info(), edited)?;
+        Ok(preview::render(&doc, &SampleState::from_json(SAMPLE_STATE)?)?)
+    }
+
+    /// Reads the document and gives the Wi-Fi page, which never holds a secret.
+    pub fn read_network(&mut self) -> Result<NetworkPage, Failure> {
+        self.read()?;
+        self.network_page()
+    }
+
+    /// Writes `network` into the last document read, then sends each filled secret. `secrets` is
+    /// empty when this returns, whatever the outcome, and its bytes are zeroed: a refused document
+    /// sends no secret, and a refused secret stops the ones after it.
+    pub fn write_network(&mut self, network: &Network, secrets: &mut Secrets) -> Result<NetworkSaved, Failure> {
+        let mut sending = mem::take(secrets);
+        let edited = self.edited(|document| forms::apply_network(document, network))?;
+        let saved = self.write(edited)?;
+        for credential in SECRETS {
+            let secret = sending.take(credential);
+            if !secret.is_empty() {
+                self.set_credential(credential, secret)?;
+            }
+        }
+        Ok(NetworkSaved { saved, page: self.network_page()? })
+    }
+
+    fn network_page(&self) -> Result<NetworkPage, Failure> {
+        let open = self.opened()?;
+        let stored = open.stored.as_ref().ok_or_else(not_read)?;
+        let info = open.session.info();
+        Ok(NetworkPage {
+            network: forms::network(&Config::from(stored).document)?,
+            wifi_psk_set: info.wifi_psk_set,
+            obs_password_set: info.obs_password_set,
+        })
+    }
+
+    /// The last document read with `edit` applied: the base of a page's write or preview.
+    fn edited(&self, edit: impl FnOnce(&Value) -> Result<Value, Failure>) -> Result<Value, Failure> {
+        let stored = self.opened()?.stored.as_ref().ok_or_else(not_read)?;
+        edit(&Config::from(stored).document)
+    }
+
+    /// `update` on `host`: the session ends with it, the pad comes back as a new device.
+    fn update_with<H: update::Host>(&mut self, image: &Image, host: &mut H) -> Result<PadInfo, Failure> {
+        let pad =
+            self.opened()?.pad.clone().ok_or_else(|| Failure("connect the pad from the list first".to_owned()))?;
+        let open = self.open.take().ok_or_else(no_pad)?;
+        Ok(PadInfo::from(&update::update(open.session, &pad, image, host)?))
     }
 
     /// The picker's choices from the pad's own OBS session.

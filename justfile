@@ -236,7 +236,8 @@ app-check:
 # Not on the test chain. ESP-IDF v6.1.1 in Docker (spec 10). Checks partitions.csv and
 # sdkconfig.defaults, builds into .build/esp32s3, reads the built partition table and sdkconfig
 # back against them, and writes the merged image .build/esp32s3/macropad-obs-merged.bin
-# (bootloader at 0x0, table at 0x8000, app at 0x10000).
+# (bootloader at 0x0, table at 0x8000, app at 0x10000), and beside it macropad-obs-merged.git_hash,
+# the 8 hex digits of INFO git_hash (the firmware main component) that the app update checks.
 firmware:
     python3 {{root}}/tools/check_partitions.py
     mkdir -p {{root}}/.build/esp32s3 {{root}}/.build/idf-home
@@ -247,6 +248,7 @@ firmware:
         idf.py -B {{root}}/.build/esp32s3 -D SDKCONFIG={{root}}/.build/esp32s3/sdkconfig \
         build size merge-bin -o macropad-obs-merged.bin
     python3 {{root}}/tools/check_partitions.py --built {{root}}/.build/esp32s3
+    git -C {{root}}/firmware/esp32s3 rev-parse --short=8 HEAD > {{root}}/.build/esp32s3/macropad-obs-merged.git_hash
 
 # Not on the test chain, needs the pad. Writes the merged image of `just firmware` (bootloader,
 # partition table, app) over the ROM USB port: hold BOOT at reset, or send BOOTLOADER first.

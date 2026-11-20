@@ -38,7 +38,15 @@
     .note { color: var(--bad); font-size: 13px; margin: 4px 0 0; min-height: 1.4em; }
     #status { color: var(--muted); margin: 0; }
     #changes { margin: 8px 0 0; padding-left: 20px; font-family: ui-monospace, monospace; font-size: 13px; }
-    @media (max-width: 560px) { .keys { grid-template-columns: 1fr; } }
+    .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+    .panels { display: flex; gap: 16px; flex-wrap: wrap; align-items: start; }
+    .panel { display: grid; grid-template-columns: auto minmax(240px, 1fr); gap: 12px; align-items: start; flex: 1 1 480px; }
+    .panel figure { margin: 0; }
+    .panel figcaption { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    canvas { display: block; background: #000; border: 1px solid var(--edge); max-width: 100%; height: auto; }
+    .sides { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .check { display: flex; gap: 4px; align-items: center; }
+    @media (max-width: 560px) { .keys, .panel { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -86,7 +94,52 @@
       <button type="submit">Save</button>
     </div>
   </form>
+  <section id="display-page" hidden aria-labelledby="display-title">
+    <h2 id="display-title">Displays</h2>
+    <p class="hint">The preview is the pad's own drawing code with a sample OBS state (Camera on program, Screen on preview).</p>
+    <p id="layout-note" class="note" aria-live="polite"></p>
+    <div id="panels" class="panels"></div>
+    <div class="row">
+      <button type="button" id="layout-read">Read</button>
+      <button type="button" id="layout-save">Save</button>
+    </div>
+  </section>
+  <section id="wifi-page" hidden aria-labelledby="wifi-title">
+    <h2 id="wifi-title">Wi-Fi and OBS password</h2>
+    <form id="wifi-form" class="grid">
+      <label>SSID <input id="ssid" autocomplete="off" spellcheck="false"></label>
+      <label>Wi-Fi passphrase <input id="passphrase" type="password" autocomplete="new-password" spellcheck="false"></label>
+      <label>OBS login
+        <select id="auth-mode">
+          <option value="stored">OBS asks for a password (the pad holds it)</option>
+          <option value="none">OBS has no password</option>
+        </select>
+      </label>
+      <label>OBS password <input id="obs-password" type="password" autocomplete="new-password" spellcheck="false"></label>
+      <p class="hint">The passphrase and the password are write-only: the pad never sends them back. Leave a field empty to keep what the pad holds. Both fields empty after every save.</p>
+      <div class="row">
+        <button type="button" id="wifi-read">Read</button>
+        <button type="submit">Save</button>
+        <button type="button" id="erase-secrets">Erase both secrets</button>
+      </div>
+    </form>
+  </section>
+  <section id="update-page" hidden aria-labelledby="update-title">
+    <h2 id="update-title">Firmware</h2>
+    <p id="firmware-now"></p>
+    <label>Merged image
+      <input id="image" autocomplete="off" spellcheck="false" placeholder=".build/esp32s3/macropad-obs-merged.bin (full path)">
+    </label>
+    <p class="hint"><code>just firmware</code> writes the image and its <code>.git_hash</code> beside it.</p>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="erase-ok"> The update erases the Wi-Fi passphrase and the OBS password.</label>
+      <button type="button" id="update" disabled>Update firmware</button>
+    </div>
+  </section>
 </main>
 <script type="module" src="mapping.js"></script>
+<script type="module" src="display.js"></script>
+<script type="module" src="wifi.js"></script>
+<script type="module" src="update.js"></script>
 </body>
 </html>

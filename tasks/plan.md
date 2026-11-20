@@ -1,6 +1,6 @@
 # Build plan: macropad-obs v2
 
-Next action: 3.7 (UI: mapping editor), then 3.8.
+Next action: S.1 (spike on the DevKitC-1, owner), which opens 4.8, 4.9 and 5.3b.
 
 Source of truth, in this order: `docs/spec/decisions-v2.md` (owner, final), `docs/spec/spec-v2.md`
 (approved 2026-11-18), `docs/spec/layout-v2.toml` rev 2c (rev 3 in 1.4a), `docs/research/`. Task

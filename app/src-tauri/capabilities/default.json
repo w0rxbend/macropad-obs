@@ -13,6 +13,16 @@
     "allow-set-credential",
     "allow-clear-credentials",
     "allow-pad-status",
-    "allow-export-config"
+    "allow-export-config",
+    "allow-read-mapping",
+    "allow-write-mapping",
+    "allow-obs-list",
+    "allow-check-url",
+    "allow-read-layout",
+    "allow-write-layout",
+    "allow-preview",
+    "allow-read-network",
+    "allow-write-network",
+    "allow-update-firmware"
   ]
 }

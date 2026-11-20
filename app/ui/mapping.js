@@ -5,6 +5,7 @@
 // only picks which picker an action shows. OBS names are set as text, never as markup.
 
 import * as api from "./api.js";
+import { $, announce, control, element, labelled, say, step } from "./dom.js";
 
 // `list`: the picker an action's target comes from (docs/config.md, actions).
 const ACTIONS = [
@@ -22,31 +23,6 @@ const PUSH_ACTIONS = ACTIONS.map((action) =>
 const LIST_NAMES = { scenes: "Scene", inputs: "Input" };
 
 const state = { mapping: null, lists: { scenes: [], inputs: [] } };
-const $ = (selector) => document.querySelector(selector);
-
-function say(text) {
-  $("#status").textContent = text;
-}
-
-// Runs one user step; a rejected command shows its Failure line.
-async function step(task) {
-  try {
-    await task();
-  } catch (failure) {
-    say(String(failure));
-  }
-}
-
-function element(tag, props = {}, ...children) {
-  const node = document.createElement(tag);
-  Object.assign(node, props);
-  node.append(...children);
-  return node;
-}
-
-function labelled(text, control) {
-  return element("label", {}, element("span", { textContent: text }), control);
-}
 
 function targetOf(action) {
   return action.uuid === undefined ? null : { uuid: action.uuid, label: action.label };
@@ -100,10 +76,6 @@ function actionParts(action, actions, title) {
   };
   draw();
   return body;
-}
-
-function control(title, ...parts) {
-  return element("fieldset", { className: "control" }, element("legend", { textContent: title }), ...parts);
 }
 
 function knobControl(knob, index) {
@@ -174,14 +146,19 @@ async function loadLists() {
 async function connectPad() {
   const info = await api.connect($("#pad").value || null);
   say(`Connected: firmware ${info.fw_version}, board rev ${info.board_rev}.`);
+  announce("pad:connected");
   await readPad();
   await loadLists();
 }
 
-async function disconnectPad() {
-  await api.disconnect();
+function closeEditor() {
   state.mapping = null;
   $("#editor").hidden = true;
+}
+
+async function disconnectPad() {
+  await api.disconnect();
+  announce("pad:disconnected");
   say("Disconnected.");
 }
 
@@ -207,6 +184,7 @@ $("#disconnect").addEventListener("click", () => step(disconnectPad));
 $("#read").addEventListener("click", () => step(readPad));
 $("#lists").addEventListener("click", () => step(loadLists));
 $("#url").addEventListener("input", () => step(checkUrl));
+document.addEventListener("pad:disconnected", closeEditor);
 $("#editor").addEventListener("submit", (event) => {
   event.preventDefault();
   step(save);
