@@ -572,7 +572,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
   - Accept: the geometry checks pass. A failed cut is a fault (no `_keep()` swallow).
   - Verify: `just cad`. Deps: 6.1. Files: `cad/obs_case/body.py`, `deck.py`, `checks.py`,
     `cad/build.py`, `justfile`.
-- [ ] **6.2b Display carriers and foam frames (S).**
+- [x] **6.2b Display carriers and foam frames (S).**
   - Accept: carrier heights and foam squeeze match `check_numbers.py`.
   - Verify: `just cad`. Deps: 6.2a. Files: `cad/obs_case/carriers.py`, `checks.py`.
 - [ ] **6.3 Back-wall insert and bottom plate (M).** The insert from x 56.0 to 87.6, full wall

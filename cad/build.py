@@ -2,7 +2,9 @@
 """Case build entry: `build.py [STEP]`. No step runs every step in order. Needs cad/.venv.
 
 Steps:
-  body  build the style A top shell (task 6.2a) and run the geometry checks."""
+  body      build the style A top shell (task 6.2a) and run the geometry checks.
+  carriers  build the display carriers and foam frames (task 6.2b) and check them against the
+            shell and the tools/check_numbers.py stack and squeeze rules."""
 
 import sys
 from pathlib import Path
@@ -22,7 +24,17 @@ def body_step() -> int:
     return 1 if found else 0
 
 
-STEPS = {"body": body_step}
+def carriers_step() -> int:
+    from obs_case import carriers, checks, deck
+
+    found = checks.carrier_problems(deck.top_shell())
+    for problem in found:
+        print(problem)
+    print(f"carriers: {len(carriers.NAMES)} carriers and foam frames, {len(found)} problems")
+    return 1 if found else 0
+
+
+STEPS = {"body": body_step, "carriers": carriers_step}
 
 
 def main(argv: list[str]) -> int:

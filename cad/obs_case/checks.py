@@ -1,18 +1,34 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
-"""Geometry checks on the style A top shell. Every probe point comes from board.toml through
-spec.LAYOUT; a problem is one line of text, and no problem means the shell passes.
+"""Geometry checks on the style A top shell, the display carriers and the foam frames. Every probe
+point comes from board.toml through spec.LAYOUT; a problem is one line of text, and no problem
+means the part passes.
 
 Probes are points tested inside or outside the solid, so a missing or misplaced cut shows up
-even when the solid itself is valid."""
+even when the solid itself is valid. The carrier and foam numbers go through the rules of
+tools/check_numbers.py, measured off the solids, so the model and the numbers test agree."""
+
+import importlib.util
 
 from build123d import Box, Pos
 
-from obs_case import body, deck
+from obs_case import body, carriers, deck, spec
 from obs_case.spec import LAYOUT
 
 CNC_MIN_WALL = 2.0  # report 11: walls 2.0 mm or more (JLCCNC: above 1.5 for bead blast)
 TOLERANCE = 1e-6  # mm, the build123d point and bounding-box tolerance
 PAST_EDGE = 1e-3  # mm a probe sits past an edge it tests, well above TOLERANCE
+CHECK_NUMBERS = spec.BOARD_TOML.parent / "tools" / "check_numbers.py"
+
+
+def _load_check_numbers():
+    """tools/check_numbers.py as a module: one copy of the stack and squeeze rules."""
+    module_spec = importlib.util.spec_from_file_location("check_numbers", CHECK_NUMBERS)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
+
+
+NUMBERS = _load_check_numbers()
 
 
 def problems(part):
@@ -169,3 +185,112 @@ def _cut_fault_problems():
     except body.CutFailed:
         return []
     return ["body.cut returned a solid for a cut that removed nothing"]
+
+
+def carrier_problems(shell):
+    """Every broken rule of the carriers and foam frames; `shell` is deck.top_shell()."""
+    parts = {name: (carriers.carrier(name), carriers.foam_frame(name)) for name in carriers.NAMES}
+    found = []
+    for name in carriers.NAMES:
+        found += [f"{name} foam frame: {problem}" for problem in NUMBERS.stack_problems(_measured(parts, name))]
+        found += [f"{name} {problem}" for problem in NUMBERS.squeeze_problems(_measured_foam(parts[name][1]))]
+        found += _seat_problems(name, *parts[name]) + _footprint_problems(name, *parts[name])
+        found += [f"{name} {kind} cuts into the top shell" for kind, part in zip(("carrier", "foam"), parts[name])
+                  if _shared_volume(part, shell) > TOLERANCE]
+    return found + [f"probe {name}: expected {_word(inside)}" for name, part, point, inside
+                    in carrier_probes(parts) if part.is_inside(point) != inside]
+
+
+def _z_span(part):
+    box = part.bounding_box()
+    return box.min.Z, box.max.Z
+
+
+def _height(part):
+    low, high = _z_span(part)
+    return high - low
+
+
+def _rect(part):
+    box = part.bounding_box()
+    return [box.min.X, box.min.Y, box.size.X, box.size.Y]
+
+
+def _measured_foam(foam):
+    face, top = _z_span(foam)
+    return {"installed": top - face, "thickness": LAYOUT.foam_frame.thickness}
+
+
+def _measured(parts, foam_name):
+    """check_numbers' layout tables, with every height and z read off the solids: the stack of
+    one foam frame over both carriers."""
+    face, top = _z_span(parts[foam_name][1])
+    heights = {name: {"height": _height(carrier)} for name, (carrier, _) in parts.items()}
+    panels = {f"{name}_display": {"thickness": carriers.panel(name).thickness} for name in parts}
+    return {"stack": {"panel_face": face, "deck_underside": top},
+            "foam_frame": _measured_foam(parts[foam_name][1]), "display_carrier": heights, **panels}
+
+
+def _seat_problems(name, carrier, foam):
+    """The carrier stands on the PCB top face and the foam presses on the deck underside."""
+    stack = LAYOUT.stack
+    found = []
+    if abs(_z_span(carrier)[0] - stack.pcb_top) > TOLERANCE:
+        found.append(f"{name} carrier bottom at z {_z_span(carrier)[0]:g}, PCB top face is {stack.pcb_top:g}")
+    if abs(_z_span(foam)[1] - stack.deck_underside) > TOLERANCE:
+        found.append(f"{name} foam top at z {_z_span(foam)[1]:g}, deck underside is {stack.deck_underside:g}")
+    return found
+
+
+def _footprint_problems(name, carrier, foam):
+    """Carrier = pocket less clearance a side (the pocket walls locate it), foam = module outline,
+    and the panel rests on the carrier ring: inside its outer edge, over its hollow."""
+    ring, display = getattr(LAYOUT.display_carrier, name), carriers.panel(name)
+    want = {"carrier": (_rect(carrier), deck.grown(display.pocket, -LAYOUT.display_carrier.clearance)),
+            f"carrier against [display_carrier] {name}.outer": (_rect(carrier), ring.outer),
+            "foam": (_rect(foam), display.outline)}
+    found = [f"{name} {kind} footprint {[round(v, 4) for v in got]}, expected {[round(v, 4) for v in need]}"
+             for kind, (got, need) in want.items() if not _same_rect(got, need)]
+    if not (_contains(ring.outer, display.outline) and _contains(display.outline, ring.inner)):
+        found.append(f"{name} panel outline {display.outline} does not rest on the carrier ring")
+    return found
+
+
+def _same_rect(got, need):
+    return all(abs(have - want) <= TOLERANCE for have, want in zip(got, need, strict=True))
+
+
+def _contains(outer, inner):
+    """True if [x, y, w, h] `inner` lies inside `outer`, edges allowed to touch."""
+    ox, oy, ow, oh = outer
+    ix, iy, iw, ih = inner
+    return ox <= ix + TOLERANCE and oy <= iy + TOLERANCE and ix + iw <= ox + ow + TOLERANCE \
+        and iy + ih <= oy + oh + TOLERANCE
+
+
+def _shared_volume(part, other):
+    shared = part & other
+    return sum(piece.volume for piece in shared.solids()) if shared else 0.0
+
+
+def carrier_probes(parts):
+    """(name, part, point, expected inside) for each carrier wall, hollow and tail gap, and each
+    foam ring and opening."""
+    found = []
+    for name, (carrier, foam) in parts.items():
+        ring = getattr(LAYOUT.display_carrier, name)
+        carrier_z, foam_z = _mid(*_z_span(carrier)), _mid(*_z_span(foam))
+        x, y, width, depth = ring.outer
+        gap_x, gap_y, gap_width, gap_depth = ring.tail_gap
+        lens_x, lens_y, lens_width, lens_depth = carriers.panel(name).lens_opening
+        outline_x = carriers.panel(name).outline[0]
+        found += [
+            (f"{name} carrier wall", carrier, (ring.inner[0] - PAST_EDGE, _mid(y, y + depth), carrier_z), True),
+            (f"{name} carrier hollow", carrier, (_mid(x, x + width), _mid(y, y + depth), carrier_z), False),
+            (f"{name} carrier tail gap", carrier,
+             (_mid(gap_x, gap_x + gap_width), _mid(gap_y, gap_y + gap_depth), carrier_z), False),
+            (f"{name} foam ring", foam, (_mid(outline_x, lens_x), _mid(lens_y, lens_y + lens_depth), foam_z), True),
+            (f"{name} foam opening", foam, (_mid(lens_x, lens_x + lens_width), _mid(lens_y, lens_y + lens_depth),
+                                            foam_z), False),
+        ]
+    return found
