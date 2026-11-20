@@ -389,12 +389,16 @@ def symbol_library_table(lib_ids: list[str]) -> str:
     return "\n".join(lines) + "\n)\n"
 
 
-FOOTPRINT_LIBRARY_TABLE = f"""\
-(fp_lib_table
-  (version 7)
-  (lib (name "{PROJECT}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{PROJECT}.pretty")(options "")(descr "Project footprints"))
-)
-"""
+def footprint_library_table(footprints: list[str]) -> str:
+    """The project's own footprints, and the KiCad libraries the parts use, so DRC can compare each board
+    footprint with its library."""
+    libraries = sorted({footprint.split(":")[0] for footprint in footprints} - {PROJECT})
+    lines = ["(fp_lib_table", "  (version 7)",
+             f'  (lib (name "{PROJECT}")(type "KiCad")(uri "${{KIPRJMOD}}/../lib/{PROJECT}.pretty")(options "")'
+             '(descr "Project footprints"))']
+    lines += [f'  (lib (name "{name}")(type "KiCad")(uri "${{KICAD9_FOOTPRINT_DIR}}/{name}.pretty")(options "")(descr ""))'
+              for name in libraries]
+    return "\n".join(lines) + "\n)\n"
 
 
 def write(kicad_dir: Path, sheet: Sheet, symbol_dir: Path = KICAD_SYMBOLS) -> None:
@@ -406,7 +410,7 @@ def write(kicad_dir: Path, sheet: Sheet, symbol_dir: Path = KICAD_SYMBOLS) -> No
     (kicad_dir / f"{PROJECT}.kicad_sch").write_text(render(drawing))
     (kicad_dir / f"{PROJECT}.kicad_sym").write_text(render_symbol_library(sheet.own_symbols))
     (kicad_dir / "sym-lib-table").write_text(symbol_library_table(list(drawing.lib_symbols)))
-    (kicad_dir / "fp-lib-table").write_text(FOOTPRINT_LIBRARY_TABLE)
+    (kicad_dir / "fp-lib-table").write_text(footprint_library_table([part.footprint for part in sheet.parts]))
 
 
 def nets_by_pin(parts: tuple[SheetPart, ...]) -> dict[str, str]:

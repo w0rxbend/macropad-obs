@@ -144,6 +144,8 @@ def _place(board: pcbnew.BOARD, part: BoardPart, open_pin_nets: Mapping[str, str
         footprint.SetField("LCSC", part.lcsc)
         footprint.GetFieldByName("LCSC").SetVisible(False)
     footprint.Value().SetVisible(False)
+    # The bottom parts sit too close for their silkscreen names to clear the pads; the CPL names them.
+    footprint.Reference().SetVisible(part.side != BOTTOM)
     _remove_silkscreen_off_the_board(footprint)
     if not part.machine_assembled:
         footprint.SetExcludedFromPosFiles(True)

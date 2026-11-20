@@ -57,8 +57,9 @@ ASSEMBLED_VIEW_ROTATION = "-50,0,25"
 UNDERSIDE_VIEW_ROTATION = "-130,0,-25"
 # The session's tracks and vias get the same UUIDs on every run.
 KIID_SEED = 1
-# DRC findings that are meant: (kind, item). None yet.
-ACCEPTED_FINDINGS: frozenset[tuple[str, str]] = frozenset()
+# DRC findings that are meant: (kind, item). U1 differs from its library copy because layout.py trims the
+# module's silkscreen that lies in the antenna board cut, where the fab house would clip it.
+ACCEPTED_FINDINGS: frozenset[tuple[str, str]] = frozenset({("lib_footprint_mismatch", "Footprint U1")})
 
 
 def _kicad_cli(*arguments: str) -> None:

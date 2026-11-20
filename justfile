@@ -261,7 +261,8 @@ flash PORT="/dev/ttyACM0":
         write-flash 0x0 macropad-obs-merged.bin
 
 # Not on the test chain. KiCad 9.0.9 in Docker. Every STEP runs `just pcb-test-kicad` first.
-# No STEP runs the whole pipeline (erc, route, fab);
+# No STEP runs the whole pipeline (erc, route, fab, drc); `just pcb drc` passes when DRC at all severities,
+# against the schematic, finds nothing outside build.py's ACCEPTED_FINDINGS and the project rules reach it;
 # `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
 # `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml;
 # `just pcb route-critical` places, then adds the locked critical copper, the inner planes and the
@@ -287,7 +288,7 @@ pcb *STEP: pcb-test-kicad
     }
     route() { kicad dsn; python3 -B {{root}}/pcb/gen/freeroute.py; kicad routed; }
     case "{{STEP}}" in
-        "") kicad erc; route; kicad fab ;;
+        "") kicad erc; route; kicad fab drc ;;
         route) route ;;
         step) docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "{{root}}:{{root}}" -w "{{root}}" \
             kicad/kicad:10.0.7-full python3 -B pcb/gen/step.py ;;

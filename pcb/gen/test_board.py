@@ -52,6 +52,9 @@ class RecipeTest(unittest.TestCase):
     def test_every_board_build_runs_the_kicad_tests_first(self) -> None:
         self.assertRegex(self.justfile, r"(?m)^pcb \*STEP: pcb-test-kicad$")
 
+    def test_the_whole_board_build_ends_with_drc_at_every_severity(self) -> None:
+        self.assertIn('"") kicad erc; route; kicad fab drc ;;', self.justfile)
+
 
 @dataclass(frozen=True)
 class Part:
@@ -143,11 +146,15 @@ def _kicad_cli(*arguments: str) -> None:
 
 @unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)
 class ParityTest(unittest.TestCase):
-    """The placed board beside the schematic it was placed from, judged by DRC at warning severity."""
+    """The placed board beside the schematic it was placed from, judged by DRC at warning severity. The folder
+    sits next to a link to pcb/lib, as pcb/kicad does, so the project footprints resolve."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        folder = Path(tempfile.mkdtemp())
+        root = Path(tempfile.mkdtemp())
+        (root / "lib").symlink_to(REPO_ROOT / "pcb" / "lib")
+        folder = root / "kicad"
+        folder.mkdir()
         board_path = folder / f"{schematic.PROJECT}.kicad_pcb"
         netlist_path = folder / "schematic.net"
         schematic.write(folder, sheets.SHEET)
@@ -157,11 +164,22 @@ class ParityTest(unittest.TestCase):
         report_path = folder / "drc.json"
         _kicad_cli("pcb", "drc", "--severity-warning", "--schematic-parity", "--format", "json", "-o",
                    str(report_path), str(board_path))
-        cls.parity = json.loads(report_path.read_text())["schematic_parity"]
+        cls.report = json.loads(report_path.read_text())
+
+    def _found(self, key: str, kind: str) -> list[str]:
+        return sorted(item["items"][0]["description"] for item in self.report[key] if item["type"] == kind)
 
     def test_every_open_pin_keeps_the_net_the_schematic_gives_it(self) -> None:
-        conflicts = sorted(item["items"][0]["description"] for item in self.parity if item["type"] == "net_conflict")
-        self.assertEqual(conflicts, [])
+        self.assertEqual(self._found("schematic_parity", "net_conflict"), [])
+
+    def test_the_mounting_holes_are_board_only(self) -> None:
+        self.assertEqual(self._found("schematic_parity", "extra_footprint"), [])
+
+    def test_every_footprint_is_found_in_its_library(self) -> None:
+        self.assertEqual(self._found("violations", "lib_footprint_issues"), [])
+
+    def test_silkscreen_clears_the_pads_and_the_other_silkscreen(self) -> None:
+        self.assertEqual(self._found("violations", "silk_over_copper") + self._found("violations", "silk_overlap"), [])
 
 
 @unittest.skipUnless(HAVE_PCBNEW, PCBNEW_SKIP)

@@ -264,6 +264,15 @@ class SheetTest(unittest.TestCase):
         self.assertIn('(symbol "FIXTURE_JACK"', (out / "macropad-obs.kicad_sym").read_text())
         self.assertIn("macropad-obs.pretty", (out / "fp-lib-table").read_text())
 
+    def test_the_footprint_table_names_each_stock_library_of_the_sheet(self) -> None:
+        """DRC compares each board footprint with its library; a library missing from the table is a finding."""
+        out = self.folder / "kicad"
+        out.mkdir()
+        schematic.write(out, fixture_circuit.SHEET, self.folder)
+        table = (out / "fp-lib-table").read_text()
+        for name in ("Capacitor_SMD", "Resistor_SMD"):
+            self.assertIn(f'(lib (name "{name}")(type "KiCad")(uri "${{KICAD9_FOOTPRINT_DIR}}/{name}.pretty")', table)
+
 
 if __name__ == "__main__":
     unittest.main()
