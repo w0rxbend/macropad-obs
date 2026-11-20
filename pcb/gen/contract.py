@@ -246,19 +246,31 @@ def check_antenna(board: pcbnew.BOARD) -> str:
         for j in range(rows + 1):
             x, y = left + i * SAMPLE_STEP, top + j * SAMPLE_STEP
             assert not _on_board(outlines, x, y), f"board under the antenna area at ({x}, {y})"
-    cut = _spec_box(SPEC["antenna"]["board_cut"])
-    for footprint in board.GetFootprints():
-        for pad in footprint.Pads():
-            assert not (pad.IsOnCopperLayer() and _boxes_meet(_box(pad.GetBoundingBox()), cut)), \
-                f"{footprint.GetReference()} pad {pad.GetNumber()} is in the antenna board cut"
-    for track in board.GetTracks():
-        assert not _boxes_meet(_box(track.GetBoundingBox()), cut), f"copper track at {_xy(track.GetStart())} in the antenna board cut"
+    inside = copper_in(board, _spec_box(SPEC["antenna"]["board_cut"]))
+    assert not inside, f"{', '.join(inside)} in the antenna board cut"
+    return f"no board under the {SPEC['antenna']['area'][2]} x {SPEC['antenna']['area'][3]} antenna area, no copper in the cut"
+
+
+def copper_in(board: pcbnew.BOARD, box: tuple) -> list[str]:
+    """Each pad, track, via or filled pour whose copper meets the box (left, top, right, bottom) with area."""
+    found = [f"{footprint.GetReference()} pad {pad.GetNumber()}" for footprint in board.GetFootprints()
+             for pad in footprint.Pads() if pad.IsOnCopperLayer() and _boxes_meet(_box(pad.GetBoundingBox()), box)]
+    found += [f"{track.GetClass()} at {_xy(track.GetStart())}" for track in board.GetTracks()
+              if _boxes_meet(_box(track.GetBoundingBox()), box)]
+    window = pcbnew.SHAPE_POLY_SET()
+    window.NewOutline()
+    left, top, right, bottom = box
+    for x, y in ((left, top), (right, top), (right, bottom), (left, bottom)):
+        window.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
     for zone in board.Zones():
         for layer in zone.GetLayerSet().CuStack():
-            if not zone.GetIsRuleArea() and zone.HasFilledPolysForLayer(layer):
-                assert not _boxes_meet(_box(zone.GetFilledPolysList(layer).BBox()), cut), \
-                    f"{zone.GetNetname()} pour on {pcbnew.LayerName(layer)} in the antenna board cut"
-    return f"no board under the {SPEC['antenna']['area'][2]} x {SPEC['antenna']['area'][3]} antenna area, no copper in the cut"
+            if zone.GetIsRuleArea() or not zone.HasFilledPolysForLayer(layer):
+                continue
+            overlap = pcbnew.SHAPE_POLY_SET(zone.GetFilledPolysList(layer))
+            overlap.BooleanIntersection(window)
+            if overlap.Area() > 0:
+                found.append(f"{zone.GetNetname()} pour on {pcbnew.LayerName(layer)}")
+    return found
 
 
 def _top_parts(board: pcbnew.BOARD) -> list[tuple[pcbnew.FOOTPRINT, str, tuple]]:

@@ -526,7 +526,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   `kicad/kicad:9.0.9`.
   - Accept: ERC is clean and the output is byte-repeatable.
   - Verify: `just pcb erc`. Deps: 5.6. Files: `pcb/gen/sheets.py`, `justfile`.
-- [ ] **5.8 Locked critical copper (M) [provisional].** The USB pair, the buck loop, module GND
+- [x] **5.8 Locked critical copper (M) [provisional].** The USB pair, the buck loop, module GND
   vias, the inner plane islands, and the plane edge at the antenna, all in code.
   - Accept: the length and clearance checks pass. The copper is locked before routing.
   - Verify: `just pcb route-critical`. Deps: 5.6. Files: `pcb/gen/route.py`, `route_order.txt`,

@@ -1,0 +1,38 @@
+# The critical copper route.py draws and locks before any other routing (task 5.8), first line first.
+# A line is a net, its pads, then options. Two or more pads are joined into one group of copper; a
+# single pad gets a via to its net's plane. `wide` asks for a wide track where one fits; `no-via` keeps
+# the copper on its pads' layer. The four ground vias in the module's pad 41 come before line 1.
+#
+# Buck loop (TLV62569, SLVSDG1C section 10): the input capacitor to VIN and to GND, the switch node, the
+# output capacitor, the feedback divider, then the vias into the planes. EN sits on +5V through its via.
++5V      C1.1 U2.4        wide
+GND      C1.2 U2.2        wide
+BUCK_SW  U2.3 L1.1        wide
++3V3     L1.2 C2.1        wide
+BUCK_FB  U2.5 R7.2 R8.1
+GND      C1.2
+GND      C2.2
+GND      R8.2
++5V      C1.1
++5V      U2.1
++5V      F1.2
++3V3     C2.1
++3V3     R7.1
+# Module: 22 uF and 100 nF on the 3V3 pad, the ground pads beside the antenna into the plane.
++3V3     U1.2 C3.1 C4.1   wide
++3V3     C3.1
+GND      C3.2
+GND      C4.2
+GND      U1.1
+GND      U1.40
+# USB pair on B.Cu only, over the unbroken ground of In2.Cu (report 10 section 10): jack, ESD, 22 ohm,
+# module. The ESD ground and the jack's ground pads go first, VBUS after the pair. D+ goes before D-:
+# it is the inner line round the module, and D- first would wall it in under the ESD part.
+GND      U3.2
+GND      J1.A1
+GND      J1.A12
+USB_D_P  J1.A6 J1.B6 U3.4 U3.3 R6.1   no-via
+USB_D_N  J1.B7 J1.A7 U3.6 U3.1 R5.1   no-via
+USB_DM   R5.2 U1.13   no-via
+USB_DP   R6.2 U1.14   no-via
+VBUS     J1.A4 J1.B9 J1.A9 J1.B4 U3.5 F1.1

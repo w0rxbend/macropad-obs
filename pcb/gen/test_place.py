@@ -18,6 +18,7 @@ from pathlib import Path
 
 import circuit_hmi
 import place
+import sexpr
 
 HAVE_PCBNEW = importlib.util.find_spec("pcbnew") is not None
 if HAVE_PCBNEW:
@@ -25,8 +26,10 @@ if HAVE_PCBNEW:
 
     import contract
     import layout
+    import route
 
-BOARD = tomllib.loads((Path(__file__).resolve().parents[2] / "board.toml").read_text())
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BOARD = tomllib.loads((REPO_ROOT / "board.toml").read_text())
 THT_FOOTPRINTS = {"macropad-obs:SW_TH_Tactile_Omron_B3F-100x",
                   "macropad-obs:RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm", "macropad-obs:Hole_M2"}
 
@@ -113,8 +116,21 @@ class PlacementTest(unittest.TestCase):
         mouth = BOARD["pcb"]["depth"] + usb["mouth_overhang"]
         width, depth = usb["body"]
         body = (usb["x"] - width / 2, mouth - depth, usb["x"] + width / 2, mouth)
-        for ref in ("R1", "R2", "R3", "R4", "R5", "R6", "U3", "F1"):
+        for ref in ("R1", "R2", "R3", "R4", "U3", "F1"):
             self.assertLessEqual(_distance_to_rect(spots[ref], body), BOARD["bottom_side"]["usb_support_radius"], ref)
+
+    def test_usb_series_resistors_sit_in_line_with_their_module_pads(self) -> None:
+        """Report 10 block 4: the 22 ohm resistors "placed close to the chip", beside pads 13 (IO19, D-)
+        and 14 (IO20, D+) on the module's right edge."""
+        spots = _spots()
+        left, front, width, depth = BOARD["mcu"]["outline"]
+        module = sexpr.parse((REPO_ROOT / "pcb" / "lib" / "macropad-obs.pretty" / "ESP32-S3-WROOM-1.kicad_mod").read_text())
+        pad_y = {sexpr.unquoted(pad[1]): float(sexpr.child(pad, "at")[2]) for pad in sexpr.children(module, "pad")}
+        for ref, pad in (("R5", "13"), ("R6", "14")):
+            x, y = spots[ref]
+            self.assertLessEqual(x - (left + width), 2.0, ref)
+            # The footprint's y runs from the antenna end; board.toml's y runs towards it.
+            self.assertAlmostEqual(y, front + depth / 2 - pad_y[pad], places=2, msg=ref)
 
     def test_sinks_pull_ups_and_encoder_filters_sit_in_the_mcu_zone(self) -> None:
         spots = _spots()
@@ -221,6 +237,18 @@ class PlacedBoardTest(unittest.TestCase):
         board = self._saved_board(_moved("C4", left + width - 6.6, front + depth / 2))
         with self.assertRaisesRegex(AssertionError, "C4 .*antenna"):
             contract.check_antenna(board)
+
+    def test_route_planes_keep_the_antenna_setback_and_a_whole_board_pour_does_not(self) -> None:
+        """The fill keeps only the 0.3 mm edge clearance from the cut; route.py's planes stop at its setback."""
+        whole_board = route.Plane("GND", route.GROUND_PLANE, ((0.0, 0.0, place.WIDTH, place.DEPTH),))
+        for planes, wanted in ((route.planes(), []), ((whole_board,), ["GND pour on In2.Cu"])):
+            board = layout.build_board(self.board_path, place.board_parts(), {})
+            layout.add_planes(board, planes)
+            pcbnew.SaveBoard(str(self.board_path), board)
+            board = pcbnew.LoadBoard(str(self.board_path))
+            pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+            contract.check_antenna(board)
+            self.assertEqual(contract.copper_in(board, route.antenna_keepout()), wanted)
 
     def test_overlapping_courtyards_fail_the_build(self) -> None:
         r1 = place.spots()["R1"]

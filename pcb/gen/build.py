@@ -4,10 +4,12 @@
     build.py          every step of PIPELINE, in order
     build.py erc      the circuit -> the schematic, KiCad's ERC on it, its netlist against the circuit
     build.py place    board.toml + circuit -> the placed, unrouted board, checked by the contract
+    build.py route-critical  place, then route.py's critical copper locked, the planes and the antenna
+                      keep-out; route.py's limits, the contract and KiCad's DRC with no violation
     build.py contract the saved board against board.toml: outline, holes, positions, antenna, carriers
     build.py drc      KiCad's DRC: the project rules reach it, and no warning is left
 
-Routing and the order files join as steps in tasks 5.8 to 5.10.
+Freerouting and the order files join as steps in tasks 5.9 and 5.10.
 
 Copied from macropad-greycode pcb/gen (decision D5), with `_check_rules_reach_drc` as macropad's
 pcb/gen/build.py has it. Greycode's place and order steps are gone until this board has a circuit
@@ -29,6 +31,7 @@ import circuit_hmi
 import contract
 import layout
 import place
+import route
 import schematic
 import sheets
 
@@ -148,7 +151,10 @@ def check_rules_reach_drc(board_path: Path, work_dir: Path) -> None:
     probe_board = probe_dir / board_path.name
     shutil.copyfile(board_path, probe_board)
     shutil.copyfile(board_path.with_suffix(".kicad_pro"), probe_board.with_suffix(".kicad_pro"))
-    too_wide = layout.TRACK_WIDTH + 0.05
+    widths = [pcbnew.ToMM(track.GetWidth()) for track in pcbnew.LoadBoard(str(board_path)).GetTracks()
+              if track.GetClass() == "PCB_TRACK"]
+    assert widths, f"{board_path.name} has no track for the rules probe"
+    too_wide = min(widths) + 0.05
     layout.write_project_rules(probe_board.with_suffix(".kicad_pro"), layout.DRC_RULES | {"min_track_width": too_wide})
     report_path = probe_dir / "drc.json"
     _kicad_cli("pcb", "drc", "--severity-error", "--format", "json", "-o", str(report_path), str(probe_board))
@@ -193,8 +199,63 @@ def place_board() -> None:
     contract.check(pcbnew.LoadBoard(str(BOARD_PATH)))
 
 
-STEPS = {"erc": erc, "place": place_board, "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
-PIPELINE = ("erc", "place")
+def check_locked(board: pcbnew.BOARD, result: route.Result) -> None:
+    """The board's copper is route.py's, every track and via of it locked."""
+    items = list(board.GetTracks())
+    wanted = len(result.tracks) + len(result.vias)
+    assert len(items) == wanted, f"{len(items)} tracks and vias on the board, route.py drew {wanted}"
+    loose = [layout.pad_xy(item) for item in items if not item.IsLocked()]  # a track's position is its start
+    assert not loose, f"copper not locked at {loose[:5]}"
+
+
+def check_clearances(board_path: Path, work_dir: Path, whole_nets: frozenset[str]) -> int:
+    """KiCad's DRC at error severity finds no violation, and no unconnected item on a net the critical copper
+    draws whole. Returns the unconnected items left: the nets for the autorouter (task 5.9) still have them."""
+    report_path = work_dir / "drc-critical.json"
+    _kicad_cli("pcb", "drc", "--severity-error", "--format", "json", "-o", str(report_path), str(board_path))
+    report = json.loads(report_path.read_text())
+    found = sorted({(violation["type"], violation["description"]) for violation in report["violations"]})
+    assert not found, f"DRC: {found}; see {report_path}"
+    open_nets = {schematic.circuit_net_name(net) for item in report["unconnected_items"]
+                 for end in item["items"] for net in re.findall(r"\[([^\]]+)\]", end["description"])}
+    assert not open_nets & whole_nets, f"DRC finds {sorted(open_nets & whole_nets)} unconnected; see {report_path}"
+    return len(report["unconnected_items"])
+
+
+def route_critical() -> None:
+    """The placed board, then route.py's critical copper written locked, the planes and the antenna keep-out,
+    filled on a reloaded board and checked."""
+    place_board()
+    board = pcbnew.LoadBoard(str(BOARD_PATH))
+    order = route.read_order(route.ORDER_PATH.read_text())
+    result = route.route(*layout.router_obstacles(board), order)
+    for line in result.report_lines():
+        print(line)
+    found = route.problems(result)
+    assert not found, f"critical copper: {found}"
+    layout.write_locked_copper(board, result.tracks, result.vias, route.RULES)
+    layout.add_planes(board, route.planes())
+    layout.add_copper_keepout(board, route.antenna_keepout())
+    save_filled(board, BOARD_PATH)
+    routed = pcbnew.LoadBoard(str(BOARD_PATH))
+    check_locked(routed, result)
+    print(f"route-critical: {len(result.tracks)} tracks and {len(result.vias)} vias, all locked")
+    inside = contract.copper_in(routed, route.antenna_keepout())
+    assert not inside, f"copper within {route.ANTENNA_SETBACK} mm of the antenna board cut: {inside}"
+    layout.check_paste_clear_of_vias(routed)
+    print(f"route-critical: no copper within {route.ANTENNA_SETBACK} mm of the antenna cut, paste clear of the vias")
+    contract.check(routed)
+    check_rules_reach_drc(BOARD_PATH, BUILD_DIR)
+    whole = route.whole_nets(order)
+    unconnected = check_clearances(BOARD_PATH, BUILD_DIR, whole)
+    print(f"route-critical: DRC 0 violations, {len(whole)} nets drawn whole and connected; "
+          f"{unconnected} unconnected items left for the autorouter")
+
+
+STEPS = {"erc": erc, "place": place_board, "route-critical": route_critical,
+         "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
+# route-critical places the board first.
+PIPELINE = ("erc", "route-critical")
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:

@@ -8,7 +8,9 @@ ESP32-S3-WROOM-1.kicad_mod:
   Drawing: Espressif ESP32-S3-WROOM-1/1U datasheet v1.8, figure 10-1 (module dimensions) and figure
     11-1 (recommended land pattern), https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf
     (read 2026-11-20).
-  Copied: KiCad stock RF_Module:ESP32-S3-WROOM-1, pads 1 to 41, paste windows and thermal vias as is.
+  Copied: KiCad stock RF_Module:ESP32-S3-WROOM-1, pads 1 to 41 and paste windows as is. The stock
+    footprint's 12 thermal vias in pad 41 (0.2 mm drill, under the board's 0.3 mm minimum) are gone;
+    pcb/gen/route.py draws four 0.3 mm ground vias there instead (task 5.8).
   Changed: the stock keep-out ran 15 mm past the module on three sides (48 x 21 mm) and would have
     covered the USB-C pads beside it; it is now the 18 x 6 "Antenna Area" of figure 11-1, on the four
     copper layers of this board only. The board cut and its clearances live in board.toml [antenna]

@@ -240,6 +240,26 @@ class RouterTest(unittest.TestCase):
             self.assertEqual(track.width, RULES.wide_track_width)
             self.assertGreaterEqual(rect_gap(track, wall.rect), needed - 1e-6)
 
+    def test_group_without_vias_stays_on_its_layer_or_reports_the_pad(self) -> None:
+        router = small_board()
+        a, b = pad("A.1", "N", 5.0, 5.0), pad("B.1", "N", 12.0, 5.0)
+        wall = Pad("W.1", "OTHER", (8.0, 0.0, 9.0, 10.0), (BACK,))
+        for item in (a, b, wall):
+            router.add_pad(item)
+        self.assertEqual(router.route_group("N", [a, b], vias=False), ["B.1"])
+        self.assertEqual((router.tracks, router.vias), ([], []))
+
+    def test_groups_of_one_net_do_not_join_each_other(self) -> None:
+        """Two supply loops of one plane net: each joins its own pads, and neither runs to the other."""
+        router = small_board()
+        near = [pad("A.1", "P", 2.0, 5.0), pad("B.1", "P", 4.0, 5.0)]
+        far = [pad("C.1", "P", 16.0, 5.0), pad("D.1", "P", 18.0, 5.0)]
+        for item in near + far:
+            router.add_pad(item)
+        self.assertEqual(router.route_group("P", near), [])
+        self.assertEqual(router.route_group("P", far), [])
+        self.assertAlmostEqual(router.net_length("P"), 4.0, places=3)
+
     def test_same_input_gives_the_same_copper(self) -> None:
         def run() -> tuple[list[Track], list[Via]]:
             router = small_board()

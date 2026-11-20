@@ -123,38 +123,48 @@ def _usb_support() -> dict[str, Spot]:
     lane_y = switches["boot"][1]
     return {
         "F1": Spot(x - 9.0, body_rear + 0.3, 90.0),
-        "U3": Spot(x + 0.2, body_rear - 2.8),
-        "R5": Spot(x + 3.8, body_rear - 3.0),
-        "R6": Spot(x + 3.8, body_rear - 1.8),
+        "U3": Spot(x + 0.6, body_rear - 3.4, 90.0),
         **{f"R{n}": Spot(x + 8.2, body_rear - 2.9 + 1.3 * (n - 1)) for n in (1, 2, 3, 4)},
-        "R10": Spot(lane_x, lane_y - 1.3),
-        "R9": Spot(lane_x, lane_y),
-        "C5": Spot(lane_x, lane_y + 1.3),
+        "R10": Spot(lane_x, lane_y - 2.8),
+        "R9": Spot(lane_x, lane_y - 1.5),
+        "C5": Spot(lane_x, lane_y - 0.2),
     }
+
+
+def _wroom_pad_y(pad: int) -> float:
+    """board.toml y of side pad 1 to 14 of the module (stock footprint: pad 1 5.26 from the centre towards
+    the antenna end, 1.27 pitch)."""
+    _, front, _, depth = BOARD["mcu"]["outline"]
+    return round(front + depth / 2 + 5.26 - 1.27 * (pad - 1), 4)
 
 
 def _module_support() -> dict[str, Spot]:
     """22 uF and 100 nF right of the module, by its 3V3 pad (pad 2 lands on the right when mirrored);
+    the 22 ohm USB resistors in line with pads 13 and 14, "placed close to the chip" (report 10 block 4);
     the 499 ohm UART resistor beside the debug JST."""
     left, front, width, depth = BOARD["mcu"]["outline"]
     debug_x, debug_y = BOARD["bottom_side"]["debug_uart"]["at"]
     return {
         "C3": Spot(left + width + 2.9, front + depth / 2 + 3.0, 90.0),
         "C4": Spot(left + width + 2.9, front + depth / 2, 90.0),
+        "R5": Spot(left + width + 1.7, _wroom_pad_y(13)),
+        "R6": Spot(left + width + 1.7, _wroom_pad_y(14)),
         "R11": Spot(debug_x + 5.5, debug_y),
     }
 
 
 def _buck() -> dict[str, Spot]:
-    """board.toml [regulator] zone: input cap under the chip, inductor and output cap to its right."""
+    """board.toml [regulator] zone: the input cap in front of the chip, its +5V pad under VIN and its GND pad
+    under the gap that leads to the GND pin; the inductor and the output cap to the right; the feedback
+    divider behind, by FB."""
     x, y, _, _ = BOARD["regulator"]["zone"]
     return {
         "U2": Spot(x + 4.0, y + 4.0),
-        "C1": Spot(x + 4.0, y + 6.9),
-        "L1": Spot(x + 8.5, y + 4.0),
+        "C1": Spot(x + 3.9, y + 1.2, 180.0),
+        "L1": Spot(x + 8.5, y + 4.0, 180.0),
         "C2": Spot(x + 8.5, y + 1.3),
-        "R7": Spot(x + 2.5, y + 1.2),
-        "R8": Spot(x + 5.0, y + 1.2),
+        "R7": Spot(x + 0.9, y + 6.7, 180.0),
+        "R8": Spot(x + 2.9, y + 6.7, 180.0),
     }
 
 

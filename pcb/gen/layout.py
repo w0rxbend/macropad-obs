@@ -3,11 +3,12 @@
 KiCad container (needs pcbnew).
 
 Parts come in as `BoardPart`s, already in KiCad coordinates (`kicad_xy`); place.py makes them from board.toml,
-and the outline with the antenna cut. The plane islands come with the locked copper (task 5.8).
+and the outline with the antenna cut. The planes, the antenna keep-out and the locked copper come from
+route.py (task 5.8) through `add_planes`, `add_copper_keepout` and `write_locked_copper`.
 
 Copied from macropad-greycode pcb/gen (decision D5). Greycode's RP2040 pieces are gone: the QFN-56 paste
 windows, the placement self-checks, the plane islands, the fiducials, and the silk.py and models.py calls.
-`box_mm` and `circle_meets_rect` moved here from greycode's route.py, which this board does not have yet.
+`box_mm` and `circle_meets_rect` moved here from greycode's route.py; this board's route.py is pure Python.
 """
 
 from __future__ import annotations
@@ -21,9 +22,10 @@ from typing import Protocol
 
 import pcbnew
 
+import route
 import schematic
 from place import kicad_xy, outline_path
-from router import Rules
+from router import BACK, FRONT, Pad, Rules, Track, Via
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC = tomllib.loads((REPO_ROOT / "board.toml").read_text())
@@ -62,6 +64,7 @@ DEFAULT_NET_CLASS = {"track_width": TRACK_WIDTH, "clearance": CLEARANCE, "via_di
 # No paste aperture anywhere comes closer than this to a via's drilled hole.
 PASTE_TO_VIA_DRILL = 0.15
 COPPER_LAYERS = (pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu, pcbnew.B_Cu)
+_ROUTER_LAYERS = {FRONT: pcbnew.F_Cu, BACK: pcbnew.B_Cu}
 # Value of the mounting-hole parts: their own keep-out does not count against them.
 HOLE_VALUE = "M2"
 
@@ -209,11 +212,12 @@ def _add_edge(board: pcbnew.BOARD, shape: pcbnew.PCB_SHAPE) -> None:
     board.Add(shape)
 
 
-def _zone(board: pcbnew.BOARD, net_name: str, layer: int, rectangles: list[tuple]) -> None:
+def _zone(board: pcbnew.BOARD, net_name: str, layer: int, rectangles: list[tuple], priority: int = 0) -> None:
     """One zone over the union of the rectangles (left, top, right, bottom)."""
     zone = pcbnew.ZONE(board)
     zone.SetLayer(layer)
     zone.SetNet(_net(board, net_name))
+    zone.SetAssignedPriority(priority)
     zone.SetPadConnection(pcbnew.ZONE_CONNECTION_THT_THERMAL)  # hand-soldered pins must not sink the heat
     zone.SetThermalReliefGap(mm(0.25))
     zone.SetThermalReliefSpokeWidth(mm(0.4))
@@ -238,6 +242,19 @@ def _zone(board: pcbnew.BOARD, net_name: str, layer: int, rectangles: list[tuple
 
 def _circle_rule_area(board: pcbnew.BOARD, layers: tuple[int, ...], x: float, y: float, radius: float) -> None:
     """No copper pour, no track and no via inside the circle on these layers."""
+    # The polygon's flats sit on the circle, so the polygon holds the whole circle.
+    reach = radius / math.cos(math.pi / 32)
+    angles = [math.radians(step * 360 / 32) for step in range(32)]
+    _rule_area(board, layers, [(x + reach * math.cos(angle), y + reach * math.sin(angle)) for angle in angles])
+
+
+def add_copper_keepout(board: pcbnew.BOARD, rect: tuple) -> None:
+    """No copper pour, no track and no via inside the rectangle (left, top, right, bottom) on any copper layer."""
+    left, top, right, bottom = rect
+    _rule_area(board, COPPER_LAYERS, [(left, top), (right, top), (right, bottom), (left, bottom)])
+
+
+def _rule_area(board: pcbnew.BOARD, layers: tuple[int, ...], corners: list[tuple[float, float]]) -> None:
     area = pcbnew.ZONE(board)
     area.SetIsRuleArea(True)
     layer_set = pcbnew.LSET()
@@ -251,11 +268,8 @@ def _circle_rule_area(board: pcbnew.BOARD, layers: tuple[int, ...], x: float, y:
     area.SetDoNotAllowFootprints(False)
     outline = area.Outline()
     outline.NewOutline()
-    for step in range(32):
-        angle = math.radians(step * 360 / 32)
-        # The polygon's flats sit on the circle, so the polygon holds the whole circle.
-        reach = radius / math.cos(math.pi / 32)
-        outline.Append(mm(x + reach * math.cos(angle)), mm(y + reach * math.sin(angle)))
+    for x, y in corners:
+        outline.Append(mm(x), mm(y))
     board.Add(area)
 
 
@@ -271,6 +285,51 @@ def hole_centres() -> list[tuple[float, float]]:
 
 def _whole_board() -> list[tuple]:
     return [(0.0, 0.0, WIDTH, DEPTH)]
+
+
+def add_planes(board: pcbnew.BOARD, planes: tuple[route.Plane, ...]) -> None:
+    for plane in planes:
+        layer = {route.GROUND_PLANE: GROUND_LAYER, route.POWER_PLANE: POWER_LAYER}[plane.layer]
+        _zone(board, plane.net, layer, list(plane.rects), plane.priority)
+
+
+def router_obstacles(board: pcbnew.BOARD) -> tuple[list[Pad], list[tuple]]:
+    """Every copper pad as the router sees it ("U1.5", net, box, outer layers), and every unplated drill."""
+    pads, holes = [], []
+    for footprint in sorted(board.GetFootprints(), key=lambda fp: fp.GetReference()):
+        for pad in footprint.Pads():
+            if pad.GetAttribute() == pcbnew.PAD_ATTRIB_NPTH:
+                x, y = pad_xy(pad)
+                radius = pcbnew.ToMM(max(pad.GetDrillSize().x, pad.GetDrillSize().y)) / 2
+                holes.append((x - radius, y - radius, x + radius, y + radius))
+            elif pad.IsOnCopperLayer():
+                layers = tuple(layer for layer, kicad in _ROUTER_LAYERS.items() if pad.IsOnLayer(kicad))
+                net = schematic.circuit_net_name(pad.GetNetname())
+                pads.append(Pad(f"{footprint.GetReference()}.{pad.GetNumber()}", net, box_mm(pad.GetBoundingBox()), layers))
+    return pads, holes
+
+
+def write_locked_copper(board: pcbnew.BOARD, tracks: list[Track], vias: list[Via], rules: Rules) -> None:
+    """The router's tracks and through vias on the board, each locked so later routing keeps it."""
+    for track in tracks:
+        segment = pcbnew.PCB_TRACK(board)
+        segment.SetStart(point(*track.start))
+        segment.SetEnd(point(*track.end))
+        segment.SetWidth(mm(track.width))
+        segment.SetLayer(_ROUTER_LAYERS[track.layer])
+        segment.SetNet(_net(board, track.net))
+        segment.SetLocked(True)
+        board.Add(segment)
+    for via in vias:
+        barrel = pcbnew.PCB_VIA(board)
+        barrel.SetViaType(pcbnew.VIATYPE_THROUGH)
+        barrel.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+        barrel.SetPosition(point(via.x, via.y))
+        barrel.SetWidth(pcbnew.F_Cu, mm(rules.via_diameter))
+        barrel.SetDrill(mm(rules.via_drill))
+        barrel.SetNet(_net(board, via.net))
+        barrel.SetLocked(True)
+        board.Add(barrel)
 
 
 def add_outer_ground_pours(board: pcbnew.BOARD) -> None:

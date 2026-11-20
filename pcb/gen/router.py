@@ -8,7 +8,8 @@ Routes are A* paths over 45 degree moves, with vias as moves between the layers.
 
 Coordinates are millimetres, top view, same as board.toml.
 
-Copied unchanged from macropad-greycode pcb/gen (decision D5).
+Copied from macropad-greycode pcb/gen (decision D5). Added here: `route_group`, a tree of its own and
+optionally no vias, for the locked critical copper (route.py).
 """
 
 from __future__ import annotations
@@ -257,7 +258,14 @@ class Router:
 
     def route_net(self, net: str, pads: list[Pad], wide: bool = False) -> list[str]:
         """Joins the pads into one tree, nearest pad first. Returns the names of pads it could not reach."""
-        tree = self._tree.setdefault(net, set())
+        return self._join(net, self._tree.setdefault(net, set()), pads, wide, vias=True)
+
+    def route_group(self, net: str, pads: list[Pad], wide: bool = False, vias: bool = True) -> list[str]:
+        """Joins the pads into a tree of their own, apart from the net's other copper: one supply loop of a
+        plane net, or a line that must stay on its pads' layer (`vias=False`). Returns the pads it could not reach."""
+        return self._join(net, set(), pads, wide, vias)
+
+    def _join(self, net: str, tree: set[tuple[int, int]], pads: list[Pad], wide: bool, vias: bool) -> list[str]:
         waiting = [pad for pad in pads if pad.name not in self._escaped]
         if not tree:
             tree |= self.pad_nodes(waiting.pop(0))
@@ -266,7 +274,7 @@ class Router:
         while waiting:
             nearest = min(waiting, key=lambda pad: min(math.dist(pad.centre, c) for c in joined_centres))
             waiting.remove(nearest)
-            path = self._route_to_pad(net, tree, nearest, wide)
+            path = self._route_to_pad(net, tree, nearest, wide, vias)
             if path is None:
                 unreached.append(nearest.name)
                 continue
@@ -287,7 +295,8 @@ class Router:
         target = Pad("via", net, (via.x, via.y, via.x, via.y), BOTH_LAYERS)
         return self._route_to_pad(net, sources, target, wide) is not None
 
-    def _route_to_pad(self, net: str, sources: set[tuple[int, int]], target: Pad, wide: bool) -> list[Node] | None:
+    def _route_to_pad(self, net: str, sources: set[tuple[int, int]], target: Pad, wide: bool,
+                      vias: bool = True) -> list[Node] | None:
         """Writes the copper from any source node to the pad. Returns the path, empty if they already touch."""
         target_nodes = self.pad_nodes(target)
         if sources & target_nodes:
@@ -301,7 +310,7 @@ class Router:
             estimate = _STRAIGHT_COST * max(dx, dy) + (_DIAGONAL_COST - _STRAIGHT_COST) * min(dx, dy)
             return estimate if layer in target_layers else estimate + _VIA_COST
 
-        path = self._search(net, sources, target_nodes.__contains__, remaining, wide, vias_allowed=True)
+        path = self._search(net, sources, target_nodes.__contains__, remaining, wide, vias_allowed=vias)
         if path is not None:
             self._commit(net, path, wide)
         return path

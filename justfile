@@ -230,9 +230,11 @@ firmware:
         build merge-bin -o macropad-obs-merged.bin
     python3 {{root}}/tools/check_partitions.py --built {{root}}/.build/esp32s3
 
-# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc, place);
-# `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
-# `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml.
+# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc,
+# route-critical); `just pcb erc` writes the schematic, runs ERC at all severities and checks it is
+# byte-repeatable; `just pcb place` writes the unrouted board to pcb/kicad and checks it against
+# board.toml; `just pcb route-critical` places, then adds the locked critical copper, the inner planes
+# and the antenna keep-out, and passes when route.py's limits hold and DRC finds no violation.
 # Does not claim Gerbers exist until the pipeline has a fab step and exits 0.
 pcb *STEP:
     docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
