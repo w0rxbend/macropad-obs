@@ -1,4 +1,146 @@
 {
+  "2d": {
+    "files": {
+      "2d/foam-big.dxf": {
+        "area_error": "9.7e-16",
+        "area_mm2": 822.73,
+        "audit_errors": 0,
+        "bytes": 16558,
+        "extents_off_mm": 0.0,
+        "format": "DXF",
+        "layers": [
+          "CUT"
+        ],
+        "outlines": 2,
+        "sha256": "813b3048a2d1b9856f434f646fcf3b599b2072bc1a6a7aff7ebecc0ab6a153f4",
+        "version": "AC1027"
+      },
+      "2d/foam-big.pdf": {
+        "bytes": 1137,
+        "fonts": 0,
+        "format": "PDF",
+        "page_pt": [
+          172.772,
+          253.502
+        ],
+        "sha256": "df778e4861d512ce641da8118023179faa4e518a1274a8cfc37aaa1ce12bdd8e"
+      },
+      "2d/foam-big.svg": {
+        "area_error": "1.1e-06",
+        "area_mm2": 822.731,
+        "bytes": 467,
+        "extents_off_mm": 0.0,
+        "format": "SVG",
+        "outlines": 2,
+        "sha256": "5eee5fbf792fc1063240a40d0e728b26a614f045a018158413f881d018c58400"
+      },
+      "2d/foam-narrow.dxf": {
+        "area_error": "4.4e-16",
+        "area_mm2": 258.828,
+        "audit_errors": 0,
+        "bytes": 16497,
+        "extents_off_mm": 0.0,
+        "format": "DXF",
+        "layers": [
+          "CUT"
+        ],
+        "outlines": 2,
+        "sha256": "da5af89da7af91be7975a1de8d44fe9e4858890c1e6337a33508242c227d41e8",
+        "version": "AC1027"
+      },
+      "2d/foam-narrow.pdf": {
+        "bytes": 1132,
+        "fonts": 0,
+        "format": "PDF",
+        "page_pt": [
+          87.505,
+          215.206
+        ],
+        "sha256": "b2807b2aff48d8608e3f3f372e3af37e4d20a159823b19f4d9a7fce9fd7a3aa7"
+      },
+      "2d/foam-narrow.svg": {
+        "area_error": "1.1e-06",
+        "area_mm2": 258.828,
+        "bytes": 473,
+        "extents_off_mm": 0.0,
+        "format": "SVG",
+        "outlines": 2,
+        "sha256": "f14febaf826c18d0ff77214f23b5b82e8790f5b194ab3a18a88d78f7369045b5"
+      },
+      "2d/lens-big.dxf": {
+        "area_error": "0.0e+00",
+        "area_mm2": 4176.389,
+        "audit_errors": 0,
+        "bytes": 16628,
+        "extents_off_mm": 0.0,
+        "format": "DXF",
+        "layers": [
+          "CUT"
+        ],
+        "outlines": 1,
+        "sha256": "18472af172613f20d3177688e3f3a39325d6cd10e5e18659034bb1d4b3c4ddf4",
+        "version": "AC1027"
+      },
+      "2d/lens-big.pdf": {
+        "bytes": 1173,
+        "fonts": 0,
+        "format": "PDF",
+        "page_pt": [
+          170.22,
+          239.613
+        ],
+        "sha256": "8768c1221fccfb54e10c59513bf29f75cc340a019b6cba38fe106c1f31c101b1"
+      },
+      "2d/lens-big.svg": {
+        "area_error": "1.1e-06",
+        "area_mm2": 4176.393,
+        "bytes": 517,
+        "extents_off_mm": 0.0,
+        "format": "SVG",
+        "outlines": 1,
+        "sha256": "35eaddacef0eb1c8c13a84ffea181e6fa95727290bcea87269fa4724def606c5"
+      },
+      "2d/lens-narrow.dxf": {
+        "area_error": "0.0e+00",
+        "area_mm2": 1775.558,
+        "audit_errors": 0,
+        "bytes": 16542,
+        "extents_off_mm": 0.0,
+        "format": "DXF",
+        "layers": [
+          "CUT"
+        ],
+        "outlines": 1,
+        "sha256": "21e5974492ca1bd046569ab2d55791abd5f9d4091860d207ade01dedeba47edc",
+        "version": "AC1027"
+      },
+      "2d/lens-narrow.pdf": {
+        "bytes": 1168,
+        "fonts": 0,
+        "format": "PDF",
+        "page_pt": [
+          91.757,
+          213.25
+        ],
+        "sha256": "007ee93bfc64ea59a6b20c53db3cd00d0b911f4093ab3c77382dbd3b8ed142bf"
+      },
+      "2d/lens-narrow.svg": {
+        "area_error": "1.1e-06",
+        "area_mm2": 1775.559,
+        "bytes": 523,
+        "extents_off_mm": 0.0,
+        "format": "SVG",
+        "outlines": 1,
+        "sha256": "3b61ca7aa02f9349af4f822ac196e981ab7a380d2ba0014a4e315d6d8fb2f532"
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
   "case": {
     "files": {
       "cnc/assembly.3mf": {
@@ -476,6 +618,120 @@
         "bytes": 569784,
         "format": "STL",
         "sha256": "d9043a0b862686cda5543b1f2b5db4854f5caa9ecf855f6a77eb48ccad84903f"
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
+  "envelopes": {
+    "files": {
+      "envelopes/big-display.step": {
+        "bytes": 17239,
+        "format": "STEP AP214",
+        "sha256": "b280c2654953d54e6336024a36b30637f67397d21bbd94fed82401c4023f59c9",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 9711.362
+      },
+      "envelopes/dsa-keycap.step": {
+        "bytes": 17121,
+        "format": "STEP AP214",
+        "sha256": "9ad9c6c461f406173a395e316577316f1f0900b202cbae4b8ec998d25c03d813",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 2501.958
+      },
+      "envelopes/ec11.step": {
+        "bytes": 23184,
+        "format": "STEP AP214",
+        "sha256": "497c9b5ac26bd4bf7f692a8141a5bd8324cb54bdecc424a73eca5d9c3c738679",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.5e-14",
+        "volume_mm3": 1268.758
+      },
+      "envelopes/esp32-s3-wroom-1.step": {
+        "bytes": 17158,
+        "format": "STEP AP214",
+        "sha256": "eaedc00c13f9fa19379e7ad6e7c16362fbbd7bf8ba49733e80db1af94ade8e74",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 1422.9
+      },
+      "envelopes/fpc-big.step": {
+        "bytes": 17058,
+        "format": "STEP AP214",
+        "sha256": "416f2c5f0feee56601d711cf88e6c0815ffbe1a1774ed1d5639bb2bf1fc827b4",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 275.0
+      },
+      "envelopes/fpc-narrow.step": {
+        "bytes": 17024,
+        "format": "STEP AP214",
+        "sha256": "a9c8c3757510b03aca1fa61ecd59f44b6592ddebdfa58be21d5e2945b219a1e3",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 110.0
+      },
+      "envelopes/mx-switch.step": {
+        "bytes": 29100,
+        "format": "STEP AP214",
+        "sha256": "40a1b631f8b629ff32dda0a6f45d3e47c719e53eb03987f369c59280f1f733b1",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 3462.272
+      },
+      "envelopes/narrow-display.step": {
+        "bytes": 17255,
+        "format": "STEP AP214",
+        "sha256": "fa03acbdefa4b917f3c6c394bb4a45d1e2cf49acf9ce11f6e0ca479b242c043f",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 3554.677
+      },
+      "envelopes/omron-b3f.step": {
+        "bytes": 19259,
+        "format": "STEP AP214",
+        "sha256": "3a5a4d02a9332f5e4786c55a5a9ca3df0d452daefc3acbe8ea312bec39fa6061",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "8.2e-15",
+        "volume_mm3": 159.922
+      },
+      "envelopes/usb4216.step": {
+        "bytes": 17124,
+        "format": "STEP AP214",
+        "sha256": "704978e3d56f164594e97caad1277d9a7f22755478d57f58883c5d19a9cc02f8",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 183.628
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
+  "freecad": {
+    "files": {
+      "case.FCStd": {
+        "built": false,
+        "reason": "not built: the FCStd needs FreeCAD (freecadcmd), which task 6.6 may use only after the owner says yes; nyxilab freecad_doc.py is not copied until then"
       }
     },
     "tools": {

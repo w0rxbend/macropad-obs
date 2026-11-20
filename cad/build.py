@@ -13,8 +13,14 @@ Steps:
             back, under .build/cad/cnc.
   export    write the 3D exports of both variants (task 6.5): STEP AP214 and AP242, BREP, IGES,
             STL, 3MF and the assembly GLB, read each back, then replace cad/exports/<variant> and
-            the "case" section of cad/exports/manifest.json. Tests: obs_case/test_export.py."""
+            the "case" section of cad/exports/manifest.json. Tests: obs_case/test_export.py.
+  export2d  write the 2D sheets (task 6.6): DXF, SVG and PDF of each lens and foam frame, read
+            back, into cad/exports/2d and the "2d" section. Tests: obs_case/test_export2d.py.
+  envelopes write one STEP per bought part (task 6.6), read back, into cad/exports/envelopes and
+            the "envelopes" section. Tests: obs_case/test_envelopes.py.
+  fcstd     record in the "freecad" section that the FCStd is not built, and why."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -79,13 +85,45 @@ def cnc_step() -> int:
 def export_step() -> int:
     """In a fresh process: the steps above add pcurves to the cached parts and nudge their
     tolerances, and BREP and IGES would carry that history into the files."""
+    return _fresh_process("obs_case.export")
+
+
+def export2d_step() -> int:
+    """In a fresh process with a fixed hash seed: ezdxf orders the DXF OBJECTS section by string
+    hash, so another seed writes other bytes."""
+    return _fresh_process("obs_case.export2d")
+
+
+def _fresh_process(module: str) -> int:
     sys.stdout.flush()  # keep the step lines in order when stdout is a pipe
-    return subprocess.run([sys.executable, "-m", "obs_case.export"], cwd=Path(__file__).resolve().parent,
-                          check=False).returncode
+    return subprocess.run([sys.executable, "-m", module], cwd=Path(__file__).resolve().parent,
+                          env={**os.environ, "PYTHONHASHSEED": "0"}, check=False).returncode
+
+
+def envelopes_step() -> int:
+    from obs_case import envelopes
+
+    return envelopes.export_all()
+
+
+FCSTD_NOT_BUILT = ("not built: the FCStd needs FreeCAD (freecadcmd), which task 6.6 may use only after the"
+                   " owner says yes; nyxilab freecad_doc.py is not copied until then")
+
+
+def fcstd_step() -> int:
+    """Task 6.6 accepts an FCStd that is reopened or marked not built in the manifest: this marks it."""
+    from obs_case import manifest
+    from obs_case.export import EXPORTS
+
+    manifest.write_section(EXPORTS / manifest.NAME, "freecad",
+                           {"case.FCStd": {"built": False, "reason": FCSTD_NOT_BUILT}})
+    print(f"freecad: case.FCStd {FCSTD_NOT_BUILT}")
+    return 0
 
 
 STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step, "variants": variants_step,
-         "cnc": cnc_step, "export": export_step}
+         "cnc": cnc_step, "export": export_step, "export2d": export2d_step, "envelopes": envelopes_step,
+         "fcstd": fcstd_step}
 
 
 def main(argv: list[str]) -> int:

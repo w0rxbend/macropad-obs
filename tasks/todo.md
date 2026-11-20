@@ -593,7 +593,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
     watertight. A second run leaves git clean.
   - Verify: `just cad`; `git status --short cad/exports`. Deps: 6.4. Files:
     `cad/obs_case/export.py`, `manifest.py`.
-- [ ] **6.6 2D exports, FCStd and part envelopes (M).** DXF, SVG, PDF, and one envelope STEP per
+- [x] **6.6 2D exports, FCStd and part envelopes (M).** DXF, SVG, PDF, and one envelope STEP per
   bought part. Copy `macropad-nyxilab/common/cad/macropad_cad/freecad_doc.py`. FCStd needs FreeCAD
   (**not installed; ask first**).
   - Accept: each export reads back. FCStd is reopened, or it is marked not built in the manifest.

@@ -81,24 +81,34 @@ def export_all(stage: Path = STAGE, target: Path = EXPORTS) -> int:
     variant folders under `target` and the manifest's "case" section. Returns 1 on any fault."""
     readbacks = []
     for variant in variants.VARIANTS:
-        folder = stage / variant
-        shutil.rmtree(folder, ignore_errors=True)
-        folder.mkdir(parents=True)
-        readbacks += variant_files(variant, folder)
+        readbacks += variant_files(variant, fresh(stage / variant))
+    return publish(readbacks, stage, target, variants.VARIANTS, "case")
+
+
+def fresh(folder: Path) -> Path:
+    """`folder`, emptied and made."""
+    shutil.rmtree(folder, ignore_errors=True)
+    folder.mkdir(parents=True)
+    return folder
+
+
+def publish(readbacks: list[Readback], stage: Path, target: Path, folders, section: str) -> int:
+    """Only when no read-back found a problem: replace each of `folders` under `target` with its
+    staged copy and `section` of the manifest. Returns 1 on any problem, leaving `target` as it was."""
     problems = [f"{r.path.relative_to(stage)}: {problem}" for r in readbacks for problem in r.problems]
     for problem in problems:
         print(problem)
     if problems:
-        print(f"export: {len(readbacks)} files, {len(problems)} problems; {target} left as it was")
+        print(f"{section}: {len(readbacks)} files, {len(problems)} problems; {target} left as it was")
         return 1
-    for variant in variants.VARIANTS:
-        shutil.rmtree(target / variant, ignore_errors=True)
+    for folder in folders:
+        shutil.rmtree(target / folder, ignore_errors=True)
         target.mkdir(parents=True, exist_ok=True)
-        shutil.move(stage / variant, target / variant)
+        shutil.move(stage / folder, target / folder)
     files = {str(r.path.relative_to(stage)): manifest.entry(target / r.path.relative_to(stage), r.facts)
              for r in readbacks}
-    manifest.write_section(target / manifest.NAME, "case", files)
-    print(f"export: {len(readbacks)} files read back, 0 problems; in {target}")
+    manifest.write_section(target / manifest.NAME, section, files)
+    print(f"{section}: {len(readbacks)} files read back, 0 problems; in {target}")
     return 0
 
 
