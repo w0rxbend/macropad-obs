@@ -28,6 +28,9 @@ const STATUS_LISTEN: Duration = Duration::from_millis(50);
 /// What OBS shows in the preview: the state `tools/fake_obs.py` serves to padsim by default, so the
 /// preview matches padsim's frames (criterion 4b).
 const SAMPLE_STATE: &[u8] = include_bytes!("../../../tools/fixtures/ui_state.json");
+/// What the pages edit on a pad that holds no document yet (fresh or factory reset): every action
+/// `none`, no widget, no SSID. Its first write goes on that pad's `seq` 0.
+const FIRST_DOCUMENT: &[u8] = include_bytes!("../../../firmware/test/config_vectors/valid_minimal.json");
 /// The order the Wi-Fi page sends its secrets in.
 const SECRETS: [Credential; 2] = [Credential::WifiPassphrase, Credential::ObsPassword];
 
@@ -256,7 +259,8 @@ impl<P: Read + Write> Connection<P> {
 
     /// Reads the document and gives its mapping, for the editor.
     pub fn read_mapping(&mut self) -> Result<Mapping, Failure> {
-        forms::mapping(&self.read()?.document)
+        self.read()?;
+        forms::mapping(&self.base()?)
     }
 
     /// Writes `mapping` into the last document read, everything else in it kept, as `write` does.
@@ -266,7 +270,8 @@ impl<P: Read + Write> Connection<P> {
     }
 
     pub fn read_layout(&mut self) -> Result<Layout, Failure> {
-        forms::layout(&self.read()?.document)
+        self.read()?;
+        forms::layout(&self.base()?)
     }
 
     /// Writes `layout` into the last document read, everything else in it kept.
@@ -308,11 +313,9 @@ impl<P: Read + Write> Connection<P> {
     }
 
     fn network_page(&self) -> Result<NetworkPage, Failure> {
-        let open = self.opened()?;
-        let stored = open.stored.as_ref().ok_or_else(not_read)?;
-        let info = open.session.info();
+        let info = self.opened()?.session.info();
         Ok(NetworkPage {
-            network: forms::network(&Config::from(stored).document)?,
+            network: forms::network(&self.base()?)?,
             wifi_psk_set: info.wifi_psk_set,
             obs_password_set: info.obs_password_set,
         })
@@ -320,8 +323,17 @@ impl<P: Read + Write> Connection<P> {
 
     /// The last document read with `edit` applied: the base of a page's write or preview.
     fn edited(&self, edit: impl FnOnce(&Value) -> Result<Value, Failure>) -> Result<Value, Failure> {
+        edit(&self.base()?)
+    }
+
+    /// What a page reads and edits: the last document read, or `FIRST_DOCUMENT` when the pad held
+    /// none. The write still goes on the read's `seq`.
+    fn base(&self) -> Result<Value, Failure> {
         let stored = self.opened()?.stored.as_ref().ok_or_else(not_read)?;
-        edit(&Config::from(stored).document)
+        if stored.bytes.is_empty() {
+            return Ok(serde_json::from_slice(FIRST_DOCUMENT).expect("valid_minimal.json is JSON"));
+        }
+        Ok(Config::from(stored).document)
     }
 
     /// `update` on `host`: the session ends with it, the pad comes back as a new device.

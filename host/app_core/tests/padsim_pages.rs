@@ -110,6 +110,24 @@ fn a_refused_secret_empties_the_form_and_sends_nothing_after_it() {
     pad.finish();
 }
 
+/// A fresh pad holds no document: both pages start from the built-in one, and a first write
+/// goes on `seq` 0.
+#[test]
+fn a_fresh_pad_gives_both_pages_and_takes_a_first_layout() {
+    let scratch = Scratch::new("pages-fresh");
+    let pad = Padsim::start(&scratch.path("pad.nor"));
+    let mut connection = Connection::new();
+    connection.attach(pad.port()).expect("INFO");
+    let page = serde_json::to_value(connection.read_network().expect("network page")).expect("page serialises");
+    assert_eq!(page, json!({"ssid": "", "auth_mode": "none", "wifi_psk_set": false, "obs_password_set": false}));
+    let mut layout = connection.read_layout().expect("layout");
+    layout.main_display.push(json!({"kind": "text", "x": 0, "y": 0, "w": 320, "h": 40, "text": "Test 1"}));
+    connection.preview(&layout).expect("preview");
+    assert_eq!(connection.write_layout(&layout).expect("write"), Saved::Saved { seq: 1 });
+    assert_eq!(connection.read_layout().expect("layout"), layout);
+    pad.finish();
+}
+
 #[test]
 fn a_layout_edit_previews_writes_and_reads_back() {
     let scratch = Scratch::new("pages-layout");

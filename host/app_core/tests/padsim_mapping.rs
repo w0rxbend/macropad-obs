@@ -69,7 +69,7 @@ fn a_mapping_edit_is_written_and_read_back() {
     let pad = Padsim::start(&scratch.path("pad.nor"));
     let mut connection = Connection::new();
     connection.attach(pad.port()).expect("INFO");
-    assert!(connection.read_mapping().is_err(), "a fresh pad holds no mapping");
+    connection.read().expect("read");
     assert_eq!(connection.write(minimal_document()).expect("seed"), Saved::Saved { seq: 1 });
 
     let mut mapping = connection.read_mapping().expect("mapping");
@@ -84,6 +84,21 @@ fn a_mapping_edit_is_written_and_read_back() {
     want["keys"][0] = json!({"do": "scene", "uuid": "0b0e6b1c-7f0a-4a55-9a43-1f2d3c4b5a69", "label": "Cam"});
     assert_eq!(connection.read().expect("read"), Config { seq: 2, document: want });
     assert_eq!(connection.read_mapping().expect("mapping"), mapping);
+    pad.finish();
+}
+
+/// A fresh or factory-reset pad holds no document. The editor starts from the built-in one, and
+/// its first write goes on `seq` 0 with no other command.
+#[test]
+fn a_fresh_pad_takes_its_first_mapping_from_the_editor() {
+    let scratch = Scratch::new("mapping-fresh");
+    let pad = Padsim::start(&scratch.path("pad.nor"));
+    let mut connection = Connection::new();
+    connection.attach(pad.port()).expect("INFO");
+    let mapping = connection.read_mapping().expect("a fresh pad gives the built-in mapping");
+    assert_eq!(mapping.url, "ws://10.0.0.2");
+    assert_eq!(connection.write_mapping(&mapping).expect("write"), Saved::Saved { seq: 1 });
+    assert_eq!(connection.read().expect("read"), Config { seq: 1, document: minimal_document() });
     pad.finish();
 }
 
