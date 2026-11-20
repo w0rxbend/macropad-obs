@@ -391,6 +391,10 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     for 5 s.
   - Verify: `just app-check`. Deps: 3.1. Files: `app/check/Dockerfile`, `justfile`,
     `app/udev/70-macropad-obs.rules`.
+  - Status: image, `app/check/window.sh`, recipe and udev line are in. Open until 3.6: `just
+    app-check` stops at `session.rs` (v1 `Bridge`, `Port`). A scratch copy with a stub `session.rs`
+    builds in the image and passes the window check. `check_pins.py` had to learn the second line,
+    because it compares the whole rule file.
 
 ### Checkpoint 3
 - [ ] `just test` includes 4b and 4c.

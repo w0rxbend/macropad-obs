@@ -18,6 +18,9 @@ UDEV_RULES = "app/udev/70-macropad-obs.rules"
 # docs/spec/spec-v2.md section 7 pin budget; docs/research/18-esp32s3-wifi-delta.md section 2.
 STRAPPING = {"IO0": "BOOT", "IO3": "", "IO45": "", "IO46": ""}
 UDEV_RULE = 'SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="4f42", TAG+="uaccess", SYMLINK+="macropad-obs"'
+# The ESP32-S3 ROM download port that the pad becomes after BOOTLOADER: Espressif 303a:1001
+# (docs/research/18-esp32s3-wifi-delta.md section 8). No symlink: it is not the pad's CDC port.
+UDEV_ROM_RULE = 'SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", TAG+="uaccess"'
 
 
 def rust_u16(text: str, name: str) -> int:
@@ -96,7 +99,7 @@ def main(arguments: list[str]) -> int:
     protocol_rs = (ROOT / PROTOCOL_RS).read_text(encoding="utf-8")
     errors += binding_errors(board, pins_h, protocol_rs)
     udev = (ROOT / UDEV_RULES).read_text(encoding="utf-8").strip()
-    if udev != UDEV_RULE:
+    if udev != f"{UDEV_RULE}\n{UDEV_ROM_RULE}":
         errors.append(f"udev rule {udev!r}")
     print("\n".join(errors) or f"check_pins: {len(board['gpio'])} nets, pins.h and protocol.rs match board.toml")
     return 1 if errors else 0

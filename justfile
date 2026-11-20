@@ -64,6 +64,21 @@ gate:
 app:
     cd {{root}}/app/src-tauri && cargo build
 
+# Not on the test chain. No sudo and no host library: the same build in an image made from the
+# local kicad/kicad:10.0.7 (app/check/Dockerfile), with the host's Rust toolchain mounted
+# read-only. Then it passes when the window "macropad-obs" shows under Xvfb within 10 s and is
+# alive 5 s later. It proves the build and the window, not the pad. Fails until task 3.6, as `app`.
+app-check:
+    docker build --quiet --tag macropad-obs-app-check {{root}}/app/check
+    mkdir -p {{root}}/.build/app-check
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
+        -e CARGO_HOME={{root}}/.build/app-check/cargo \
+        -e CARGO_TARGET_DIR={{root}}/.build/app-check/target \
+        -v "$(rustc --print sysroot):/opt/rust:ro" \
+        -v "{{root}}:{{root}}" -w "{{root}}/app/src-tauri" macropad-obs-app-check \
+        sh -c 'cargo build --locked && xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" \
+            {{root}}/app/check/window.sh "$CARGO_TARGET_DIR/debug/macropad-obs"'
+
 # Not on the test chain. KiCad 9.0.9 in Docker. Does not claim Gerbers exist until this exits 0.
 # Fails until task 5.6: task 1.4b retired pcb/gen with the old wedge.
 pcb:
