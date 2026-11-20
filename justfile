@@ -207,7 +207,8 @@ app-check:
         sh -c 'cargo build --locked && xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" \
             {{root}}/app/check/window.sh "$CARGO_TARGET_DIR/debug/macropad-obs"'
 
-# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: place);
+# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc, place);
+# `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
 # `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml.
 # Does not claim Gerbers exist until the pipeline has a fab step and exits 0.
 pcb *STEP:

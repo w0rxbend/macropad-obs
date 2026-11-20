@@ -2,11 +2,12 @@
 """PCB build steps. Run inside the KiCad container (`just pcb`).
 
     build.py          every step of PIPELINE, in order
+    build.py erc      the circuit -> the schematic, KiCad's ERC on it, its netlist against the circuit
     build.py place    board.toml + circuit -> the placed, unrouted board, checked by the contract
     build.py contract the saved board against board.toml: outline, holes, positions, antenna, carriers
     build.py drc      KiCad's DRC: the project rules reach it, and no warning is left
 
-The schematic, routing and the order files join as steps in tasks 5.7 to 5.10.
+Routing and the order files join as steps in tasks 5.8 to 5.10.
 
 Copied from macropad-greycode pcb/gen (decision D5), with `_check_rules_reach_drc` as macropad's
 pcb/gen/build.py has it. Greycode's place and order steps are gone until this board has a circuit
@@ -29,6 +30,7 @@ import contract
 import layout
 import place
 import schematic
+import sheets
 
 PCB_DIR = Path(__file__).resolve().parents[1]
 KICAD_DIR = PCB_DIR / "kicad"
@@ -64,7 +66,9 @@ def write_schematic(sheet: schematic.Sheet) -> dict[str, str]:
 
     Returns the nets of the open pins ("U1.14" -> "unconnected-(U1-GPIO10-Pad14)") for the board."""
     BUILD_DIR.mkdir(exist_ok=True)
-    IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    KICAD_DIR.mkdir(exist_ok=True)
+    # The project file is where kicad-cli finds the project's sym-lib-table, so it must exist before ERC.
+    layout.write_project_rules(BOARD_PATH.with_suffix(".kicad_pro"))
     schematic.write(KICAD_DIR, sheet)
     _kicad_cli("sch", "erc", "--severity-all", "--exit-code-violations", "-o", str(BUILD_DIR / "erc.rpt"),
                str(SCHEMATIC_PATH))
@@ -73,11 +77,27 @@ def write_schematic(sheet: schematic.Sheet) -> dict[str, str]:
     drawn = {pin: net for pin, net in exported.items() if pin not in open_pin_nets}
     wrong = sorted(pin for pin in drawn.keys() | wanted.keys() if drawn.get(pin) != wanted.get(pin))
     assert not wrong, f"schematic and circuit disagree on {wrong}"
-    _kicad_cli("sch", "export", "svg", "--exclude-drawing-sheet", "-o", str(BUILD_DIR), str(SCHEMATIC_PATH))
-    (BUILD_DIR / f"{schematic.PROJECT}.svg").replace(IMAGE_DIR / "schematic.svg")
-    _kicad_cli("sch", "export", "pdf", "-o", str(IMAGE_DIR / "schematic.pdf"), str(SCHEMATIC_PATH))
     print(f"schematic: ERC clean, {len(drawn)} pins match the circuit")
     return open_pin_nets
+
+
+SCHEMATIC_FILES = (f"{schematic.PROJECT}.kicad_sch", f"{schematic.PROJECT}.kicad_sym", "sym-lib-table", "fp-lib-table")
+
+
+def check_schematic_repeatable(sheet: schematic.Sheet) -> None:
+    """The sheet written a second time, into an empty folder, is the same bytes as the saved one."""
+    again_dir = BUILD_DIR / "schematic-again"
+    shutil.rmtree(again_dir, ignore_errors=True)
+    again_dir.mkdir(parents=True)
+    schematic.write(again_dir, sheet)
+    differ = [name for name in SCHEMATIC_FILES if (again_dir / name).read_bytes() != (KICAD_DIR / name).read_bytes()]
+    assert not differ, f"a second write of the schematic differs in {differ}"
+    print(f"schematic: byte-repeatable, {len(SCHEMATIC_FILES)} files")
+
+
+def erc() -> None:
+    write_schematic(sheets.SHEET)
+    check_schematic_repeatable(sheets.SHEET)
 
 
 def _render(board_path: Path, name: str, *view: str) -> None:
@@ -173,8 +193,8 @@ def place_board() -> None:
     contract.check(pcbnew.LoadBoard(str(BOARD_PATH)))
 
 
-STEPS = {"place": place_board, "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
-PIPELINE = ("place",)
+STEPS = {"erc": erc, "place": place_board, "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
+PIPELINE = ("erc", "place")
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:

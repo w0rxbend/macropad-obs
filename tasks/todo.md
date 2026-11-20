@@ -519,7 +519,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     after 5.12.
   - Verify: `just pcb place`. Deps: 5.1-5.5 (final run: S.3 via 5.12). Files: `pcb/gen/place.py`,
     `test_place.py`, `justfile`.
-- [ ] **5.7 Schematic and ERC (S) [provisional].** Write the sheets and run ERC in
+- [x] **5.7 Schematic and ERC (S) [provisional].** Write the sheets and run ERC in
   `kicad/kicad:9.0.9`.
   - Accept: ERC is clean and the output is byte-repeatable.
   - Verify: `just pcb erc`. Deps: 5.6. Files: `pcb/gen/sheets.py`, `justfile`.
