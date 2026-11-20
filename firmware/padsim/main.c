@@ -400,11 +400,20 @@ static void render_panels(void) {
 	render_display(&sim.render, &sim.ui, UI_STRIP, &view);
 }
 
-// The failure the strip line names: Wi-Fi first, since OBS cannot be reached without it.
+// The failure the strip line names: Wi-Fi first, since OBS cannot be reached without it, and the
+// factory defaults last, since the pad still runs on them.
 static const char *strip_line(void) {
-	const char *wifi = wifi_strip_line(sim.wifi.status.state);
-	const char *obs = obs_strip_line(sim.obs.status);
-	return wifi != NULL ? wifi : obs != NULL ? obs : "";
+	const char *lines[] = {
+	    wifi_strip_line(sim.wifi.status.state),
+	    obs_strip_line(sim.obs.status),
+	    store_strip_line(&sim.device.store),
+	};
+	for (size_t i = 0; i < sizeof lines / sizeof lines[0]; i++) {
+		if (lines[i] != NULL) {
+			return lines[i];
+		}
+	}
+	return "";
 }
 
 static void dump(const char *dir) {

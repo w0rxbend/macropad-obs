@@ -73,5 +73,9 @@ store_status_t store_commit(store_t *store, const store_doc_t *doc, const uint8_
 // state is STORE_NONE after it, even when an erase failed.
 store_status_t store_erase(store_t *store);
 
+// The strip line of a pad that runs on its factory defaults (spec 13 criterion 9), or NULL while
+// a document runs. A `schema` below min adds `update config` (spec 8.2). Names no document byte.
+const char *store_strip_line(const store_t *store);
+
 // CRC-32 (IEEE 802.3, reflected, as zlib), the one CFG_BEGIN carries. "123456789" -> 0xCBF43926.
 uint32_t store_crc32(const uint8_t *bytes, size_t len);

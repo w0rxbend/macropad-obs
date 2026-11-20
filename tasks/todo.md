@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.17b (padsim e2e: criteria 5, 8 and 9).
+Next action: Checkpoint 1 owner review, then 2.18 (repo rule R4).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -312,7 +312,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: criterion 4 (read, edit, write, `seq + 1`, stale) and 4c (exact request log) pass.
   - Verify: `just test`. Deps: 2.16. Files: `host/obs_core/tests/padsim_e2e.rs`,
     `host/obs_core/tests/common/mod.rs`, `justfile`.
-- [ ] **2.17b padsim e2e: criteria 5, 8 and 9 (M).**
+- [x] **2.17b padsim e2e: criteria 5, 8 and 9 (M).**
   - Accept: 50 `--cut-after` kills during commit leave the old or the new document (5). 500 scenes
     load and 500 come back over `OBS_LIST` (8). `wifi` events and fake_obs modes for no SSID, bad
     key, no AP, OBS unreachable, bad password, OBS too old and factory each give their strip line

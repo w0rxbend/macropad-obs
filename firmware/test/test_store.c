@@ -236,6 +236,30 @@ static void test_a_schema_above_max_is_not_loaded(void) {
 	CHECK(rebooted.state == STORE_UNLOADED && rebooted.doc.seq == OLD.seq);
 }
 
+static bool line_is(const char *line, const char *text) {
+	return line != NULL && strcmp(line, text) == 0;
+}
+
+// Spec 13 criterion 9 and spec 8.2: no document, or one the pad does not run, shows the factory line.
+static void test_a_pad_without_a_running_document_has_the_factory_line(void) {
+	nor_chip_init(&chip);
+	store_t store = mounted();
+	CHECK(line_is(store_strip_line(&store), "Factory config"));
+	CHECK(store_commit(&store, &OLD, OLD_DOC) == STORE_OK);
+	CHECK(store_strip_line(&store) == NULL);
+
+	store_doc_t old_schema = NEW;
+	old_schema.schema = CONFIG_SCHEMA_MIN - 1;
+	CHECK(store_commit(&store, &old_schema, new_doc) == STORE_OK);
+	CHECK(line_is(store_strip_line(&store), "Factory config, update config"));
+
+	store_doc_t new_schema = NEW;
+	new_schema.seq = NEW.seq + 1;
+	new_schema.schema = CONFIG_SCHEMA_MAX + 1;
+	CHECK(store_commit(&store, &new_schema, new_doc) == STORE_OK);
+	CHECK(line_is(store_strip_line(&store), "Factory config"));
+}
+
 static void test_erase_leaves_no_document(void) {
 	start(true);
 	store_t store = mounted();
@@ -399,6 +423,7 @@ int main(void) {
 	test_a_bad_slot_loses_to_the_good_one();
 	test_a_schema_below_min_is_kept_and_served();
 	test_a_schema_above_max_is_not_loaded();
+	test_a_pad_without_a_running_document_has_the_factory_line();
 	test_erase_leaves_no_document();
 	test_a_failed_erase_still_drops_the_document();
 	test_no_credential_byte_reaches_cfg_data();

@@ -159,3 +159,18 @@ store_status_t store_erase(store_t *store) {
 	}
 	return erased ? STORE_OK : STORE_FLASH_FAIL;
 }
+
+const char *store_strip_line(const store_t *store) {
+	switch (store->state) {
+	case STORE_LOADED:
+		return NULL;
+	case STORE_UNLOADED:
+		if (store->doc.schema < CONFIG_SCHEMA_MIN) {
+			return "Factory config, update config";
+		}
+		break;
+	case STORE_NONE:
+		break;
+	}
+	return "Factory config";
+}

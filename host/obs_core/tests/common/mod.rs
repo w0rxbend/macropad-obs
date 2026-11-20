@@ -5,12 +5,16 @@
 //! `just padsim-build` writes `.build/padsim`; `PADSIM` names another build. Standard library only:
 //! a thread per pipe turns each blocking read into a channel the test can wait on with a deadline.
 
+// Each test binary compiles this module and uses only part of it.
+#![allow(dead_code)]
+
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, Command, Stdio};
-use std::sync::mpsc::{self, Receiver};
+use std::process::{Child, ChildStdin, Command, ExitStatus, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -25,6 +29,8 @@ const LOG_QUIET: Duration = Duration::from_millis(400);
 const LOG_POLL: Duration = Duration::from_millis(10);
 /// Linux `O_NOCTTY` (asm-generic `fcntl.h`): opening the pty must not make it our terminal.
 const O_NOCTTY: i32 = 0o400;
+/// The signal `--cut-after` kills padsim with (`firmware/padsim/nor_file.c`).
+const SIGKILL: i32 = 9;
 
 pub fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -93,10 +99,16 @@ pub struct FakeObs {
 
 impl FakeObs {
     pub fn start(log: PathBuf) -> Self {
+        Self::start_with(log, &[])
+    }
+
+    /// With more `tools/fake_obs.py` flags, such as `--scenes 500`.
+    pub fn start_with(log: PathBuf, flags: &[&str]) -> Self {
         let mut child = Command::new("python3")
             .arg(repo_root().join("tools/fake_obs.py"))
             .arg("--log")
             .arg(&log)
+            .args(flags)
             .stdout(Stdio::piped())
             .spawn()
             .expect("python3 runs tools/fake_obs.py");
@@ -160,12 +172,20 @@ pub struct Pad {
 
 impl Pad {
     pub fn start(nor: &Path, obs_port: Option<u16>) -> Self {
+        Self::start_with(nor, obs_port, None)
+    }
+
+    /// `cut_after`: padsim's `--cut-after N`, SIGKILL when flash program call N begins.
+    pub fn start_with(nor: &Path, obs_port: Option<u16>, cut_after: Option<u32>) -> Self {
         let padsim = std::env::var_os("PADSIM").map_or_else(|| repo_root().join(".build/padsim"), PathBuf::from);
         assert!(padsim.is_file(), "no padsim at {}: run `just padsim-build`", padsim.display());
         let mut command = Command::new(&padsim);
         command.arg("--nor").arg(nor);
         if let Some(port) = obs_port {
             command.arg("--obs").arg(format!("127.0.0.1:{port}"));
+        }
+        if let Some(call) = cut_after {
+            command.arg("--cut-after").arg(call.to_string());
         }
         let mut child =
             command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().expect("padsim starts");
@@ -191,8 +211,13 @@ impl Pad {
         assert_eq!(line, "idle", "wait-idle answers idle");
     }
 
-    /// The next frame from the pad. A STATUS frame also updates `last_status`.
     fn frame(&mut self, deadline: Instant) -> Frame {
+        self.try_frame(deadline).expect("padsim is alive")
+    }
+
+    /// The next frame from the pad, or None once padsim has closed the pty. A STATUS frame also
+    /// updates `last_status`.
+    fn try_frame(&mut self, deadline: Instant) -> Option<Frame> {
         loop {
             match self.rx.pull() {
                 Some(Pulled::Frame(frame)) => {
@@ -201,28 +226,39 @@ impl Pad {
                             self.last_status = Some((obs_state, wifi_state));
                         }
                     }
-                    return frame;
+                    return Some(frame);
                 }
                 Some(Pulled::Reply(reply)) => panic!("the pad sent a frame the codec refuses: {reply:?}"),
                 None => {}
             }
             let left = deadline.saturating_duration_since(Instant::now());
-            let bytes = self.bytes.recv_timeout(left).expect("the pad sent a whole frame in time");
-            self.rx.push(&bytes);
+            match self.bytes.recv_timeout(left) {
+                Ok(bytes) => self.rx.push(&bytes),
+                Err(RecvTimeoutError::Disconnected) => return None,
+                Err(RecvTimeoutError::Timeout) => panic!("the pad sent no whole frame within {TIMEOUT:?}"),
+            }
         }
     }
 
     /// Sends one message and returns the pad's reply to it. STATUS and INPUT frames are skipped.
     pub fn ask(&mut self, message: &Message) -> Message {
+        self.try_ask(message).unwrap_or_else(|| panic!("padsim ended before it answered {message:?}"))
+    }
+
+    /// `ask`, or None when padsim ends before it answers.
+    fn try_ask(&mut self, message: &Message) -> Option<Message> {
         let id = self.next_id;
         self.next_id = self.next_id % u8::MAX + 1;
         let frame = message.encode(id).unwrap_or_else(|| panic!("the codec encodes {message:?}"));
-        self.link.write_all(&protocol::encode(&frame).expect("frame fits")).expect("pty write");
+        // A pty whose master is closed refuses the write: padsim has ended.
+        self.link.write_all(&protocol::encode(&frame).expect("frame fits")).ok()?;
         let deadline = Instant::now() + TIMEOUT;
         loop {
-            let reply = self.frame(deadline);
+            let reply = self.try_frame(deadline)?;
             if reply.id == id && reply.kind != STATUS && reply.kind != INPUT {
-                return Message::decode(&reply).unwrap_or_else(|| panic!("the codec decodes the reply {reply:?}"));
+                return Some(
+                    Message::decode(&reply).unwrap_or_else(|| panic!("the codec decodes the reply {reply:?}")),
+                );
             }
         }
     }
@@ -262,29 +298,59 @@ impl Pad {
     /// `CFG_BEGIN`, the chunks, `CFG_COMMIT`, as `document::write_messages` builds them. Stops at
     /// the first `RESULT` that is not ok and returns it; else returns the commit's.
     pub fn write_document(&mut self, info: &Info, doc: &Document) -> WriteResult {
+        self.write_document_or_cut(info, doc).expect("padsim ended during CFG_COMMIT")
+    }
+
+    /// `write_document`, or None when padsim ends during `CFG_COMMIT`, as a `--cut-after` kill
+    /// does. padsim ending on any earlier message fails the test.
+    pub fn write_document_or_cut(&mut self, info: &Info, doc: &Document) -> Option<WriteResult> {
         let messages = document::write_messages(info, doc).expect("the app may write this pad");
         for message in &messages {
-            let Message::Result { code, seq, path } = self.ask(message) else {
+            let is_commit = matches!(message, Message::CfgCommit);
+            let Some(reply) = self.try_ask(message) else {
+                assert!(is_commit, "padsim ended on {message:?}, before CFG_COMMIT");
+                return None;
+            };
+            let Message::Result { code, seq, path } = reply else {
                 panic!("{message:?} gives RESULT");
             };
-            if code != RESULT_OK || matches!(message, Message::CfgCommit) {
-                return WriteResult { code, seq, path };
+            if code != RESULT_OK || is_commit {
+                return Some(WriteResult { code, seq, path });
             }
         }
         unreachable!("write_messages ends with CFG_COMMIT")
     }
 
+    /// `dump DIR`: writes the panel frames to `dir` and returns the strip line padsim names.
+    pub fn strip_line(&mut self, dir: &Path) -> String {
+        self.command(&format!("dump {}", dir.display()));
+        let reply = next_line(&self.lines, "dump");
+        let (head, line) = reply.split_once(" line=").unwrap_or_else(|| panic!("dump names the line: {reply:?}"));
+        assert_eq!(head, format!("dumped {} bad_windows=0", dir.display()), "dump reply");
+        line.to_owned()
+    }
+
+    /// Waits for padsim to die by SIGKILL, as `--cut-after` kills it.
+    pub fn wait_killed(mut self) {
+        let status = self.wait_exit();
+        assert_eq!(status.signal(), Some(SIGKILL), "padsim was killed by SIGKILL, not {status}");
+    }
+
+    fn wait_exit(&mut self) -> ExitStatus {
+        let deadline = Instant::now() + TIMEOUT;
+        loop {
+            if let Some(status) = self.child.try_wait().expect("padsim wait") {
+                return status;
+            }
+            assert!(Instant::now() < deadline, "padsim ends within {TIMEOUT:?}");
+            thread::sleep(LOG_POLL);
+        }
+    }
+
     /// Ends padsim through end of stdin. It must exit 0 with no sanitizer report.
     pub fn finish(mut self) {
         drop(self.stdin.take());
-        let deadline = Instant::now() + TIMEOUT;
-        let status = loop {
-            if let Some(status) = self.child.try_wait().expect("padsim wait") {
-                break status;
-            }
-            assert!(Instant::now() < deadline, "padsim ends within {TIMEOUT:?} of end of stdin");
-            thread::sleep(LOG_POLL);
-        };
+        let status = self.wait_exit();
         let mut errors = String::new();
         self.child.stderr.take().expect("padsim stderr").read_to_string(&mut errors).expect("stderr reads");
         assert!(status.success(), "padsim exits 0, not {status}: {errors}");
