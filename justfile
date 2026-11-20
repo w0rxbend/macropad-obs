@@ -101,6 +101,15 @@ test-firmware:
         {{root}}/firmware/test/test_render.c -o {{root}}/.build/test_render
     {{root}}/.build/test_render
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        -DGOLDEN='"{{root}}/firmware/test/golden"' \
+        {{root}}/firmware/core/ui.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c {{root}}/firmware/core/render.c \
+        {{root}}/firmware/core/font_noto14.c {{root}}/firmware/core/font_noto20.c {{root}}/firmware/core/font_noto28.c \
+        {{root}}/firmware/test/test_render_strip.c -o {{root}}/.build/test_render_strip
+    {{root}}/.build/test_render_strip
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware/core -I{{root}}/firmware/test \
         {{root}}/firmware/core/store.c {{root}}/firmware/test/nor_model.c \
         {{root}}/firmware/test/test_store.c -o {{root}}/.build/test_store
@@ -124,11 +133,6 @@ test-firmware:
         {{root}}/firmware/test/nor_model.c {{root}}/firmware/test/test_device_obs.c \
         -o {{root}}/.build/test_device_obs
     {{root}}/.build/test_device_obs
-    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
-        -I{{root}}/firmware \
-        {{root}}/firmware/st7789.c {{root}}/firmware/font8x16.c {{root}}/firmware/test/test_st7789.c \
-        -o {{root}}/.build/test_st7789
-    {{root}}/.build/test_st7789
 
 test-host:
     cd {{root}}/host && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check

@@ -3,7 +3,9 @@
 > **This is the v1 design, kept as history.** The v2 spec is `docs/spec/spec-v2.md`. Task 1.1
 > deleted the Pico SDK build this file describes (`firmware/src/`, `firmware/CMakeLists.txt`,
 > `firmware/Dockerfile`, `just firmware`). Task 1.2 moved `firmware/link.*` and `firmware/input.*`
-> to `firmware/core/` and `host/src/` to `host/obs_core/src/`. Paths and recipes below are v1 names.
+> to `firmware/core/` and `host/src/` to `host/obs_core/src/`. Task 2.14b deleted `firmware/st7789.*`,
+> `firmware/font8x16.*` and `test_st7789.c`; `firmware/core/render.c` and `panels.c` replace them.
+> Paths and recipes below are v1 names.
 
 | | |
 |---|---|

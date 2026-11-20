@@ -279,11 +279,20 @@ static text_t take_line(const font_t *font, text_t *text, int max_width) {
 }
 
 // Word-wrapped lines of `font` from the top of `box`, as many as fit whole. The last one takes the
-// rest of the text, cut with an ellipsis. `centered` centres each line in the box.
+// rest of the text, cut with an ellipsis. `centered` centres each line in the box. A line whose
+// rows reach `keep_out` ends INSET / 2 short of its left edge; a zero-size `keep_out` keeps out
+// nothing.
 typedef struct {
 	text_style_t style;
 	bool centered;
+	ui_rect_t keep_out;
 } wrap_t;
+
+static int line_width(wrap_t wrap, ui_rect_t box, int top) {
+	ui_rect_t keep_out = wrap.keep_out;
+	bool reaches = keep_out.w > 0 && top < keep_out.y + keep_out.h && keep_out.y < top + wrap.style.font->line_height;
+	return reaches ? min_int(box.w, max_int(0, keep_out.x - INSET / 2 - box.x)) : box.w;
+}
 
 static int wrapped_lines(const font_t *font, ui_rect_t box, text_t text) {
 	int lines = 0;
@@ -297,10 +306,12 @@ static void draw_wrapped(canvas_t *canvas, wrap_t wrap, ui_rect_t box, text_t te
 	const font_t *font = wrap.style.font;
 	int room = box.h / font->line_height;
 	for (int line_index = 0; text.len > 0 && line_index < room; line_index++) {
-		text_t line = line_index + 1 < room ? take_line(font, &text, box.w) : text;
-		int width = min_int(text_width(font, line), box.w);
+		int top = box.y + line_index * font->line_height;
+		int max_width = line_width(wrap, box, top);
+		text_t line = line_index + 1 < room ? take_line(font, &text, max_width) : text;
+		int width = min_int(text_width(font, line), max_width);
 		int x = wrap.centered ? box.x + (box.w - width) / 2 : box.x;
-		draw_text_line(canvas, wrap.style, (pen_t){x, box.y + line_index * font->line_height}, box.w, line);
+		draw_text_line(canvas, wrap.style, (pen_t){x, top}, max_width, line);
 		if (line.bytes == text.bytes) { // the last line took the rest
 			break;
 		}
@@ -358,13 +369,18 @@ static void draw_key(canvas_t *canvas, ui_rect_t rect, const render_key_t *key) 
 		body.y = (uint16_t)(body.y + FONT_NOTO14.line_height);
 		body.h = (uint16_t)max_int(0, body.h - FONT_NOTO14.line_height);
 	}
-	draw_wrapped(canvas, (wrap_t){{&FONT_NOTO20, colors.text}, false}, body, text_of(key->label));
 	const char *tag = key->state < sizeof KEY_TAGS / sizeof KEY_TAGS[0] ? KEY_TAGS[key->state] : NULL;
+	ui_rect_t tag_box = {0, 0, 0, 0};
 	if (tag != NULL) {
-		text_t text = text_of(tag);
-		int width = text_width(&FONT_NOTO14, text);
-		pen_t pen = {rect.x + rect.w - INSET - width, rect.y + rect.h - INSET - FONT_NOTO14.line_height};
-		draw_text_line(canvas, (text_style_t){&FONT_NOTO14, colors.text}, pen, width, text);
+		int width = text_width(&FONT_NOTO14, text_of(tag));
+		tag_box = (ui_rect_t){(uint16_t)(rect.x + rect.w - INSET - width),
+		                      (uint16_t)(rect.y + rect.h - INSET - FONT_NOTO14.line_height), (uint16_t)width,
+		                      FONT_NOTO14.line_height};
+	}
+	draw_wrapped(canvas, (wrap_t){{&FONT_NOTO20, colors.text}, false, tag_box}, body, text_of(key->label));
+	if (tag != NULL) {
+		pen_t pen = {tag_box.x, tag_box.y};
+		draw_text_line(canvas, (text_style_t){&FONT_NOTO14, colors.text}, pen, tag_box.w, text_of(tag));
 	}
 }
 
@@ -375,7 +391,7 @@ static void draw_legend(canvas_t *canvas, ui_rect_t rect, const char *label) {
 	text_t text = text_of(label);
 	int lines = wrapped_lines(&FONT_NOTO20, body, text);
 	body.y = (uint16_t)(body.y + (body.h - lines * FONT_NOTO20.line_height) / 2);
-	draw_wrapped(canvas, (wrap_t){{&FONT_NOTO20, WHITE}, true}, body, text);
+	draw_wrapped(canvas, (wrap_t){{&FONT_NOTO20, WHITE}, true, {0, 0, 0, 0}}, body, text);
 }
 
 static const char *const SCENE_TAGS[] = {"PGM", "PVW"};

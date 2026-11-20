@@ -64,7 +64,6 @@ https://cern.ch/cern-ohl
 Left as tagged, not measured on a sample:
 
 - `board.toml`: `pulses_per_detent`, `fpc_edge`, `bushing_hole`, `encoder_pocket`, `knob_lift`, `keycap`, `switch_housing`, `encoder_body`, `tact_body_mm`
-- `MADCTL` `0x00` in `firmware/st7789.h`
 - Bottom-side CPL rotation is KiCad's angle and is unverified against a PCBWay preview
 
 The glass solid is 2.25 mm thick, the datasheet typical. The pocket depth in `board.toml` is 2.35 mm. The plate web is 1.5 mm, so the glass hangs below the plate. Retention in the model is the pocket, not a lip over the glass.

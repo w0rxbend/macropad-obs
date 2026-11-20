@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.14b (strip goldens, R14 mock-ups, retire st7789).
+Next action: Checkpoint 1 owner review, then 2.16 (padsim).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -288,7 +288,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     Only changed tiles are pushed.
   - Verify: `just test-firmware`. Deps: 2.13. Files: `core/render.[ch]`, `core/font_*.c`,
     `test/test_render.c`, `test/golden/main_*`.
-- [ ] **2.14b Strip goldens, R14 mock-ups, retire st7789 (M).** Golden frames for the strip and the
+- [x] **2.14b Strip goldens, R14 mock-ups, retire st7789 (M).** Golden frames for the strip and the
   three R14 mock-ups. Delete `st7789.*`, `font8x16.*` and `test_st7789.c`.
   - Accept: the strip frames match byte for byte (121,552 B). The R14 mock-ups match.
   - Verify: `just test-firmware`. Deps: 2.14a. Files: `test/test_render_strip.c`,
