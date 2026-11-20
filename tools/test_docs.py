@@ -299,8 +299,9 @@ class V1BridgeTest(unittest.TestCase):
 class ReadmeTest(unittest.TestCase):
     def test_every_just_command_is_a_recipe(self):
         justfile = (ROOT / "justfile").read_text(encoding="utf-8")
-        # A recipe may take parameters (`pcb *STEP:`); `name := value` is a variable, not a recipe.
-        recipes = set(re.findall(r"^([a-z][\w-]*)(?: [^:=\n]*)?:(?!=)", justfile, re.MULTILINE))
+        # A recipe may take parameters, with defaults (`pcb *STEP:`, `flash PORT="/dev/ttyACM0":`);
+        # `name := value` is a variable, not a recipe.
+        recipes = set(re.findall(r"^([a-z][\w-]*)(?: [^:\n]*)?:(?!=)", justfile, re.MULTILINE))
         named = set(re.findall(r"`just ([a-z][\w-]*)`", flat("README.md")))
         self.assertEqual(named - recipes, set())
 
@@ -310,10 +311,51 @@ class ReadmeTest(unittest.TestCase):
         for retired_path in retired_by_task_1_1():
             self.assertNotIn(retired_path, readme)
 
-    def test_design_doc_is_marked_as_the_retired_v1_design(self):
+
+# Task 7.2. Task 7.1 (tools/check_docs.py) was not wanted, so these four docs get the 1.10 check:
+# every path they name exists.
+DOCS_7_2 = ("docs/design.md", "docs/obs.md", "docs/config.md", "docs/bringup.md")
+# Spec 11 bring-up row, in its order: each step's pass words as docs/bringup.md writes them.
+BRINGUP_ORDER = ("no short", "3.3 V +/- 3 %", "ROM boot log", "303a:1001", "1209:4f42",
+                 "test pattern", "`INPUT`", "`up`", "500 mA", "charger")
+
+
+def named_paths(relative_path):
+    """Repo paths a doc names in backticks: a letter, dot or underscore first (not an address
+    block such as 10.0.0.0/8), a slash, no space, no colon (a URL or a Docker image tag), no
+    placeholder."""
+    tokens = re.findall(r"`([A-Za-z._][^`\s]*/[^`\s]*)`", (ROOT / relative_path).read_text(encoding="utf-8"))
+    return [token for token in tokens if ":" not in token and "<" not in token]
+
+
+def git_ignored(path):
+    """Build products (.build/, cad/.venv/) live only on the machine that built them."""
+    ignored = subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", path], check=False)
+    return ignored.returncode == 0
+
+
+class DesignDocsTest(unittest.TestCase):
+    def test_design_doc_opens_with_the_v2_spec_and_the_owner_decisions(self):
         opening = (ROOT / "docs/design.md").read_text(encoding="utf-8")[:400]
-        self.assertIn("v1 design", opening)
         self.assertIn("docs/spec/spec-v2.md", opening)
+        self.assertIn("docs/spec/decisions-v2.md", opening)
+
+    def test_docs_name_no_rp2040(self):
+        for doc in DOCS_7_2:
+            self.assertFalse("rp2040" in flat(doc).lower(), doc)
+
+    def test_every_path_a_doc_names_exists(self):
+        for doc in DOCS_7_2:
+            missing = [p for p in named_paths(doc) if not (ROOT / p).exists() and not git_ignored(p)]
+            self.assertEqual(missing, [], doc)
+
+    def test_bringup_keeps_the_spec_order_and_stops_at_the_first_fail(self):
+        bringup = flat("docs/bringup.md")
+        self.assertIn("Stop at the first fail", bringup)
+        steps = between(bringup, "## Checklist", "## Gaps")
+        positions = [steps.find(words) for words in BRINGUP_ORDER]
+        self.assertNotIn(-1, positions, dict(zip(BRINGUP_ORDER, positions)))
+        self.assertEqual(positions, sorted(positions))
 
 
 if __name__ == "__main__":

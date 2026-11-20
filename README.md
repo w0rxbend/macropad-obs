@@ -1,42 +1,75 @@
 # macropad-obs
 
-An 8° wedge for OBS. Nine MX keys, one knob, and a 2.4" ST7789 TFT sit on the same face. The front edge is the low edge. The whole body rises toward the USB side. The glass is flush with the keys.
+An OBS Studio control pad: a 3.5 inch display, a tall narrow strip display, 9 MX keys, 4 small
+buttons and 3 push knobs on a flat milled slab. An ESP32-S3 joins Wi-Fi and is the obs-websocket 5
+client itself; no PC process runs between the pad and OBS. A Linux Tauri app sets the pad up over
+USB: OBS URL, SSID, secrets (write only), key mapping and display layout.
 
-The pad speaks USB CDC. A Linux app holds the OBS WebSocket, the URL, and the password. The password never goes to the pad.
+The contract is `docs/spec/spec-v2.md` with the owner's answers in `docs/spec/decisions-v2.md`. The
+design as built is `docs/design.md`. The plan and task cards are `tasks/plan.md` and `tasks/todo.md`.
 
 ![Mesh render of the style A slab: two lens windows, nine keys, four buttons and three knobs](docs/images/case.png)
 
-That picture is a mesh render of the v2 style A case, cnc variant (`just cad render`); the keycaps are
+That picture is a mesh render of the style A case, cnc variant (`just cad render`); the keycaps are
 envelope boxes. It is not a photograph. Nothing in it has been printed, assembled, or flashed.
+
+## No hardware yet
+
+No board, case or panel exists. Nothing has run on a chip. Every hardware number in this repo is a
+datasheet value, an arithmetic result, or a MEASURE tag. The bring-up order for the first board is
+`docs/bringup.md`.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `just test` | Native checks only. No Docker, no Tauri window |
-| `just gate` | Board-order gate. Lists each open MEASURE on a gated `board.toml` entry and exits 1 while one is open. Not part of `just test` |
-| `just pcb` | KiCad 9.0.9 in Docker. Fails until task 5.6: task 1.4b retired the old generator |
-| `just app` | Tauri shell. Needs `webkit2gtk-4.1`. Not part of `just test` |
+| `just test` | gcc ASan/UBSan on `firmware/core`, cargo in `host/`, python3 checks, padsim end to end. No Docker, no window |
+| `just padsim-smoke` | builds padsim (the core on the PC) and runs its smoke script |
+| `just gate` | board-order gate: lists each open MEASURE on a gated `board.toml` entry; exits 1 while one is open. Not part of `just test` |
+| `just firmware` | ESP-IDF v6.1.1 in Docker: builds the merged image `.build/esp32s3/macropad-obs-merged.bin` and checks the built partition table |
+| `just flash` | writes that image over the ROM USB port with esptool in the IDF image. Needs the pad |
+| `just pcb` | KiCad 9.0.9 in Docker: ERC, placement, critical copper, Freerouting, fab set, DRC. `just pcb step` exports the board STEP in KiCad 10.0.7-full |
+| `just pcb-test-kicad` | the `pcb/gen` tests in the pinned KiCad image, where the pcbnew tests run |
+| `just cad` | build123d in `cad/.venv`: case, exports with read-back, coupons, laser sheets, renders, fit against the board STEP |
+| `just app` | `cargo build` of the Tauri app on the host. Needs `webkit2gtk-4.1` |
+| `just app-check` | the same build in a Docker image made from the local `kicad/kicad:10.0.7`, then the window under Xvfb |
 
 `cad/.venv` is local and gitignored. Create it with `uv` from `cad/pyproject.toml`.
 
 ## Status
 
-`just test` on 2026-11-16 exited 0:
+Each row is a command run on this machine on 2026-11-20, with its real exit code. A gated command is
+"not run: gated" and never counts as a pass.
 
-- `link: all tests pass`
-- `input: all tests pass`
-- `st7789: all tests pass`
-- host: 22 passed, 0 failed, then `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check`
-- `check_pins: 6 checks match board.toml`
-- pcb: 6 tests, OK
-- `cad/build.py check` printed no problems. With `cad/.venv` present it does not print `cad check skipped`, and it does not rebuild the solids
+| Command | Exit | What the run showed |
+| --- | --- | --- |
+| `just test` | 1 | `test-firmware` (20 C test programs) and `test-host` (cargo test, clippy, fmt; padsim e2e incl. criteria 4, 4b, 4c, 5, 8, 9) passed. `check` failed in `tools/test_docs.py`: the "Next action" line of `tasks/todo.md` and `tasks/plan.md` names 2.18, which is ticked. The chain stopped there, so `numbers`, `cad-check` and `pcb-test` ran alone (next rows) |
+| `just numbers` | 0 | 13 tests OK |
+| `just cad-check` | 0 | 11 tests OK |
+| `just pcb-test` | 0 | 218 tests OK, 39 skipped (the pcbnew tests, which run in `just pcb-test-kicad`) |
+| `just padsim-smoke` | 0 | a cut at program call 3, then the next start read the same NOR image |
+| `just gate` | 1 | 18 open MEASURE tags on gated entries: no board order. Expected until the panels are calipered and the coupons printed |
+| `just firmware` | 0 | image 1,040,564 bytes, DIRAM 93,058 bytes free; 5 partition rows match spec 10 |
+| `just pcb-test-kicad` | 0 | 218 tests OK, 1 skipped, in `kicad/kicad:9.0.9` |
+| `just pcb` | 0 | ERC clean; routed DRC at error severity: 0 violations, 0 unconnected, 0 parity, 4 copper layers; fab set byte-repeatable, 48 BOM findings listed. Provisional: J3 and J4 are `PLACEHOLDER_*` FPC footprints, so the set stays in ignored `pcb/.build/` |
+| `just pcb step` | 0 | the STEP reads back 75 solids. Provisional, as above |
+| `just cad` | 0 | every step 0 problems; 42 case, 12 2D, 10 envelope, 3 laser, 6 knob and 54 coupon files read back; FCStd not built (needs FreeCAD, not approved); fit: 0 interferences, DSA keycap seat not checked |
+| `just app` | 101 | `app/src-tauri/src/session.rs` imports the v1 `obs_core` API (`Bridge`, `Core`, ...), which is gone. Task 3.6 |
+| `just app-check` | 101 | the same compile error inside the image. Task 3.6, then 3.9 |
+| `just flash` | not run: gated | no pad exists |
 
-Task 1.3 has since replaced the RP2040 pins: `check_pins` now prints `check_pins: 30 nets, pins.h and protocol.rs match board.toml`.
+## Not built, not run, not proven
 
-Task 1.4b has since retired the old wedge: `pcb/gen`, `pcb/kicad`, `pcb/fab`, `cad/exports`, the pcb tests, and the cad check are gone. `python3 cad/build.py check` exits 2 with `no case body until 6.2a`. `tasks/todo.md` tasks 5.1, 6.1, and 6.2a bring them back.
-
-`just app` was not run. This machine has no `webkit2gtk-4.1`. The window has not been opened.
+- **Not built:** the board (`just gate` exits 1), the printed case, the milled case, the FCStd, the
+  committed fab set (task 5.12), the FPC footprints (task 5.3b), the Tauri app (task 3.6), the app
+  UI pages (tasks 3.7, 3.8), the dev kit spike firmware (task S.1).
+- **Not run:** anything on an ESP32-S3, the panels, or a real OBS. No spike results (S.3), no dev kit
+  acceptance (4.8), no bring-up (H.2), no JLCPCB or CNC quote (F.1, F.2).
+- **Not proven without hardware:** Wi-Fi through the back-wall insert, reconnect times, input to
+  scene change under 100 ms, strip update within 200 ms, redraw timing and SPI above 15 MHz, VBUS
+  under 500 mA, the panel init tables, the ROM port after `BOOTLOADER`, no secret in the `nvs` and
+  `cred` dumps or the UART log, case fit with no sanding. Each has a task card in `tasks/todo.md`
+  (S.3, 4.8, H.2 to H.11).
 
 VID `0x1209` PID `0x4F42` is not registered with pid.codes.
 
@@ -48,7 +81,8 @@ sudo udevadm control --reload
 sudo udevadm trigger
 ```
 
-The rule is `TAG+="uaccess"`, VID `1209`, PID `4f42`, symlink `macropad-obs`. There is no `plugdev` group and no `MODE`.
+Two rules, both `TAG+="uaccess"`: the pad's CDC port, VID `1209` PID `4f42`, symlink `macropad-obs`;
+and the ESP32-S3 ROM download port, VID `303a` PID `1001`. There is no `plugdev` group and no `MODE`.
 
 ## License
 
@@ -60,17 +94,7 @@ https://opensource.org/license/mit
 
 https://cern.ch/cern-ohl
 
-## MEASURE
+## MEASURE and UNVERIFIED
 
-Left as tagged, not measured on a sample:
-
-- `board.toml`: `pulses_per_detent`, `fpc_edge`, `bushing_hole`, `encoder_pocket`, `knob_lift`, `keycap`, `switch_housing`, `encoder_body`, `tact_body_mm`
-- Bottom-side CPL rotation is KiCad's angle and is unverified against a PCBWay preview
-
-The glass solid is 2.25 mm thick, the datasheet typical. The pocket depth in `board.toml` is 2.35 mm. The plate web is 1.5 mm, so the glass hangs below the plate. Retention in the model is the pocket, not a lip over the glass.
-
-## UNVERIFIED
-
-LCSC cells stay `UNVERIFIED` except RP2040 `C2040`, W25Q128JVSIQ `C97521`, and FH12-20S-0.5SH(55) `C596730`. That includes USB-C, AP2112K-3.3, USBLC6-2SC6, TS-1187A, the Abracon crystal, the backlight FET, the passives, the polyfuse, the MX sockets, the Alps EC11, and the Raystar glass.
-
-Passives whose netlist position is `(0, 0)` are absent from the silkscreen. Their BOM and CPL rows remain at the origin until a layout pass moves them.
+Sizes that come from no datasheet stay MEASURE until a caliper, a sample or a print coupon gives
+them. `just gate` lists the ones that block a board order. LCSC cells stay `UNVERIFIED`.

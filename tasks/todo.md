@@ -682,14 +682,17 @@ D5 copies: never edit the sibling repos. Each copied file carries
 - [ ] **7.1 Docs path check (S) [owner: only if wanted].** `tools/check_docs.py` fails on a named
   file that does not exist, in `just test`. If the owner says no, 7.2 uses the 1.10 `test -e` loop.
   - Verify: `just test`. Deps: none. Files: `tools/check_docs.py`, `justfile`.
-- [ ] **7.2 Design, OBS, config and bring-up docs (M).** Replace `docs/design.md` and
+- [x] **7.2 Design, OBS, config and bring-up docs (M).** Replace `docs/design.md` and
   `docs/obs.md` from the spec and the code as built. Keep `docs/config.md` current. Write
   `docs/bringup.md` (R15 order, stop at the first fail).
   - Accept: every fact carries a source or a MEASURE tag. Hardware facts not yet measured say
     "pending S.3", "pending 4.8" or "pending H.x". No RP2040 text remains.
   - Verify: `just test`. Deps: 7.1, the code lines of Checkpoints 1, 2, 3, 5 and 6. Files:
     `docs/design.md`, `docs/obs.md`, `docs/config.md`, `docs/bringup.md`.
-- [ ] **7.3 README status table (S).** A hand-written table: each command, its last exit code and
+  - Status: 7.1 not wanted. `tools/test_docs.py` `DesignDocsTest` is the 1.10 loop for the four
+    docs (every named path exists, ignored build products aside), no RP2040 text, and the bring-up
+    steps in the spec 11 order. Bring-up step 6 has no test-pattern image in the tree yet.
+- [x] **7.3 README status table (S).** A hand-written table: each command, its last exit code and
   date. A gated command says "not run: gated" and never counts as pass.
   - Verify: each row against a fresh run of its command. Deps: 7.2. Files: `README.md`.
 

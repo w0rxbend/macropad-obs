@@ -158,4 +158,4 @@ The Rust test gives every file to the validator and compares the verdict and the
 ## Open points
 
 - Two limits of the pad's JSON reader (`firmware/core/json.h`) are not rules of the Rust validator: a number literal longer than 32 bytes and nesting deeper than 16 stack entries make the pad answer `invalid` with the empty path. No document the app writes comes near either; the owner decides whether `document.rs` adopts them.
-- `uuid` takes any 1..36 printable bytes because criterion 4c uses `U_B`, while `OBS_ITEM` carries 16 raw UUID bytes. The owner picks one form before task 2.12.
+- `uuid` takes any 1..36 printable bytes because criterion 4c uses `U_B`, while `OBS_ITEM` carries 16 raw UUID bytes. The owner has not picked one form. Task 2.12 shipped with the printable form (`OBS_UUID_MAX` 36 in `firmware/core/obs_state.h`). `OBS_ITEM` sends 16 zero bytes for a UUID that is not in the 8-4-4-4-12 text form (`uuid_from_text` in `firmware/core/device.c`).
