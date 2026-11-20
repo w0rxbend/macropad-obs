@@ -2,10 +2,11 @@
 //! The diff the app shows after `stale_seq`: every leaf where the pad's document and the app's
 //! differ, by the paths of `docs/config.md` (`obs.url`, `keys[2].do`).
 
+use serde::Serialize;
 use serde_json::Value;
 
 /// One leaf that differs. `None` on a side means the member or list entry is not there.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Change {
     pub path: String,
     pub pad: Option<Value>,

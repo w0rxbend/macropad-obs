@@ -10,12 +10,15 @@ use obs_core::protocol::{
     credential_status, Frame, Message, Secret, CREDENTIAL_OBS_PASSWORD, CREDENTIAL_WIFI_PASSPHRASE, CRED_OK,
     SET_CREDENTIAL,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::session::{Session, SessionError, Stored};
 
-/// Which secret a `SET_CREDENTIAL` carries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Which secret a `SET_CREDENTIAL` carries. The window names it `obs_password` or
+/// `wifi_passphrase`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Credential {
     ObsPassword,
     WifiPassphrase,
@@ -31,7 +34,7 @@ impl Credential {
 }
 
 /// The last `STATUS` the pad sent. States are the `OBS_*` and `WIFI_*` values of `protocol`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Status {
     pub obs_state: u8,
     pub wifi_state: u8,
@@ -78,7 +81,7 @@ fn precheck(kind: u8, secret: &[u8]) -> u8 {
 }
 
 /// Zeroes a copy of a secret before its memory goes back to the allocator.
-fn wipe(mut bytes: Vec<u8>) {
+pub(crate) fn wipe(mut bytes: Vec<u8>) {
     bytes.fill(0);
     // Keeps the zeroing from being dropped as a dead store.
     std::hint::black_box(&bytes);

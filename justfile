@@ -215,14 +215,13 @@ gate:
     python3 {{root}}/tools/check_measure.py
 
 # Not on the test chain. Needs webkit2gtk-4.1. A missing library fails this recipe.
-# Fails until task 3.6: task 1.6a deleted the v1 bridge that src/session.rs still imports.
 app:
     cd {{root}}/app/src-tauri && cargo build
 
 # Not on the test chain. No sudo and no host library: the same build in an image made from the
 # local kicad/kicad:10.0.7 (app/check/Dockerfile), with the host's Rust toolchain mounted
 # read-only. Then it passes when the window "macropad-obs" shows under Xvfb within 10 s and is
-# alive 5 s later. It proves the build and the window, not the pad. Fails until task 3.6, as `app`.
+# alive 5 s later. It proves the build and the window, not the pad.
 app-check:
     docker build --quiet --tag macropad-obs-app-check {{root}}/app/check
     mkdir -p {{root}}/.build/app-check

@@ -201,6 +201,6 @@ fn ask_info<P: Read + Write>(link: &mut Link<P>) -> Result<Info, SessionError> {
     }
 }
 
-fn schemas(info: &Info) -> RangeInclusive<u64> {
+pub(crate) fn schemas(info: &Info) -> RangeInclusive<u64> {
     u64::from(info.schema_min)..=u64::from(info.schema_max)
 }

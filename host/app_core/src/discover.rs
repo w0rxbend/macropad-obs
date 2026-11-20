@@ -6,6 +6,7 @@ use std::fmt;
 use std::time::Duration;
 
 use obs_core::{USB_PID, USB_VID};
+use serde::Serialize;
 use serialport::{SerialPort, SerialPortType};
 
 /// The CDC port ignores the baud rate (`docs/protocol.md`); the OS still wants one.
@@ -14,7 +15,7 @@ const BAUD: u32 = 115_200;
 const READ_TIMEOUT: Duration = Duration::from_millis(20);
 
 /// One USB serial port as the OS lists it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct UsbPort {
     pub path: String,
     pub vid: u16,

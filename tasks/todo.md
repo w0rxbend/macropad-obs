@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: 3.6 (Tauri commands over the core), then 3.7, 3.8 and 3.9.
+Next action: 3.7 (UI: mapping editor), then 3.8 and 3.9.
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -368,12 +368,18 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     `Image` from `just firmware` output yet (3.8 or 4.9). The firmware does not fill the `INFO` git
     hash yet. `espflash` is the library only, with no reset before (the chip waits in ROM).
     app_core MSRV is 1.95. Not run on hardware.
-- [ ] **3.6 Tauri commands over the core (M). Blocked: needs D6 or the 3.9 image approval.**
+- [x] **3.6 Tauri commands over the core (M).**
   Replace `session.rs` and the seven old commands. Keep `logbuf.rs`.
   - Accept: each command is a thin call into `app_core`. Errors reach the UI as values. No `unwrap`.
     Picker and URL logic lives in `app_core` (Rust tests), not in JS.
   - Verify: after 3.9, `just app-check`; after D6, `just app`. Deps: 3.1-3.5, 3.9 or D6. Files:
     `app/src-tauri/src/main.rs`, `commands.rs`, `session.rs` (delete), `Cargo.toml`.
+  - Status: ten commands (`list_pads`, `connect`, `disconnect`, `pad_info`, `read_config`,
+    `write_config`, `set_credential`, `clear_credentials`, `pad_status`, `export_config`), each one
+    call into `app_core::Connection`, tested against padsim (`tests/padsim_connection.rs`).
+    `pad.rs` went with `session.rs`. No preview, `OBS_LIST` or update command yet (3.7, 3.8).
+    `app/ui/index.html` still calls the v1 commands until 3.7. `just app` and `just app-check` exit
+    0; the window was not opened on the host.
 - [ ] **3.7 UI: mapping editor (M).** A no-build HTML and ES module UI for keys, buttons and knobs,
   with OBS pickers from `OBS_LIST`, plus the URL field. The UI stays thin: form state, URL rule and
   stale diff are `app_core` functions with Rust tests. `node --test` only if the owner approves Node

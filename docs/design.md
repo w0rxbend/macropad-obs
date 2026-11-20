@@ -106,7 +106,7 @@ Provisional values in the port, each MEASURE or pending:
 | --- | --- | --- |
 | `obs_core` | `host/obs_core/` | v2 codec and document types, same vectors as the C side; `Secret` for the password and Wi-Fi key (spec 10) |
 | `app_core` | `host/app_core/` | the app without a window: find the pad, read and write the document, provision secrets, preview the panels with the firmware's own C renderer, firmware update with `espflash` as a library (`host/app_core/src/lib.rs`) |
-| Tauri shell | `app/src-tauri/` | not building: `app/src-tauri/src/session.rs` still imports the v1 API (README status; tasks 3.6, 3.9) |
+| Tauri shell | `app/src-tauri/` | builds (`just app`, `just app-check`); ten commands in `app/src-tauri/src/commands.rs`, each one call into `app_core::Connection` (task 3.6) |
 | UI | `app/ui/` | the mapping, display, Wi-Fi and update pages are tasks 3.7 and 3.8, not done |
 | udev | `app/udev/70-macropad-obs.rules` | app port 1209:4f42 and ROM port 303a:1001, `TAG+="uaccess"` |
 

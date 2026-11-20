@@ -2,18 +2,19 @@
 name = "macropad-obs"
 version = "0.1.0"
 edition = "2021"
+# app_core (espflash 4.7.0) sets 1.95.
+rust-version = "1.95"
 license = "MIT"
 publish = false
 description = "Tauri shell for the macropad-obs CDC pad. The window crate is not part of just test."
 
 [dependencies]
-futures-util = "0.3"
+app_core = { path = "../../host/app_core" }
+# The same obs_core app_core builds on: the app takes the workspace crate, never a copy (task 1.2).
 obs_core = { path = "../../host/obs_core" }
-obws = { version = "0.15.0", features = ["events", "tls"] }
-serde = { version = "1", features = ["derive"] }
-serialport = "4.7"
+serde_json = "1"
+serialport = "4.10"
 tauri = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 
 [build-dependencies]
 tauri-build = "2"

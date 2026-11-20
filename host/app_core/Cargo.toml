@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 obs_core = { path = "../obs_core" }
+serde = { version = "1", features = ["derive"] }
 # The library only: no CLI, no update check (spec 10, decisions-v2 G-deps).
 espflash = { version = "=4.7.0", default-features = false, features = ["serialport"] }
 serde_json = { version = "1", default-features = false, features = ["std"] }

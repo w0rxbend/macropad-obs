@@ -24,6 +24,7 @@ dependencies = [
  "cc",
  "espflash",
  "obs_core",
+ "serde",
  "serde_json",
  "serialport",
 ]

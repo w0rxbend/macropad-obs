@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-//! State log. Info lines are scrubbed before they hit disk.
+//! State log. The app holds no secret after a `SET_CREDENTIAL`, and callers log only `Failure`
+//! lines, which carry none.
 
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -9,7 +10,6 @@ const LIMIT: u64 = 1_000_000;
 
 pub struct Log {
     path: PathBuf,
-    secret: String,
 }
 
 impl Log {
@@ -23,18 +23,13 @@ impl Log {
             perms.set_mode(0o700);
             let _ = fs::set_permissions(&dir, perms);
         }
-        Self { path: dir.join("app.log"), secret: String::new() }
-    }
-
-    pub fn set_secret(&mut self, secret: &str) {
-        self.secret = secret.to_string();
+        Self { path: dir.join("app.log") }
     }
 
     pub fn info(&self, line: &str) {
-        let clean = self.scrub(line);
         self.rotate();
         if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&self.path) {
-            let _ = writeln!(file, "{clean}");
+            let _ = writeln!(file, "{line}");
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -45,13 +40,6 @@ impl Log {
                 let _ = file.set_permissions(perms);
             }
         }
-    }
-
-    pub fn scrub(&self, line: &str) -> String {
-        if self.secret.is_empty() {
-            return line.to_string();
-        }
-        line.replace(&self.secret, "***")
     }
 
     fn rotate(&self) {

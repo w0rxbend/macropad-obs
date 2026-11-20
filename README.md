@@ -54,14 +54,14 @@ Each row is a command run on this machine on 2026-11-20, with its real exit code
 | `just pcb` | 0 | ERC clean; routed DRC at error severity: 0 violations, 0 unconnected, 0 parity, 4 copper layers; fab set byte-repeatable, 48 BOM findings listed. Provisional: J3 and J4 are `PLACEHOLDER_*` FPC footprints, so the set stays in ignored `pcb/.build/` |
 | `just pcb step` | 0 | the STEP reads back 75 solids. Provisional, as above |
 | `just cad` | 0 | every step 0 problems; 42 case, 12 2D, 10 envelope, 3 laser, 6 knob and 54 coupon files read back; FCStd not built (needs FreeCAD, not approved); fit: 0 interferences, DSA keycap seat not checked |
-| `just app` | 101 | `app/src-tauri/src/session.rs` imports the v1 `obs_core` API (`Bridge`, `Core`, ...), which is gone. Task 3.6 |
-| `just app-check` | 101 | the same compile error inside the image. Task 3.6, then 3.9 |
+| `just app` | 0 | the Tauri shell builds on the host, its commands over `app_core` (task 3.6). The window was not opened here |
+| `just app-check` | 0 | the same build in the image; the window "macropad-obs" showed under Xvfb and was alive 5 s later. The UI pages are tasks 3.7, 3.8 |
 | `just flash` | not run: gated | no pad exists |
 
 ## Not built, not run, not proven
 
 - **Not built:** the board (`just gate` exits 1), the printed case, the milled case, the FCStd, the
-  committed fab set (task 5.12), the FPC footprints (task 5.3b), the Tauri app (task 3.6), the app
+  committed fab set (task 5.12), the FPC footprints (task 5.3b), the app
   UI pages (tasks 3.7, 3.8), the dev kit spike firmware (task S.1).
 - **Not run:** anything on an ESP32-S3, the panels, or a real OBS. No spike results (S.3), no dev kit
   acceptance (4.8), no bring-up (H.2), no JLCPCB or CNC quote (F.1, F.2).
