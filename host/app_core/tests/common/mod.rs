@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 //! padsim (the whole firmware core on a pseudo-terminal) as the pad an `app_core` session talks to.
 //! `just padsim-build` writes `.build/padsim`; `PADSIM` names another build.
+// Each test binary uses its own part of this module.
+#![allow(dead_code)]
 
 use std::fs;
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::thread;
@@ -81,6 +83,12 @@ impl Padsim {
     /// step of `discover::open` and keeps its settings.
     pub fn port(&self) -> TTYPort {
         serialport::new(&self.pty, 115_200).timeout(READ_TIMEOUT).open_native().expect("the pty opens as a serial port")
+    }
+
+    /// One stdin command (`firmware/padsim/main.c`).
+    pub fn command(&mut self, text: &str) {
+        let stdin = self.stdin.as_mut().expect("padsim stdin is open");
+        writeln!(stdin, "{text}").and_then(|()| stdin.flush()).expect("padsim takes a command");
     }
 
     /// Ends padsim through end of stdin. It must exit 0 with no sanitizer report.

@@ -347,7 +347,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the round trip keeps unknown fields. Stale shows a diff. Tests run against padsim.
   - Verify: `cargo test -p app_core` (in `just test`). Deps: 2.17a. Files:
     `host/app_core/src/*.rs` (3-4), `host/Cargo.toml`.
-- [ ] **3.3 App core: provisioning and export (S).** `SET_CREDENTIAL` from `Secret`, fields cleared
+- [x] **3.3 App core: provisioning and export (S).** `SET_CREDENTIAL` from `Secret`, fields cleared
   after the write, `CLEAR_CREDENTIALS`, and Wi-Fi `STATUS`.
   - Accept: the export has no secret. In a capture of the padsim traffic, no device-to-host frame
     holds a password or PSK byte, and no host-to-device frame other than the `SET_CREDENTIAL`

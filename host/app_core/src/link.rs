@@ -5,8 +5,10 @@ use std::fmt;
 use std::io::{self, ErrorKind, Read, Write};
 use std::time::{Duration, Instant};
 
-use obs_core::protocol::{self, Message, Pulled, INPUT, STATUS};
+use obs_core::protocol::{self, Frame, Message, Pulled, INPUT, STATUS};
 use obs_core::LinkRx;
+
+use crate::provision::Status;
 
 /// How long one attempt waits for its reply before the same frame goes again.
 pub const REPLY_WAIT: Duration = Duration::from_secs(1);
@@ -50,15 +52,33 @@ pub struct Link<P> {
     port: P,
     rx: LinkRx,
     next_id: u8,
+    status: Option<Status>,
 }
 
 impl<P: Read + Write> Link<P> {
     pub fn new(port: P) -> Self {
-        Self { port, rx: LinkRx::default(), next_id: 1 }
+        Self { port, rx: LinkRx::default(), next_id: 1, status: None }
     }
 
-    /// Sends `message` and returns the pad's reply to it. Frames with another id, `STATUS` and
-    /// `INPUT` are passed over. A commit is sent once and waits all attempts long: a second commit
+    /// The last `STATUS` the pad sent.
+    pub fn status(&self) -> Option<&Status> {
+        self.status.as_ref()
+    }
+
+    /// Reads for `wait` with no request out: a `STATUS` is kept, any other frame passed over.
+    pub fn listen(&mut self, wait: Duration) -> Result<(), LinkError> {
+        let deadline = Instant::now() + wait;
+        loop {
+            while self.next_frame().is_some() {}
+            if Instant::now() >= deadline {
+                return Ok(());
+            }
+            self.fill()?;
+        }
+    }
+
+    /// Sends `message` and returns the pad's reply to it. Frames with another id and `INPUT` are
+    /// passed over; a `STATUS` is kept for `status`. A commit is sent once and waits all attempts long: a second commit
     /// after a lost reply would not repeat the first.
     pub fn ask(&mut self, message: &Message) -> Result<Message, LinkError> {
         let id = self.take_id();
@@ -86,10 +106,8 @@ impl<P: Read + Write> Link<P> {
     /// The reply with `id`, or `None` once `deadline` passes.
     fn reply(&mut self, id: u8, deadline: Instant) -> Result<Option<Message>, LinkError> {
         loop {
-            // A frame the codec refuses (`Pulled::Reply`) is a damaged reply: the retry asks again.
-            while let Some(pulled) = self.rx.pull() {
-                let Pulled::Frame(frame) = pulled else { continue };
-                if frame.id == id && frame.kind != STATUS && frame.kind != INPUT {
+            while let Some(frame) = self.next_frame() {
+                if frame.id == id && frame.kind != INPUT {
                     return Message::decode(&frame).map(Some).ok_or(LinkError::BadReply { kind: frame.kind });
                 }
             }
@@ -98,6 +116,23 @@ impl<P: Read + Write> Link<P> {
             }
             self.fill()?;
         }
+    }
+
+    /// The next buffered frame that is not a `STATUS`. A `STATUS` is taken into `status` on the
+    /// way. A frame the codec refuses (`Pulled::Reply`) is a damaged reply: the retry asks again.
+    /// A `STATUS` that breaks its rules is dropped: no request waits on it, and the pad sends the
+    /// next one on change.
+    fn next_frame(&mut self) -> Option<Frame> {
+        while let Some(pulled) = self.rx.pull() {
+            let Pulled::Frame(frame) = pulled else { continue };
+            if frame.kind != STATUS {
+                return Some(frame);
+            }
+            if let Some(Message::Status { obs_state, wifi_state, rssi_dbm, ip }) = Message::decode(&frame) {
+                self.status = Some(Status { obs_state, wifi_state, rssi_dbm, ip });
+            }
+        }
+        None
     }
 
     /// Buffers what the port gives within its read timeout.
@@ -177,6 +212,16 @@ mod tests {
         let mut link = Link::new(Scripted::new(vec![Some(reply)]));
         let got = link.ask(&Message::CfgCommit).expect("reply");
         assert_eq!(got, Message::Result { code: RESULT_OK, seq: 7, path: String::new() });
+        assert_eq!(link.status(), Some(&Status { obs_state: 0, wifi_state: 0, rssi_dbm: 0, ip: [0; 4] }));
+    }
+
+    #[test]
+    fn a_malformed_status_is_dropped_and_the_last_good_one_kept() {
+        let good = wire(STATUS, 0, vec![4, 4, 0xCC, 192, 168, 1, 50]);
+        let bad = wire(STATUS, 0, vec![4, 9, 0, 0, 0, 0, 0]);
+        let mut link = Link::new(Scripted::new(vec![Some([good, bad, ok_result(1)].concat())]));
+        link.ask(&Message::CfgCommit).expect("reply");
+        assert_eq!(link.status(), Some(&Status { obs_state: 4, wifi_state: 4, rssi_dbm: -52, ip: [192, 168, 1, 50] }));
     }
 
     #[test]

@@ -5,6 +5,7 @@
 use std::fmt;
 use std::io::{Read, Write};
 use std::ops::RangeInclusive;
+use std::time::Duration;
 
 use obs_core::document::{self, Document, Rejected, WriteRefused};
 use obs_core::protocol::{Info, Message, CFG_DATA_MAX, RESULT_OK, RESULT_STALE_SEQ};
@@ -12,6 +13,7 @@ use serde_json::Value;
 
 use crate::diff::{changes, Change};
 use crate::link::{Link, LinkError};
+use crate::provision::Status;
 
 /// `CFG_DATA_MAX` as the `len` of a `CFG_READ`.
 const READ_LEN: u8 = CFG_DATA_MAX as u8;
@@ -28,6 +30,11 @@ pub enum SessionError {
     },
     /// A reply of the wrong type, or a `CFG_DATA` that breaks the read (trust boundary).
     BadReply(&'static str),
+    /// A credential refused with this `CRED_*` code, by the pad or by the app's check before
+    /// sending.
+    CredentialRefused {
+        code: u8,
+    },
 }
 
 impl fmt::Display for SessionError {
@@ -37,6 +44,7 @@ impl fmt::Display for SessionError {
             Self::Refused(why) => why.fmt(f),
             Self::Rejected { code, path } => write!(f, "the pad refused the write (code {code}) at `{path}`"),
             Self::BadReply(what) => write!(f, "the pad broke the protocol: {what}"),
+            Self::CredentialRefused { code } => write!(f, "the credential was refused (code {code})"),
         }
     }
 }
@@ -100,14 +108,32 @@ pub struct Session<P> {
 impl<P: Read + Write> Session<P> {
     pub fn start(port: P) -> Result<Self, SessionError> {
         let mut link = Link::new(port);
-        match link.ask(&Message::InfoGet)? {
-            Message::Info(info) => Ok(Self { link, info }),
-            _ => Err(SessionError::BadReply("INFO_GET answered without INFO")),
-        }
+        let info = ask_info(&mut link)?;
+        Ok(Self { link, info })
     }
 
     pub fn info(&self) -> &Info {
         &self.info
+    }
+
+    /// Asks `INFO` again, after a step that changes it (a credential set or cleared).
+    pub(crate) fn reload_info(&mut self) -> Result<(), SessionError> {
+        self.info = ask_info(&mut self.link)?;
+        Ok(())
+    }
+
+    pub(crate) fn ask(&mut self, message: &Message) -> Result<Message, LinkError> {
+        self.link.ask(message)
+    }
+
+    /// Reads what the pad sends unasked for `wait`, so `status` catches up.
+    pub fn listen(&mut self, wait: Duration) -> Result<(), SessionError> {
+        Ok(self.link.listen(wait)?)
+    }
+
+    /// The last `STATUS` the pad sent, seen during any request or `listen`.
+    pub fn status(&self) -> Option<&Status> {
+        self.link.status()
     }
 
     /// `CFG_READ` until `total`. Each `CFG_DATA` must answer the offset asked, keep `seq` and
@@ -165,6 +191,13 @@ impl<P: Read + Write> Session<P> {
         let mine: Value = serde_json::from_slice(&mine.to_bytes()).expect("a Document serialises to JSON");
         let changes = changes(&theirs, &mine).into_iter().filter(|change| change.path != "seq").collect();
         Ok(Written::Stale { pad, changes })
+    }
+}
+
+fn ask_info<P: Read + Write>(link: &mut Link<P>) -> Result<Info, SessionError> {
+    match link.ask(&Message::InfoGet)? {
+        Message::Info(info) => Ok(info),
+        _ => Err(SessionError::BadReply("INFO_GET answered without INFO")),
     }
 }
 
