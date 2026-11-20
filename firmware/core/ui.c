@@ -71,7 +71,7 @@ ui_grid_t ui_grid(ui_display_t display) {
 }
 
 // Clipped to the grid, so no rectangle writes past the display's bits.
-static void mark_rect(ui_model_t *model, ui_display_t display, ui_rect_t rect) {
+void ui_mark(ui_model_t *model, ui_display_t display, ui_rect_t rect) {
 	ui_grid_t grid = ui_grid(display);
 	if (rect.w == 0 || rect.h == 0 || rect.x >= grid.width || rect.y >= grid.height) {
 		return;
@@ -92,7 +92,7 @@ void ui_init(ui_model_t *model) {
 	memset(model, 0, sizeof *model);
 	for (int display = 0; display < UI_DISPLAYS; display++) {
 		ui_grid_t grid = ui_grid((ui_display_t)display);
-		mark_rect(model, (ui_display_t)display, (ui_rect_t){0, 0, grid.width, grid.height});
+		ui_mark(model, (ui_display_t)display, (ui_rect_t){0, 0, grid.width, grid.height});
 	}
 }
 
@@ -371,7 +371,7 @@ static bool holds(const ui_layout_t *layout, const ui_widget_t *widget) {
 static void mark_gone(ui_model_t *model, ui_display_t display, const ui_layout_t *from, const ui_layout_t *to) {
 	for (uint8_t i = 0; i < from->count; i++) {
 		if (!holds(to, &from->widget[i])) {
-			mark_rect(model, display, from->widget[i].rect);
+			ui_mark(model, display, from->widget[i].rect);
 		}
 	}
 }

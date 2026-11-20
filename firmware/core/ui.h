@@ -85,5 +85,9 @@ bool ui_apply(ui_model_t *model, const ui_layout_t layouts[UI_DISPLAYS]);
 
 bool ui_tile_dirty(const ui_model_t *model, ui_display_t display, uint16_t col, uint16_t row);
 
+// Marks every tile under the rectangle dirty, clipped to the grid. The renderer marks a widget
+// whose shown values changed.
+void ui_mark(ui_model_t *model, ui_display_t display, ui_rect_t rect);
+
 // After the renderer pushed every dirty tile of the display.
 void ui_clean(ui_model_t *model, ui_display_t display);

@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.11a (device link: config and credentials) and 2.14a (fw-ui renderer; font source and licence: ask first).
+Next action: Checkpoint 1 owner review, then 2.11b (device link: OBS lists, status and input) and 2.14b (strip goldens, R14 mock-ups, retire st7789).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -281,7 +281,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the overlap check agrees with the validator. A config edit dirties only its widgets'
     tiles.
   - Verify: `just test-firmware`. Deps: 2.9. Files: `core/ui.[ch]`, `test/test_ui.c`.
-- [ ] **2.14a fw-ui renderer and big-panel goldens (M).** A 16-line band renderer into a test
+- [x] **2.14a fw-ui renderer and big-panel goldens (M).** A 16-line band renderer into a test
   framebuffer and 4 bpp Latin fonts (**font source and licence: ask first**). Golden frames for the
   big panel.
   - Accept: the frames match the committed goldens byte for byte (big-endian RGB565, 307,200 B).
