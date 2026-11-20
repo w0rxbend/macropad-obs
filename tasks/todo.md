@@ -251,7 +251,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     (spec 8.2).
   - Verify: `just test-firmware`. Deps: 2.9. Files: `core/store.[ch]`, `core/cred.h`,
     `test/nor_model.[ch]`, `test/test_store.c`.
-- [ ] **2.11a Device link dispatcher: config and credentials (M).** Wire `CFG_*`, `INFO`,
+- [x] **2.11a Device link dispatcher: config and credentials (M).** Wire `CFG_*`, `INFO`,
   `SET_CREDENTIAL`, `CLEAR_CREDENTIALS`, `FACTORY_RESET` and `BOOTLOADER` to config, store and cred,
   with one reply per id. Wire the 2.3 clear event to the same erase path as `FACTORY_RESET`: `cred`
   first, then both cfg slots (spec 8.2, R1).

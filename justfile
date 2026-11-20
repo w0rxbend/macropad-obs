@@ -90,6 +90,15 @@ test-firmware:
         {{root}}/firmware/test/test_store.c -o {{root}}/.build/test_store
     {{root}}/.build/test_store
     gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+        -I{{root}}/firmware/core -I{{root}}/firmware/test -I{{root}}/firmware/core/third_party/lwjson \
+        -I{{root}}/firmware/core/third_party/lwjson/src/include \
+        {{root}}/firmware/core/device.c {{root}}/firmware/core/link.c {{root}}/firmware/core/store.c \
+        {{root}}/firmware/core/input.c {{root}}/firmware/core/config.c {{root}}/firmware/core/json.c \
+        {{root}}/firmware/core/third_party/lwjson/src/lwjson/lwjson_stream.c \
+        {{root}}/firmware/test/nor_model.c {{root}}/firmware/test/test_device.c \
+        -o {{root}}/.build/test_device
+    {{root}}/.build/test_device
+    gcc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
         -I{{root}}/firmware \
         {{root}}/firmware/st7789.c {{root}}/firmware/font8x16.c {{root}}/firmware/test/test_st7789.c \
         -o {{root}}/.build/test_st7789
