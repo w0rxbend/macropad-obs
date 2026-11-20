@@ -62,7 +62,8 @@ class Coupons(unittest.TestCase):
         half = LAYOUT.usb.back_wall_thinned.area[0] / 2
         self.assertLess(box.min.X, LAYOUT.usb.x - half)
         self.assertGreater(box.max.X, LAYOUT.usb.x + half)
-        inside_the_pocket = (LAYOUT.usb.x + half - NUDGE, insert.thinned_face_y() + NUDGE, insert.usb_mouth_z())
+        back = LAYOUT.body.outline[1] + LAYOUT.body.outline[3]  # off the pocket's rounded inside corners
+        inside_the_pocket = (LAYOUT.usb.x + half - NUDGE, back - NUDGE, insert.usb_mouth_z())
         self.assertFalse(self.placed["usb-top"].whole.is_inside(inside_the_pocket))
 
     def test_a_rebuilt_coupon_keeps_its_face_order(self):
