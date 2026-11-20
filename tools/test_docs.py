@@ -298,7 +298,8 @@ class V1BridgeTest(unittest.TestCase):
 class ReadmeTest(unittest.TestCase):
     def test_every_just_command_is_a_recipe(self):
         justfile = (ROOT / "justfile").read_text(encoding="utf-8")
-        recipes = set(re.findall(r"^([a-z][\w-]*):", justfile, re.MULTILINE))
+        # A recipe may take parameters (`pcb *STEP:`); `name := value` is a variable, not a recipe.
+        recipes = set(re.findall(r"^([a-z][\w-]*)(?: [^:=\n]*)?:(?!=)", justfile, re.MULTILINE))
         named = set(re.findall(r"`just ([a-z][\w-]*)`", flat("README.md")))
         self.assertEqual(named - recipes, set())
 

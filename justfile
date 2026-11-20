@@ -181,9 +181,10 @@ app-check:
         sh -c 'cargo build --locked && xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" \
             {{root}}/app/check/window.sh "$CARGO_TARGET_DIR/debug/macropad-obs"'
 
-# Not on the test chain. KiCad 9.0.9 in Docker. Does not claim Gerbers exist until this exits 0.
-# Fails until task 5.6: task 1.4b retired pcb/gen with the old wedge.
-pcb:
+# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: place);
+# `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml.
+# Does not claim Gerbers exist until the pipeline has a fab step and exits 0.
+pcb *STEP:
     docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
         -v "{{root}}:{{root}}" -w "{{root}}" kicad/kicad:9.0.9 \
-        python3 pcb/gen/build.py place
+        python3 -B pcb/gen/build.py {{STEP}}

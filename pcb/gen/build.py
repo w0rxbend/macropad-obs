@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 """PCB build steps. Run inside the KiCad container (`just pcb`).
 
-    build.py contract the board against board.toml: outline, layers, holes
+    build.py          every step of PIPELINE, in order
+    build.py place    board.toml + circuit -> the placed, unrouted board, checked by the contract
+    build.py contract the saved board against board.toml: outline, holes, positions, antenna, carriers
     build.py drc      KiCad's DRC: the project rules reach it, and no warning is left
 
-Placement, routing and the order files join as steps in tasks 5.6 to 5.10.
+The schematic, routing and the order files join as steps in tasks 5.7 to 5.10.
 
 Copied from macropad-greycode pcb/gen (decision D5), with `_check_rules_reach_drc` as macropad's
 pcb/gen/build.py has it. Greycode's place and order steps are gone until this board has a circuit
@@ -22,8 +24,10 @@ from pathlib import Path
 
 import pcbnew
 
+import circuit_hmi
 import contract
 import layout
+import place
 import schematic
 
 PCB_DIR = Path(__file__).resolve().parents[1]
@@ -155,10 +159,29 @@ def drc() -> None:
     print("drc: the project rules reach DRC, no warnings")
 
 
-STEPS = {"contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
+def place_board() -> None:
+    """The parts at their place.py spots on the board.toml outline, saved, then read back by the contract.
+    Open pins stay without a net until the schematic step (task 5.7) names them."""
+    KICAD_DIR.mkdir(exist_ok=True)
+    layout.write_project_rules(BOARD_PATH.with_suffix(".kicad_pro"))
+    parts = place.board_parts()
+    board = layout.build_board(BOARD_PATH, parts, {})
+    pcbnew.SaveBoard(str(BOARD_PATH), board)
+    placeholders = sorted(part.ref for part in parts if "PLACEHOLDER_" in part.footprint)
+    print(f"place: {len(parts)} footprints, {len(circuit_hmi.BOARD_PARTS)} circuit parts; provisional on "
+          f"PLACEHOLDER_* tails {placeholders}")
+    contract.check(pcbnew.LoadBoard(str(BOARD_PATH)))
+
+
+STEPS = {"place": place_board, "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
+PIPELINE = ("place",)
 
 if __name__ == "__main__":
-    step = STEPS.get(sys.argv[1] if len(sys.argv) > 1 else "")
+    if len(sys.argv) == 1:
+        for name in PIPELINE:
+            STEPS[name]()
+        sys.exit()
+    step = STEPS.get(sys.argv[1])
     if step is None:
         sys.exit(__doc__)
     step()

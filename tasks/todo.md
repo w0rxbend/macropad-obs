@@ -511,7 +511,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   filters, and the FPC 40 and 10 nets.
   - Accept: the nets match `[gpio]` in `board.toml`. `check_pins` agrees.
   - Verify: `just pcb-test`; `just check`. Deps: 5.4. Files: `pcb/gen/circuit_hmi.py`, test.
-- [ ] **5.6 Placement from board.toml (M) [provisional].** Turn `pcb` into `pcb *STEP` (no step:
+- [x] **5.6 Placement from board.toml (M) [provisional].** Turn `pcb` into `pcb *STEP` (no step:
   the whole pipeline). The outline with the 33.0 x 6.0 antenna cut, 6 holes, every part at its
   `board.toml` position, bottom-face parts mirrored.
   - Accept: the contract passes: no copper in the antenna keep-out, no top part or hole under a

@@ -2,8 +2,8 @@
 """Builds the unrouted KiCad board: rules, outline, parts, nets, zones and hole keep-outs. Runs inside the
 KiCad container (needs pcbnew).
 
-Parts come in as `BoardPart`s, already in KiCad coordinates (`kicad_xy`); place.py (task 5.6) makes them
-from board.toml. The plane islands come with the locked copper (task 5.8).
+Parts come in as `BoardPart`s, already in KiCad coordinates (`kicad_xy`); place.py makes them from board.toml,
+and the outline with the antenna cut. The plane islands come with the locked copper (task 5.8).
 
 Copied from macropad-greycode pcb/gen (decision D5). Greycode's RP2040 pieces are gone: the QFN-56 paste
 windows, the placement self-checks, the plane islands, the fiducials, and the silk.py and models.py calls.
@@ -22,10 +22,12 @@ from typing import Protocol
 import pcbnew
 
 import schematic
+from place import kicad_xy, outline_path
 from router import Rules
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PCB = tomllib.loads((REPO_ROOT / "board.toml").read_text())["pcb"]
+SPEC = tomllib.loads((REPO_ROOT / "board.toml").read_text())
+PCB = SPEC["pcb"]
 WIDTH, DEPTH = PCB["width"], PCB["depth"]
 TOP, BOTTOM = "top", "bottom"
 GND = "GND"
@@ -76,11 +78,6 @@ class BoardPart(Protocol):
     rotation: float            # degrees, as seen from the top
     side: str                  # TOP or BOTTOM
     machine_assembled: bool
-
-
-def kicad_xy(x: float, y: float) -> tuple[float, float]:
-    """board.toml (front-left origin, y towards the back edge) -> KiCad (back-left origin, y towards the front)."""
-    return x, DEPTH - y
 
 
 def mm(value: float) -> int:
@@ -151,16 +148,24 @@ def _place(board: pcbnew.BOARD, part: BoardPart, open_pin_nets: Mapping[str, str
     return footprint
 
 
+def _antenna_cut_box() -> tuple[float, float, float, float]:
+    """board.toml [antenna] board_cut as (left, top, right, bottom), KiCad coordinates."""
+    left, front, width, depth = SPEC["antenna"]["board_cut"]
+    return left, DEPTH - (front + depth), left + width, DEPTH - front
+
+
 def _remove_silkscreen_off_the_board(footprint: pcbnew.FOOTPRINT) -> None:
-    """The USB receptacle hangs over the edge and its outline with it; the fab house would clip those lines."""
+    """The USB receptacle hangs over the edge and its outline with it, and the module's antenna end sits in the
+    antenna cut; the fab house would clip those lines."""
+    cut_left, _, _, cut_bottom = _antenna_cut_box()
     for item in list(footprint.GraphicalItems()):
         if item.GetLayer() not in (pcbnew.F_SilkS, pcbnew.B_SilkS):
             continue
-        box = item.GetBoundingBox()
-        inside = (box.GetLeft() >= mm(SILK_EDGE_CLEARANCE) and box.GetTop() >= mm(SILK_EDGE_CLEARANCE)
-                  and box.GetRight() <= mm(WIDTH - SILK_EDGE_CLEARANCE)
-                  and box.GetBottom() <= mm(DEPTH - SILK_EDGE_CLEARANCE))
-        if not inside:
+        left, top, right, bottom = box_mm(item.GetBoundingBox())
+        inside = (left >= SILK_EDGE_CLEARANCE and top >= SILK_EDGE_CLEARANCE
+                  and right <= WIDTH - SILK_EDGE_CLEARANCE and bottom <= DEPTH - SILK_EDGE_CLEARANCE)
+        in_cut = right > cut_left - SILK_EDGE_CLEARANCE and top < cut_bottom + SILK_EDGE_CLEARANCE
+        if not inside or in_cut:
             footprint.Remove(item)
 
 
@@ -181,24 +186,21 @@ def _connect(board: pcbnew.BOARD, footprint: pcbnew.FOOTPRINT, part: BoardPart,
 
 
 def _outline(board: pcbnew.BOARD) -> None:
-    width, height, radius = WIDTH, DEPTH, PCB["corner_radius"]
-    corners = [(radius, radius, 180), (width - radius, radius, 270),
-               (width - radius, height - radius, 0), (radius, height - radius, 90)]
-    arc_ends = []
-    for centre_x, centre_y, start_angle in corners:
-        start, mid, end = (
-            (centre_x + radius * math.cos(math.radians(a)), centre_y + radius * math.sin(math.radians(a)))
-            for a in (start_angle, start_angle + 45, start_angle + 90)
-        )
-        arc = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_ARC)
-        arc.SetArcGeometry(point(*start), point(*mid), point(*end))
-        _add_edge(board, arc)
-        arc_ends.append((start, end))
-    for (_, line_start), (line_end, _) in zip(arc_ends, arc_ends[1:] + arc_ends[:1]):
-        line = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_SEGMENT)
-        line.SetStart(point(*line_start))
-        line.SetEnd(point(*line_end))
-        _add_edge(board, line)
+    """place.outline_path, then each board.toml [pcb] board_slots rectangle cut through the board."""
+    for kind, *points in outline_path():
+        if kind == "arc":
+            shape = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_ARC)
+            shape.SetArcGeometry(*(point(*p) for p in points))
+        else:
+            shape = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_SEGMENT)
+            shape.SetStart(point(*points[0]))
+            shape.SetEnd(point(*points[1]))
+        _add_edge(board, shape)
+    for left, front, width, depth in PCB["board_slots"]:
+        slot = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_RECT)
+        slot.SetStart(point(*kicad_xy(left, front + depth)))
+        slot.SetEnd(point(*kicad_xy(left + width, front)))
+        _add_edge(board, slot)
 
 
 def _add_edge(board: pcbnew.BOARD, shape: pcbnew.PCB_SHAPE) -> None:
@@ -331,6 +333,31 @@ def check_hole_keepouts(board: pcbnew.BOARD) -> None:
                         f"{footprint.GetReference()} courtyard inside the keep-out of the hole at ({x}, {y})"
 
 
+def _courtyards(footprint: pcbnew.FOOTPRINT) -> dict[int, pcbnew.SHAPE_POLY_SET]:
+    """Courtyard per face. A through-hole part's leads cross the board, so its courtyard holds on both faces."""
+    footprint.BuildCourtyardCaches()
+    found = {layer: footprint.GetCourtyard(layer) for layer in (pcbnew.F_CrtYd, pcbnew.B_CrtYd)}
+    found = {layer: shape for layer, shape in found.items() if shape.OutlineCount()}
+    if footprint.GetAttributes() & pcbnew.FP_THROUGH_HOLE and len(found) == 1:
+        (shape,) = found.values()
+        found = {pcbnew.F_CrtYd: shape, pcbnew.B_CrtYd: shape}
+    return found
+
+
+def check_courtyards_apart(board: pcbnew.BOARD) -> None:
+    """No two courtyards on one face overlap."""
+    footprints = [(footprint.GetReference(), _courtyards(footprint)) for footprint in board.GetFootprints()]
+    for index, (ref, courtyards) in enumerate(footprints):
+        for other_ref, other_courtyards in footprints[index + 1:]:
+            for layer in courtyards.keys() & other_courtyards.keys():
+                if not courtyards[layer].BBox().Intersects(other_courtyards[layer].BBox()):
+                    continue
+                overlap = pcbnew.SHAPE_POLY_SET(courtyards[layer])
+                overlap.BooleanIntersection(other_courtyards[layer])
+                first, second = sorted((ref, other_ref))
+                assert overlap.Area() == 0, f"{first} and {second} courtyards overlap on {pcbnew.LayerName(layer)}"
+
+
 def check_paste_clear_of_vias(board: pcbnew.BOARD) -> None:
     """Board-wide: no solder-paste aperture comes within PASTE_TO_VIA_DRILL of a via's hole, and every via is
     covered by solder mask on the top face."""
@@ -362,5 +389,6 @@ def build_board(board_path: Path, parts: tuple[BoardPart, ...], open_pin_nets: M
     for part in parts:
         _place(board, part, open_pin_nets)
     check_hole_keepouts(board)
+    check_courtyards_apart(board)
     add_hole_keepouts(board)
     return board
