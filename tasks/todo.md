@@ -486,7 +486,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the copied tests pass. `contract.py` reads `board.toml`.
   - Verify: `just pcb-test`. Deps: 5.1. Files: `pcb/gen/{layout,router,contract,fab,build}.py` and
     tests.
-- [ ] **5.3a Footprint library without FPC (M) [P].** WROOM-1, USB4216-03-A (rev A2), MX_Hotswap
+- [x] **5.3a Footprint library without FPC (M) [P].** WROOM-1, USB4216-03-A (rev A2), MX_Hotswap
   (copied), B3F, EC11, Hole_M2 and the ground-bond hole. Two FPC footprints named `PLACEHOLDER_*`.
   `SOURCES.txt` cites each drawing.
   - Accept: each footprint's provenance is cited. The antenna feed side is read from the WROOM

@@ -1,0 +1,79 @@
+Project footprints (pcb/lib/macropad-obs.pretty) and where they come from.
+Licence: CERN-OHL-S-2.0 (LICENSE.cern-ohl-s), as all of pcb/. KiCad stock footprints are from the
+KiCad 9.0.9 library in the kicad/kicad:9.0.9 image (CC-BY-SA 4.0 with the KiCad library exception,
+which allows their use in a design under any licence). pcb/gen/test_footprints.py checks each file
+named here against board.toml. Each entry gives its Drawing: line, then what was copied or changed.
+
+ESP32-S3-WROOM-1.kicad_mod:
+  Drawing: Espressif ESP32-S3-WROOM-1/1U datasheet v1.8, figure 10-1 (module dimensions) and figure
+    11-1 (recommended land pattern), https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf
+    (read 2026-11-20).
+  Copied: KiCad stock RF_Module:ESP32-S3-WROOM-1, pads 1 to 41, paste windows and thermal vias as is.
+  Changed: the stock keep-out ran 15 mm past the module on three sides (48 x 21 mm) and would have
+    covered the USB-C pads beside it; it is now the 18 x 6 "Antenna Area" of figure 11-1, on the four
+    copper layers of this board only. The board cut and its clearances live in board.toml [antenna]
+    and the placement code, not in the footprint. The courtyard is cut to the module and its pads
+    (19.5 x 26.7), and the "KEEP-OUT ZONE" comment text is gone.
+  Antenna feed: figure 10-1 (top view) shows the meander's feed and ground legs meeting the module
+    body on the pin 40 side (pad 40 at x +8.75 here); the far end, over pin 1, is open. On the bottom
+    face KiCad mirrors x, so the feed sits on the left in the PCB top view: board.toml [antenna]
+    feed_side = "left". Read from the drawing, not measured: the S.3 mock-up confirms it by RSSI.
+
+USB_C_Receptacle_GCT_USB4216-03-A.kicad_mod:
+  Drawing: GCT USB4216 drawing rev A2, 2025-07-28, sheet 1, "Recommended PCB Layout, as viewed from
+    component side", https://gct.co/Files/Drawings/USB4216.pdf (read 2026-11-20).
+  Drawn for this project; no stock footprint exists. Origin: shell front on the centre line.
+  Contacts: 12 pads in one row, 1.15 long, front edge 4.00 behind the front shell pad centre
+    (centre 6.675 behind the shell front). A1/B12, A4/B9, B4/A9 and B1/A12 share 0.60 pads at
+    x -3.20, -2.40, +2.40, +3.20; B8 A5 B7 A6 A7 B6 A8 B5 are 0.30 pads at a 0.50 pitch from -1.75.
+  Shell: 4 SMT pads "S1", 1.55 wide, centres x +/-4.32 (10.19 over the outsides); front pair 1.50
+    long at 2.10, rear pair 1.25 long at 6.025 (3.925 further). Pegs: 2 x 0.65 NPTH at x +/-3.00,
+    5.40 behind the shell front. board.toml [usb] shell_pads and peg_holes are these numbers moved by
+    mouth_overhang; the test checks they agree.
+  Fab outline: the 8.94 x 6.50 shell. Courtyard: 0.25 around the pads and the 11.14 tab span.
+  Not checked: no 3D model is linked. The part is UNVERIFIED at LCSC.
+
+MX_Hotswap.kicad_mod:
+  Drawing: Kailh CPG151101S11-1 drawing KHA-PG1511-319EN (docs/research/08-input-parts.md [K1]).
+  Copied unchanged from ~/Projects/macropad-greycode/pcb/lib/greycode.pretty/MX_Hotswap.kicad_mod,
+    which copied it from ~/Projects/macropad (drawn there from the Kailh CPG151101S11 dimensions),
+    decision D5. The socket pad pattern is MEASURE against a bought socket (report 01 section 2).
+
+SW_TH_Tactile_Omron_B3F-100x.kicad_mod:
+  Drawing: Omron B3F datasheet, https://omronfs.omron.com/en_US/ecb/products/pdf/en-b3f.pdf
+    (report 08 [O1]): four 1.0 mm holes at 6.5 x 4.5 mm for every 6 x 6 mm B3F.
+  Copied unchanged: KiCad stock Button_Switch_THT:SW_TH_Tactile_Omron_B3F-100x. Its pads equal the
+    stock B3F-106x (the B3F-1060 named in board.toml [buttons]); only its 3D model height differs.
+
+RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm.kicad_mod:
+  Drawing: Alps EC11E catalog, Update 2510, drawing No. 2,
+    https://tech.alpsalpine.com/cms.media/product_catalog_ec_01_ec11e_en_611f078659.pdf (report 08 [A1]).
+  Copied unchanged: KiCad stock Rotary_Encoder:RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm.
+
+Hole_M2.kicad_mod:
+  Drawing: none needed; a plain 2.2 mm NPTH = board.toml [pcb] hole_diameter (M2 clearance).
+  Copied unchanged from ~/Projects/macropad-greycode/pcb/lib/greycode.pretty/Hole_M2.kicad_mod
+    (drawn in ~/Projects/macropad). The 5.0 keep-out is a rule area the placement code adds.
+
+Hole_M2_Ground.kicad_mod:
+  Drawing: none needed; plated 2.2 mm hole with a bare copper ring on both faces, where a metal
+    case is bonded to ground. Drill = [pcb] hole_diameter, ring = [pcb] hole_keepout_diameter.
+  Copied from ~/Projects/macropad/pcb/lib/macropad.pretty/Hole_M2_Ground.kicad_mod.
+  Changed: the ring is 5.0 (this board's boss and keep-out) instead of macropad's 5.4, so the bare
+    copper stays inside the keep-out; the description no longer names macropad's board.toml key.
+
+PLACEHOLDER_FPC_FH12-40S.kicad_mod:
+  Drawing: Hirose FH12 series, https://www.hirose.com/product/en/products/FH12/FH12-24S-0.5SH(55)/
+    (the URL in the KiCad stock footprint).
+  PLACEHOLDER for the big panel's 40-pin tail. Pads copied from KiCad stock
+    Connector_FFC-FPC:Hirose_FH12-40S-0.5SH_1x40-1MP_P0.50mm_Horizontal; only the name, value and
+    description change. FH12 or FH12A and the contact face wait for the calipered panel (S.3);
+    task 5.3b replaces this file with FPC_*. pcb/gen/test_footprints.py fails if a PLACEHOLDER_
+    name reaches pcb/fab.
+
+PLACEHOLDER_FPC_FH12-10S.kicad_mod:
+  Drawing: Hirose FH12 series, https://www.hirose.com/product/en/products/FH12/FH12-24S-0.5SH(55)/
+    (the URL in the KiCad stock footprint).
+  PLACEHOLDER for the narrow panel's 10-pin tail. Pads copied from KiCad stock
+    Connector_FFC-FPC:Hirose_FH12-10S-0.5SH_1x10-1MP_P0.50mm_Horizontal; only the name, value and
+    description change. Same rule as the 40-pin placeholder.
