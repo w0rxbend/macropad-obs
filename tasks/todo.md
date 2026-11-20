@@ -222,7 +222,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     criterion 4c uses.
   - Verify: `python3 -m unittest tools/test_fake_obs.py`. Deps: none. Files: `tools/fake_obs.py`,
     `tools/test_fake_obs.py`, `tools/fixtures/ui_state.json`.
-- [ ] **2.7 fw-obs handshake (M).** Hello, Identify (subscriptions 1118), auth, `rpcVersion` 1,
+- [x] **2.7 fw-obs handshake (M).** Hello, Identify (subscriptions 1118), auth, `rpcVersion` 1,
   the 5.4.0 floor, no retry on 4009/4010/4011, and reconnect backoff.
   - Accept: the test runs the core over a POSIX stream against `fake_obs.py`, with auth on and off,
     a wrong password and a too-old OBS. Each one ends in its strip state.
