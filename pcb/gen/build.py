@@ -6,10 +6,14 @@
     build.py place    board.toml + circuit -> the placed, unrouted board, checked by the contract
     build.py route-critical  place, then route.py's critical copper locked, the planes and the antenna
                       keep-out; route.py's limits, the contract and KiCad's DRC with no violation
+    build.py dsn      route-critical, then the board as a Specctra DSN for Freerouting (freeroute.py)
+    build.py routed   Freerouting's session read back, filled, and judged: the contract, the locks, and
+                      KiCad's DRC at error severity with 0 violations, 0 unconnected, 0 parity (criterion 10)
     build.py contract the saved board against board.toml: outline, holes, positions, antenna, carriers
     build.py drc      KiCad's DRC: the project rules reach it, and no warning is left
 
-Freerouting and the order files join as steps in tasks 5.9 and 5.10.
+Several steps run in order: `build.py erc dsn`. Freerouting runs between `dsn` and `routed`, on the host in
+its own image (`just pcb route`). The order files join as a step in task 5.10.
 
 Copied from macropad-greycode pcb/gen (decision D5), with `_check_rules_reach_drc` as macropad's
 pcb/gen/build.py has it. Greycode's place and order steps are gone until this board has a circuit
@@ -29,6 +33,7 @@ import pcbnew
 
 import circuit_hmi
 import contract
+import freeroute
 import layout
 import place
 import route
@@ -44,6 +49,8 @@ IMAGE_DIR = PCB_DIR.parent / "docs" / "images" / "pcb"
 # Camera for the two angled renders, as kicad-cli wants it: degrees about X, Y, Z.
 ASSEMBLED_VIEW_ROTATION = "-50,0,25"
 UNDERSIDE_VIEW_ROTATION = "-130,0,-25"
+# The session's tracks and vias get the same UUIDs on every run.
+KIID_SEED = 1
 # DRC findings that are meant: (kind, item). None yet.
 ACCEPTED_FINDINGS: frozenset[tuple[str, str]] = frozenset()
 
@@ -236,6 +243,8 @@ def route_critical() -> None:
     layout.write_locked_copper(board, result.tracks, result.vias, route.RULES)
     layout.add_planes(board, route.planes())
     layout.add_copper_keepout(board, route.antenna_keepout())
+    for rect in route.slot_keepouts():
+        layout.add_copper_keepout(board, rect)
     save_filled(board, BOARD_PATH)
     routed = pcbnew.LoadBoard(str(BOARD_PATH))
     check_locked(routed, result)
@@ -252,17 +261,68 @@ def route_critical() -> None:
           f"{unconnected} unconnected items left for the autorouter")
 
 
-STEPS = {"erc": erc, "place": place_board, "route-critical": route_critical,
-         "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
-# route-critical places the board first.
-PIPELINE = ("erc", "route-critical")
+def write_dsn() -> None:
+    """route-critical, then the board as Freerouting reads it. The inner planes go with it, so the supply vias
+    count as joined; pcb/outer.rules keeps the router off those layers."""
+    route_critical()
+    freeroute.WORK_DIR.mkdir(parents=True, exist_ok=True)
+    assert pcbnew.ExportSpecctraDSN(pcbnew.LoadBoard(str(BOARD_PATH)), str(freeroute.DSN_PATH)), "DSN export failed"
+    print(f"dsn: wrote {freeroute.DSN_PATH.relative_to(PCB_DIR)}")
+
+
+def _locked_items(board: pcbnew.BOARD) -> list[tuple]:
+    return sorted((item.GetClass(), layout.pad_xy(item), item.GetNetname()) for item in board.GetTracks()
+                  if item.IsLocked())
+
+
+def check_routed(board_path: Path, work_dir: Path) -> None:
+    """Criterion 10: KiCad's DRC at error severity, against the schematic, finds no violation, no unconnected
+    item and no parity issue on a board of four copper layers."""
+    layers = pcbnew.LoadBoard(str(board_path)).GetCopperLayerCount()
+    assert layers == 4, f"{board_path.name} has {layers} copper layers"
+    report_path = work_dir / "drc-routed.json"
+    _kicad_cli("pcb", "drc", "--severity-error", "--schematic-parity", "--format", "json", "-o", str(report_path),
+               str(board_path))
+    report = json.loads(report_path.read_text())
+    found = {key: report[key] for key in ("violations", "unconnected_items", "schematic_parity") if report[key]}
+    summary = {key: sorted({item["description"] for item in items})[:5] for key, items in found.items()}
+    assert not found, f"DRC: {summary}; see {report_path}"
+    print("routed: DRC at error severity: 0 violations, 0 unconnected, 0 parity; 4 copper layers")
+
+
+def import_routes() -> None:
+    """Freerouting's session on the route-critical board, the locked copper kept, filled on a reloaded board
+    and judged."""
+    board = pcbnew.LoadBoard(str(BOARD_PATH))
+    locked = _locked_items(board)
+    assert locked, f"{BOARD_PATH.name} has no locked copper: run `build.py dsn` first"
+    assert freeroute.SES_PATH.exists(), f"no {freeroute.SES_PATH}: run freeroute.py first"
+    pcbnew.KIID.SeedGenerator(KIID_SEED)
+    assert pcbnew.ImportSpecctraSES(board, str(freeroute.SES_PATH)), "session import failed"
+    save_filled(board, BOARD_PATH)
+    routed = pcbnew.LoadBoard(str(BOARD_PATH))
+    assert _locked_items(routed) == locked, "the session import moved or dropped locked copper"
+    added = len(routed.GetTracks()) - len(locked)
+    print(f"routed: {added} tracks and vias from Freerouting, {len(locked)} locked ones kept")
+    inner = [layout.pad_xy(track) for track in routed.GetTracks()
+             if track.GetClass() == "PCB_TRACK" and track.GetLayer() not in (pcbnew.F_Cu, pcbnew.B_Cu)]
+    assert not inner, f"tracks cut into the inner planes at {inner[:5]}"
+    inside = contract.copper_in(routed, route.antenna_keepout())
+    assert not inside, f"copper within {route.ANTENNA_SETBACK} mm of the antenna board cut: {inside}"
+    contract.check(routed)
+    check_rules_reach_drc(BOARD_PATH, BUILD_DIR)
+    check_routed(BOARD_PATH, BUILD_DIR)
+
+
+STEPS = {"erc": erc, "place": place_board, "route-critical": route_critical, "dsn": write_dsn,
+         "routed": import_routes, "contract": lambda: contract.check(pcbnew.LoadBoard(str(BOARD_PATH))), "drc": drc}
+# The KiCad side of `just pcb`; freeroute.py and `routed` follow on the host. dsn places the board first.
+PIPELINE = ("erc", "dsn")
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        for name in PIPELINE:
-            STEPS[name]()
-        sys.exit()
-    step = STEPS.get(sys.argv[1])
-    if step is None:
+    names = sys.argv[1:] or PIPELINE
+    unknown = [name for name in names if name not in STEPS]
+    if unknown:
         sys.exit(__doc__)
-    step()
+    for name in names:
+        STEPS[name]()

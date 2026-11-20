@@ -539,7 +539,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the length and clearance checks pass. The copper is locked before routing.
   - Verify: `just pcb route-critical`. Deps: 5.6. Files: `pcb/gen/route.py`, `route_order.txt`,
     `test_route.py`, `justfile`.
-- [ ] **5.9 Freerouting and DRC (M) [provisional].** Fetch 2.5.0 by sha256
+- [x] **5.9 Freerouting and DRC (M) [provisional].** Fetch 2.5.0 by sha256
   `f6f51bb02245e8e717f9359bd260cc9c5c0b1bc0acc8b7cb2cd5b8ffeb5de3c7` (R09 `[F1]`) into an ignored
   cache. DSN out and SES in, with outer layers only, in `eclipse-temurin:25-jre --network none`.
   - Accept: KiCad DRC at error severity gives 0 violations, 0 unconnected and 0 parity, with 4

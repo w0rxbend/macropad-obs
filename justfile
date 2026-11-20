@@ -230,13 +230,26 @@ firmware:
         build merge-bin -o macropad-obs-merged.bin
     python3 {{root}}/tools/check_partitions.py --built {{root}}/.build/esp32s3
 
-# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc,
-# route-critical); `just pcb erc` writes the schematic, runs ERC at all severities and checks it is
-# byte-repeatable; `just pcb place` writes the unrouted board to pcb/kicad and checks it against
-# board.toml; `just pcb route-critical` places, then adds the locked critical copper, the inner planes
-# and the antenna keep-out, and passes when route.py's limits hold and DRC finds no violation.
+# Not on the test chain. KiCad 9.0.9 in Docker. No STEP runs the whole pipeline (today: erc, route);
+# `just pcb erc` writes the schematic, runs ERC at all severities and checks it is byte-repeatable;
+# `just pcb place` writes the unrouted board to pcb/kicad and checks it against board.toml;
+# `just pcb route-critical` places, then adds the locked critical copper, the inner planes and the
+# antenna keep-out, and passes when route.py's limits hold and DRC finds no violation. `just pcb route`
+# runs route-critical, writes the DSN, fetches Freerouting 2.5.0 by sha256 into pcb/.cache (another
+# sha256 stops it), routes the free nets on F.Cu and B.Cu in eclipse-temurin:25-jre with no network,
+# reads the session back, and passes when KiCad's DRC at error severity finds 0 violations,
+# 0 unconnected and 0 parity on the 4-layer board. Any other STEP is a pcb/gen/build.py step.
 # Does not claim Gerbers exist until the pipeline has a fab step and exits 0.
 pcb *STEP:
-    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
-        -v "{{root}}:{{root}}" -w "{{root}}" kicad/kicad:9.0.9 \
-        python3 -B pcb/gen/build.py {{STEP}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kicad() {
+        docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
+            -v "{{root}}:{{root}}" -w "{{root}}" kicad/kicad:9.0.9 python3 -B pcb/gen/build.py "$@"
+    }
+    route() { kicad dsn; python3 -B {{root}}/pcb/gen/freeroute.py; kicad routed; }
+    case "{{STEP}}" in
+        "") kicad erc; route ;;
+        route) route ;;
+        *) kicad {{STEP}} ;;
+    esac

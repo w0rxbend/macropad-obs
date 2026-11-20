@@ -1,0 +1,8 @@
+(rules PCB macropad-obs
+  (autoroute_settings
+    (layer_rule F.Cu (active on))
+    (layer_rule In1.Cu (active off))
+    (layer_rule In2.Cu (active off))
+    (layer_rule B.Cu (active on))
+  )
+)

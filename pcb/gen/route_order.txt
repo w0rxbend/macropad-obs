@@ -35,4 +35,7 @@ USB_D_P  J1.A6 J1.B6 U3.4 U3.3 R6.1   no-via
 USB_D_N  J1.B7 J1.A7 U3.6 U3.1 R5.1   no-via
 USB_DM   R5.2 U1.13   no-via
 USB_DP   R6.2 U1.14   no-via
+# CC2 before VBUS: jack pad B5 sits between the pair and VBUS, over the ESD part, and the bus over the
+# pad row would wall it in; Freerouting finds no way out of it then (task 5.9).
+USB_CC2  J1.B5 R2.1 R4.1
 VBUS     J1.A4 J1.B9 J1.A9 J1.B4 U3.5 F1.1

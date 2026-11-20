@@ -58,7 +58,7 @@ class OrderTest(unittest.TestCase):
     def test_a_net_without_a_plane_is_drawn_whole(self) -> None:
         nets = circuit_nets()
         whole = route.whole_nets(self.order)
-        self.assertEqual(whole, {"BUCK_SW", "BUCK_FB", "VBUS", *route.USB_NETS})
+        self.assertEqual(whole, {"BUCK_SW", "BUCK_FB", "VBUS", "USB_CC2", *route.USB_NETS})
         for net in whole:
             drawn = {pad for line in self.order if line.net == net for pad in line.pads}
             self.assertEqual(drawn, {pad for pad, on in nets.items() if on == net}, net)
@@ -101,6 +101,15 @@ class PlaneTest(unittest.TestCase):
         setback = route.ANTENNA_SETBACK
         self.assertEqual(route.antenna_keepout(), (left - setback, place.DEPTH - (front + depth) - setback,
                                                    left + width + setback, place.DEPTH - front + setback))
+
+    def test_each_slot_keepout_is_the_slot_grown_by_the_edge_clearance(self) -> None:
+        slots = place.PCB["board_slots"]
+        self.assertEqual(len(route.slot_keepouts()), len(slots))
+        clear = route.RULES.edge_clearance
+        for (left, front, width, depth), rect in zip(slots, route.slot_keepouts()):
+            wanted = (left - clear, place.DEPTH - (front + depth) - clear, left + width + clear, place.DEPTH - front + clear)
+            for got, want in zip(rect, wanted):
+                self.assertAlmostEqual(got, want, places=9)
 
     def test_ground_and_three_volt_planes_cover_the_board_outside_the_keepout(self) -> None:
         keepout = route.antenna_keepout()
@@ -182,6 +191,26 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(result.unrouted, [])
         self.assertTrue(is_connected(result.tracks, result.vias, group[0], group[2]))
         self.assertEqual({track.width for track in result.tracks}, {route.TRACK_WIDTH, route.WIDE_TRACK_WIDTH})
+
+    def test_every_surface_supply_pad_gets_a_via_and_a_through_hole_pad_none(self) -> None:
+        """Freerouting joins no pad to a closed plane (report 09 pitfall 3), so the plan gives each one a via."""
+        exposed = Pad(route.EXPOSED_PAD, GND, (68.0, 13.0, 72.0, 17.0), (BACK,))
+        ground, three_volt = _square("A.1", GND, 20.0, 40.0), _square("B.1", V3, 30.0, 40.0)
+        through_hole = Pad("C.1", GND, (39.7, 39.7, 40.3, 40.3), (FRONT, BACK))
+        signal = _square("D.1", "N", 50.0, 40.0)
+        result = route.route([exposed, ground, three_volt, through_hole, signal], [], ())
+        self.assertEqual(result.unrouted, [])
+        near = {pad.name for pad in (ground, three_volt, through_hole, signal)
+                if any(via.net == pad.net and math.dist((via.x, via.y), pad.centre) < 2.0 for via in result.vias)}
+        self.assertEqual(near, {"A.1", "B.1"})
+        self.assertEqual(len(result.vias), 4 + 2, "pad 41's four, then one each, no second via for pad 41")
+
+    def test_a_supply_pad_the_order_already_joins_gets_no_second_via(self) -> None:
+        exposed = Pad(route.EXPOSED_PAD, GND, (68.0, 13.0, 72.0, 17.0), (BACK,))
+        pads = [exposed, _square("A.1", GND, 20.0, 40.0), _square("B.1", GND, 23.0, 40.0)]
+        result = route.route(pads, [], (route.Line(GND, ("A.1", "B.1")), route.Line(GND, ("A.1",))))
+        self.assertEqual(result.unrouted, [])
+        self.assertEqual(len(result.vias), 4 + 1)
 
     def test_a_pad_on_another_net_than_the_order_says_stops_the_plan(self) -> None:
         exposed = Pad(route.EXPOSED_PAD, GND, (68.0, 13.0, 72.0, 17.0), (BACK,))

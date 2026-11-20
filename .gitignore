@@ -5,6 +5,8 @@ host/target/
 app/src-tauri/target/
 cad/.venv/
 pcb/.build/
+# Freerouting's jar (GPL-3.0), fetched by sha256 by pcb/gen/freeroute.py, never committed.
+pcb/.cache/
 *.kicad_prl
 __pycache__/
 *.pyc

@@ -251,12 +251,23 @@ def check_antenna(board: pcbnew.BOARD) -> str:
     return f"no board under the {SPEC['antenna']['area'][2]} x {SPEC['antenna']['area'][3]} antenna area, no copper in the cut"
 
 
+def _track_meets(track: pcbnew.PCB_TRACK, box: tuple) -> bool:
+    """A straight segment by its centre line against the box grown by half its width (square corners, so it errs
+    towards a hit); a via or an arc by its bounding box. A diagonal segment's bounding box is far too big."""
+    if track.GetClass() != "PCB_TRACK":
+        return _boxes_meet(_box(track.GetBoundingBox()), box)
+    left, top, right, bottom = box
+    window = pcbnew.BOX2I(pcbnew.VECTOR2I(pcbnew.FromMM(left), pcbnew.FromMM(top)),
+                          pcbnew.VECTOR2I(pcbnew.FromMM(right - left), pcbnew.FromMM(bottom - top)))
+    return track.HitTest(window, False, track.GetWidth() // 2)
+
+
 def copper_in(board: pcbnew.BOARD, box: tuple) -> list[str]:
     """Each pad, track, via or filled pour whose copper meets the box (left, top, right, bottom) with area."""
     found = [f"{footprint.GetReference()} pad {pad.GetNumber()}" for footprint in board.GetFootprints()
              for pad in footprint.Pads() if pad.IsOnCopperLayer() and _boxes_meet(_box(pad.GetBoundingBox()), box)]
     found += [f"{track.GetClass()} at {_xy(track.GetStart())}" for track in board.GetTracks()
-              if _boxes_meet(_box(track.GetBoundingBox()), box)]
+              if _track_meets(track, box)]
     window = pcbnew.SHAPE_POLY_SET()
     window.NewOutline()
     left, top, right, bottom = box

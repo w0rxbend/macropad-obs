@@ -6,7 +6,8 @@ placed board's pads with pcbnew, hands them to `route`, writes the copper locked
 the antenna keep-out, and runs KiCad's DRC on the result (`just pcb route-critical`).
 
 What is drawn: four ground vias in the module's pad 41, then route_order.txt line by line: the buck
-loop, the module's supply and ground pads, the USB pair (B.Cu only, report 10 section 10) and VBUS.
+loop, the module's supply and ground pads, the USB pair (B.Cu only, report 10 section 10) and VBUS. Last, a via
+into its plane for every other surface pad on GND or +3V3 (`supply_pads`), for Freerouting (task 5.9).
 
 The planes: In2.Cu is ground and In1.Cu is +3V3, each over the whole board but the antenna setback.
 In1.Cu carries one +5V island under the fuse and the buck input. Report 10 drew In1.Cu as a 5 V plane
@@ -122,6 +123,9 @@ def read_order(text: str) -> tuple[Line, ...]:
 
 
 PLANE_NETS = frozenset({GND, V3, V5})
+# The planes every surface pad of these nets gets a via into, after the order. The tails' +5V pins are off
+# the +5V island: Freerouting gives them tracks (task 5.9).
+FAN_OUT_NETS = (GND, V3)
 
 
 def whole_nets(order: tuple[Line, ...]) -> frozenset[str]:
@@ -144,6 +148,12 @@ def _grown(rect: Rect, margin: float) -> Rect:
 def antenna_keepout() -> Rect:
     """The antenna board cut grown by ANTENNA_SETBACK: no copper on any layer inside."""
     return _grown(_box(BOARD["antenna"]["board_cut"]), ANTENNA_SETBACK)
+
+
+def slot_keepouts() -> tuple[Rect, ...]:
+    """Each board slot grown by the edge clearance: no copper inside, on any layer. Freerouting reads a slot
+    as a keep-out and keeps only its track clearance from it, under KiCad's edge clearance."""
+    return tuple(_grown(_box(slot), RULES.edge_clearance) for slot in PCB["board_slots"])
 
 
 def _clear_of_antenna() -> tuple[Rect, ...]:
@@ -188,8 +198,8 @@ def _add_obstacles(router: Router, pads: list[Pad], holes: list[Rect]) -> None:
         router.add_pad(pad)
     for hole in holes:
         router.add_hole(hole)
-    for slot in PCB["board_slots"]:  # a cut through the board: the edge clearance round it
-        _no_copper(router, _grown(_box(slot), router.rules.edge_clearance))
+    for rect in slot_keepouts():
+        _no_copper(router, rect)
     _no_copper(router, antenna_keepout())
     # board.toml hole_keepout_diameter: no copper inside, on any layer (a square round the circle).
     for x, y in (kicad_xy(*hole) for hole in PCB["holes"]):
@@ -245,9 +255,19 @@ def route(pads: list[Pad], holes: list[Rect], order: tuple[Line, ...] | None = N
     _add_obstacles(router, pads, holes)
     plan = _Plan(router, pads)
     plan.exposed_pad_vias()
-    for line in order if order is not None else read_order(ORDER_PATH.read_text()):
+    order = order if order is not None else read_order(ORDER_PATH.read_text())
+    for line in order:
         plan.follow(line)
+    for pad in supply_pads(pads, order):
+        plan.fan_out(pad.net, pad, wide=False)
     return Result(router, plan.unrouted, plan.group_lengths)
+
+
+def supply_pads(pads: list[Pad], order: tuple[Line, ...]) -> list[Pad]:
+    """Surface pads on FAN_OUT_NETS that the order does not name. Freerouting joins no pad to a closed plane
+    (report 09 pitfall 3), so each gets a via here. A through-hole pad meets the planes in its barrel."""
+    named = {name for line in order for name in line.pads}
+    return [pad for pad in pads if pad.net in FAN_OUT_NETS and len(pad.layers) == 1 and pad.name not in named]
 
 
 # --- checks ---------------------------------------------------------------------------------------
