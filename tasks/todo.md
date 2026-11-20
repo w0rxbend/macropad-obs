@@ -480,7 +480,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
   - Accept: the copied plain tests pass in `just pcb-test` without Docker. No file names SK6812.
   - Verify: `just test`. Deps: 1.4b. Files: `pcb/gen/{sexpr,symlib,schematic,sheet_layout}.py`,
     their tests, `pcb/gen/fixture_circuit.py`, `justfile`.
-- [ ] **5.2 Copy the layout, router, contract and fab helpers (M) [P].** Copy `layout`, `router`,
+- [x] **5.2 Copy the layout, router, contract and fab helpers (M) [P].** Copy `layout`, `router`,
   `contract`, `fab` and `build` from greycode, plus macropad's `_check_rules_reach_drc`.
   `test_order_files.py` waits for 5.10 (it reads `pcb/routing.txt`, the board sha256 and Gerbers).
   - Accept: the copied tests pass. `contract.py` reads `board.toml`.
