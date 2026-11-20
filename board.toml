@@ -99,6 +99,7 @@ board_slots = [                       # FPC tails pass through to connectors on 
 
 [bottom_plate]
 # Under the board. Report 11: board floats 4.0 above the plate's inside face (z -5.6).
+thickness = 2.5                       # report 11: flat 2.5 plate, 6061 one setup or FDM; outer face z -8.1
 standoffs = { diameter = 5.0, height = 4.0, at = "every [pcb] hole" }   # design
 encoder_posts = { diameter = 4.0, height = 4.0, at = [[76.0, 67.6], [76.0, 41.1], [76.0, 14.6]] }
 # Report 08: 6 N (+2.5/-2) per push, no panel nut. Keep a 5.0 circle at each post free of

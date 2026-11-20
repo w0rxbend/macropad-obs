@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
-"""Geometry checks on the style A top shell, the display carriers and the foam frames. Every probe
-point comes from board.toml through spec.LAYOUT; a problem is one line of text, and no problem
-means the part passes.
+"""Geometry checks on the style A top shell, the display carriers, the foam frames, the back-wall
+insert and the bottom plate. Every probe point comes from board.toml through spec.LAYOUT; a problem
+is one line of text, and no problem means the part passes.
 
 Probes are points tested inside or outside the solid, so a missing or misplaced cut shows up
 even when the solid itself is valid. The carrier and foam numbers go through the rules of
@@ -11,7 +11,7 @@ import importlib.util
 
 from build123d import Box, Pos
 
-from obs_case import body, carriers, deck, spec
+from obs_case import body, bottom, carriers, deck, spec
 from obs_case.spec import LAYOUT
 
 CNC_MIN_WALL = 2.0  # report 11: walls 2.0 mm or more (JLCCNC: above 1.5 for bead blast)
@@ -293,4 +293,148 @@ def carrier_probes(parts):
             (f"{name} foam opening", foam, (_mid(lens_x, lens_x + lens_width), _mid(lens_y, lens_y + lens_depth),
                                             foam_z), False),
         ]
+    return found
+
+
+def insert_problems(parts):
+    """Every broken rule of the back-wall insert and the bottom plate. `parts` maps "shell" to
+    insert.shell(), "plate" to bottom.plate() and "insert" to insert.insert(). The shell and the
+    plate count as metal (the CNC case): neither may hold any volume in the antenna board cut."""
+    found = [problem for name, solid in parts.items() for problem in _one_solid(name, solid)]
+    found += _insert_rule_problems() + _post_height_problems() + _insert_extent_problems(parts["insert"])
+    found += [f"{name} is metal in the antenna board cut" for name in ("shell", "plate")
+              if _shared_volume(parts[name], _antenna_cut()) > TOLERANCE]
+    names = list(parts)
+    found += [f"{first} and {second} overlap" for index, first in enumerate(names) for second in names[index + 1 :]
+              if _shared_volume(parts[first], parts[second]) > TOLERANCE]
+    return found + [f"probe {name}: expected {_word(inside)}" for name, solid, point, inside
+                    in insert_probes(parts) if solid.is_inside(point) != inside]
+
+
+def _one_solid(name, solid):
+    count = len(solid.solids())
+    found = [] if count == 1 else [f"{name}: {count} solids, expected 1"]
+    return found if solid.is_valid else found + [f"{name} is not a valid solid"]
+
+
+def _antenna_cut():
+    """The antenna board cut, from below the plate to the deck underside: the room the PCB antenna
+    radiates into, with the deck above it the one metal face spec 7 accepts. The cut runs off the
+    PCB edge, so it is clipped to the rounded board bay: past the bay is the case wall, which spec 7
+    counts as the metal 9.0 to the right."""
+    z_low, z_high = bottom.outer_face() - carriers.OVERRUN, LAYOUT.stack.deck_underside
+    return carriers.block(LAYOUT.antenna.board_cut, z_low, z_high) & bottom.bay(z_low, z_high)
+
+
+def _right(rect):
+    return rect[0] + rect[2]
+
+
+def _back(rect):
+    return rect[1] + rect[3]
+
+
+def _insert_rule_problems():
+    """The insert outline and the plate relief must close on the shell's own faces: the wall
+    inside face, the back face, the corner arc's start and the cavity's right face."""
+    case, cavity = LAYOUT.body, bottom.cavity_rect()
+    outline, relief = LAYOUT.antenna.insert.outline, LAYOUT.bottom_plate.antenna_relief
+    edges = {
+        "insert front against the wall inside face": (outline[1], _back(cavity)),
+        "insert back against the case back face": (_back(outline), _back(case.outline)),
+        "insert right end at the corner arc": (_right(outline), _right(case.outline) - case.corner_radius),
+        "relief back against the insert front": (_back(relief), outline[1]),
+        "relief right against the cavity right face": (_right(relief), _right(cavity)),
+    }
+    found = [f"{name}: {got:g}, expected {need:g}" for name, (got, need) in edges.items()
+             if abs(got - need) > TOLERANCE]
+    if not _contains(relief, LAYOUT.antenna.board_cut):
+        found.append(f"antenna_relief {relief} does not cover the board cut {LAYOUT.antenna.board_cut}")
+    return found
+
+
+def _post_height_problems():
+    """Standoffs, encoder posts and key ribs reach from the plate to the PCB bottom face."""
+    stack, plate_table = LAYOUT.stack, LAYOUT.bottom_plate
+    gap = stack.pcb_bottom - stack.bottom_plate_inside
+    heights = {"standoffs": plate_table.standoffs.height, "encoder_posts": plate_table.encoder_posts.height,
+               "key_ribs": plate_table.key_ribs.height}
+    return [f"bottom_plate.{name} height {height:g}, plate to PCB is {gap:g}"
+            for name, height in heights.items() if abs(height - gap) > TOLERANCE]
+
+
+def _insert_extent_problems(part):
+    x, y, width, depth = LAYOUT.antenna.insert.outline
+    relief = LAYOUT.bottom_plate.antenna_relief
+    box = part.bounding_box()
+    want = (min(x, relief[0]), relief[1], bottom.outer_face(), max(x + width, _right(relief)), y + depth,
+            LAYOUT.stack.deck_top)
+    got = (box.min.X, box.min.Y, box.min.Z, box.max.X, box.max.Y, box.max.Z)
+    if all(abs(have - need) <= TOLERANCE for have, need in zip(got, want, strict=True)):
+        return []
+    return [f"insert bounding box {tuple(round(value, 4) for value in got)}, expected {want}"]
+
+
+def insert_probes(parts):
+    """(name, part, point, expected inside) for the insert, its pocket in the shell, and each
+    plate feature."""
+    return _insert_probes(parts) + _plate_probes(parts["plate"])
+
+
+def _bottom_mid():
+    return _mid(bottom.outer_face(), LAYOUT.stack.bottom_plate_inside)
+
+
+def _post_mid():
+    return _mid(LAYOUT.stack.bottom_plate_inside, LAYOUT.stack.pcb_bottom)
+
+
+def _insert_probes(parts):
+    shell, plate, part = parts["shell"], parts["plate"], parts["insert"]
+    x, y, width, depth = LAYOUT.antenna.insert.outline
+    relief_x, relief_y, relief_width, relief_depth = LAYOUT.bottom_plate.antenna_relief
+    relief_centre = (_mid(relief_x, relief_x + relief_width), _mid(relief_y, relief_y + relief_depth))
+    wall_x, wall_y = _mid(x, x + width), _mid(y, y + depth)
+    chamfer = LAYOUT.body.top_chamfer / 4
+    top = LAYOUT.stack.deck_top
+    return [
+        ("tongue fills the relief", part, (*relief_centre, _bottom_mid()), True),
+        ("plate open at the relief", plate, (*relief_centre, _bottom_mid()), False),
+        ("insert foot through the plate", part, (wall_x, wall_y, _bottom_mid()), True),
+        ("plate open under the insert", plate, (wall_x, wall_y, _bottom_mid()), False),
+        ("insert wall", part, (wall_x, wall_y, 0.0), True),
+        ("insert deck rim", part, (wall_x, wall_y, _deck_mid()), True),
+        ("insert top chamfer", part, (wall_x, _back(LAYOUT.body.outline) - chamfer, top - chamfer), False),
+        ("shell pocket at the insert wall", shell, (wall_x, wall_y, 0.0), False),
+        ("shell pocket at the insert deck rim", shell, (wall_x, wall_y, _deck_mid()), False),
+        ("shell wall left of the insert", shell, (x - PAST_EDGE, wall_y, 0.0), True),
+        ("shell wall right of the insert", shell, (x + width + PAST_EDGE, wall_y, 0.0), True),
+    ]
+
+
+def _plate_probes(plate):
+    plate_table, pcb = LAYOUT.bottom_plate, LAYOUT.pcb
+    found = [("plate at the PCB centre", plate, (pcb.width / 2, pcb.depth / 2, _bottom_mid()), True)]
+    for hole_x, hole_y in pcb.holes:
+        found += [
+            (f"screw hole {hole_x:g},{hole_y:g} in the plate", plate, (hole_x, hole_y, _bottom_mid()), False),
+            (f"screw hole {hole_x:g},{hole_y:g} in the standoff", plate, (hole_x, hole_y, _post_mid()), False),
+            (f"standoff {hole_x:g},{hole_y:g}", plate,
+             (hole_x + pcb.hole_diameter / 2 + PAST_EDGE, hole_y, _post_mid()), True),
+        ]
+    found += [(f"encoder post {x:g},{y:g}", plate, (x, y, _post_mid()), True)
+              for x, y in plate_table.encoder_posts.at]
+    ribs = plate_table.key_ribs
+    found += [(f"key rib {y:g}", plate, (_mid(*ribs.x), y, _post_mid()), True) for y in ribs.y]
+    pinholes = plate_table.pinholes
+    found += [(f"pinhole {x:g},{y:g}", plate, (x, y, _bottom_mid()), False) for x, y in pinholes.at]
+    beside = pinholes.diameter / 2 + PAST_EDGE
+    found += [(f"plate beside pinhole {x:g},{y:g}", plate, (x + beside, y, _bottom_mid()), True)
+              for x, y in pinholes.at]
+    notch, inside = plate_table.usb_notch, LAYOUT.stack.bottom_plate_inside
+    notch_y = _mid(_back(bottom.cavity_rect()), _back(LAYOUT.body.outline))
+    found += [
+        ("USB notch", plate, (LAYOUT.usb.x, notch_y, inside - notch.depth / 2), False),
+        ("plate under the USB notch", plate, (LAYOUT.usb.x, notch_y, inside - notch.depth - PAST_EDGE), True),
+    ]
     return found

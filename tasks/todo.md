@@ -1,6 +1,6 @@
 # Tasks: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.10 (fw-store) and 2.13 (fw-ui model), which the C config validator unblocks.
+Next action: Checkpoint 1 owner review, then 2.11a (device link: config and credentials) and 2.14a (fw-ui renderer; font source and licence: ask first).
 Plan, lanes and gates: `tasks/plan.md`.
 
 Definition of done for every task: `just test` exits 0. No test or check is weakened. The four
@@ -276,7 +276,7 @@ rule lands with the task that makes its paths true: R3 protocol half in 1.2, R6 
     steps clamp.
   - Verify: `just test`. Deps: 2.3, 2.8, 2.9. Files: `core/actions.[ch]`, `test/test_actions.c`,
     the deleted `host/obs_core/src/*.rs`.
-- [ ] **2.13 fw-ui model (S).** The widget model from `main_display` and `strip_display`, and the
+- [x] **2.13 fw-ui model (S).** The widget model from `main_display` and `strip_display`, and the
   tile grid.
   - Accept: the overlap check agrees with the validator. A config edit dirties only its widgets'
     tiles.
@@ -575,7 +575,7 @@ D5 copies: never edit the sibling repos. Each copied file carries
 - [x] **6.2b Display carriers and foam frames (S).**
   - Accept: carrier heights and foam squeeze match `check_numbers.py`.
   - Verify: `just cad`. Deps: 6.2a. Files: `cad/obs_case/carriers.py`, `checks.py`.
-- [ ] **6.3 Back-wall insert and bottom plate (M).** The insert from x 56.0 to 87.6, full wall
+- [x] **6.3 Back-wall insert and bottom plate (M).** The insert from x 56.0 to 87.6, full wall
   height, with the floor tongue, `antenna_relief`, the bottom plate and 6 holes. Insert colour per
   open question 1 (default black).
   - Accept: no metal solid in the antenna board cut. The insert fit stays MEASURE.

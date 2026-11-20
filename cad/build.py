@@ -4,7 +4,9 @@
 Steps:
   body      build the style A top shell (task 6.2a) and run the geometry checks.
   carriers  build the display carriers and foam frames (task 6.2b) and check them against the
-            shell and the tools/check_numbers.py stack and squeeze rules."""
+            shell and the tools/check_numbers.py stack and squeeze rules.
+  insert    build the back-wall insert, its pocket in the shell and the bottom plate (task 6.3),
+            and check that no metal sits in the antenna board cut."""
 
 import sys
 from pathlib import Path
@@ -34,7 +36,19 @@ def carriers_step() -> int:
     return 1 if found else 0
 
 
-STEPS = {"body": body_step, "carriers": carriers_step}
+def insert_step() -> int:
+    from obs_case import bottom, checks, insert
+
+    parts = {"shell": insert.shell(), "plate": bottom.plate(), "insert": insert.insert()}
+    found = checks.insert_problems(parts)
+    for problem in found:
+        print(problem)
+    print(f"insert: {len(checks.insert_probes(parts))} probes, {len(found)} problems;"
+          f" MEASURE: {', '.join(insert.MEASURE)}")
+    return 1 if found else 0
+
+
+STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step}
 
 
 def main(argv: list[str]) -> int:
