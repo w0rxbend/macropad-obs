@@ -37,6 +37,9 @@ async function save() {
     const answer = await api.writeNetwork(network, secrets);
     drawPage(answer.page);
     sayWritten(answer.saved);
+    if (answer.secrets_unsent) {
+      say("Another write reached the pad first, so the passphrase and password were not sent. Type them again and Save to keep yours, or Read to take the pad's.");
+    }
   } finally {
     clearSecrets();
   }

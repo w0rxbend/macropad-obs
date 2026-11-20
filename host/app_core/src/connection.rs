@@ -163,6 +163,8 @@ pub struct NetworkPage {
 pub struct NetworkSaved {
     pub saved: Saved,
     pub page: NetworkPage,
+    /// The write was stale and the filled secrets were zeroed unsent: the user types them again.
+    pub secrets_unsent: bool,
 }
 
 struct Open<P> {
@@ -297,19 +299,23 @@ impl<P: Read + Write> Connection<P> {
     }
 
     /// Writes `network` into the last document read, then sends each filled secret. `secrets` is
-    /// empty when this returns, whatever the outcome, and its bytes are zeroed: a refused document
-    /// sends no secret, and a refused secret stops the ones after it.
+    /// empty when this returns, whatever the outcome, and its bytes are zeroed: a refused or stale
+    /// document sends no secret, since a new passphrase under the pad's old SSID breaks its Wi-Fi,
+    /// and a refused secret stops the ones after it.
     pub fn write_network(&mut self, network: &Network, secrets: &mut Secrets) -> Result<NetworkSaved, Failure> {
         let mut sending = mem::take(secrets);
         let edited = self.edited(|document| forms::apply_network(document, network))?;
         let saved = self.write(edited)?;
-        for credential in SECRETS {
-            let secret = sending.take(credential);
-            if !secret.is_empty() {
-                self.set_credential(credential, secret)?;
+        let secrets_unsent = matches!(saved, Saved::Stale { .. }) && !sending.is_empty();
+        if let Saved::Saved { .. } = saved {
+            for credential in SECRETS {
+                let secret = sending.take(credential);
+                if !secret.is_empty() {
+                    self.set_credential(credential, secret)?;
+                }
             }
         }
-        Ok(NetworkSaved { saved, page: self.network_page()? })
+        Ok(NetworkSaved { saved, page: self.network_page()?, secrets_unsent })
     }
 
     fn network_page(&self) -> Result<NetworkPage, Failure> {

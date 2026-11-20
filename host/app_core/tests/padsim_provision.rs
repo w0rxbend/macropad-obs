@@ -6,17 +6,16 @@
 mod common;
 
 use std::cell::RefCell;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use app_core::{export, Credential, Document, Secret, Session, SessionError, Status, Written};
-use common::{minimal_document, Padsim, Scratch};
+use common::{frames, minimal_document, Capture, Padsim, Scratch, Tap};
 use obs_core::protocol::{
-    self, Frame, Pulled, CREDENTIAL_OBS_PASSWORD, CREDENTIAL_WIFI_PASSPHRASE, CRED_BAD_LEN, CRED_BAD_VALUE,
-    SET_CREDENTIAL, WIFI_BAD_KEY, WIFI_UP,
+    self, CREDENTIAL_OBS_PASSWORD, CREDENTIAL_WIFI_PASSPHRASE, CRED_BAD_LEN, CRED_BAD_VALUE, SET_CREDENTIAL,
+    WIFI_BAD_KEY, WIFI_UP,
 };
-use obs_core::LinkRx;
 use serde_json::{json, Value};
 
 // No 4-byte run of either occurs in a document, a fixed INFO field or a frame header.
@@ -26,57 +25,10 @@ const WIFI_PSK: &[u8] = b"Kj4$Rt8&Wn5*Hy";
 const SECRET_RUN: usize = 4;
 const STATUS_WAIT: Duration = Duration::from_secs(5);
 
-/// Both directions of the link as raw bytes.
-#[derive(Default)]
-struct Capture {
-    to_pad: Vec<u8>,
-    to_app: Vec<u8>,
-}
-
-/// The pad's port with every byte copied into a shared `Capture`.
-struct Tap<P> {
-    port: P,
-    capture: Rc<RefCell<Capture>>,
-}
-
-impl<P: Write> Write for Tap<P> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let sent = self.port.write(buf)?;
-        self.capture.borrow_mut().to_pad.extend_from_slice(&buf[..sent]);
-        Ok(sent)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.port.flush()
-    }
-}
-
-impl<P: Read> Read for Tap<P> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let got = self.port.read(buf)?;
-        self.capture.borrow_mut().to_app.extend_from_slice(&buf[..got]);
-        Ok(got)
-    }
-}
-
 fn holds_secret_run(bytes: &[u8]) -> bool {
     [OBS_PASSWORD, WIFI_PSK]
         .iter()
         .any(|secret| secret.windows(SECRET_RUN).any(|run| bytes.windows(SECRET_RUN).any(|at| at == run)))
-}
-
-/// The frames of one direction. Every byte belongs to a frame that passed its CRC.
-fn frames(raw: &[u8]) -> Vec<Frame> {
-    let mut rx = LinkRx::default();
-    rx.push(raw);
-    let mut frames = Vec::new();
-    while let Some(pulled) = rx.pull() {
-        let Pulled::Frame(frame) = pulled else { panic!("a damaged frame on the link: {pulled:?}") };
-        frames.push(frame);
-    }
-    let rebuilt: Vec<u8> = frames.iter().flat_map(|frame| protocol::encode(frame).expect("frame fits")).collect();
-    assert_eq!(rebuilt, raw, "the capture is frames and nothing else");
-    frames
 }
 
 fn wait_for_wifi<P: Read + Write>(session: &mut Session<P>, wifi_state: u8) -> Status {

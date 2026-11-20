@@ -5,10 +5,14 @@
 
 mod common;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use app_core::forms::{Network, Secrets};
 use app_core::preview::{MAIN_BYTES, STRIP_BYTES};
 use app_core::{Connection, Saved};
-use common::{minimal_document, Padsim, Scratch};
+use common::{frames, minimal_document, Capture, Padsim, Scratch, Tap};
+use obs_core::protocol::SET_CREDENTIAL;
 use serde_json::{json, Value};
 
 const PASSPHRASE: &str = "correct horse battery";
@@ -57,6 +61,7 @@ fn secret_fields_never_fill_from_a_read_and_are_empty_after_a_write() {
     assert!(form.is_empty(), "the form is empty after the write");
     let saved = serde_json::to_value(saved).expect("answer serialises");
     assert_eq!(saved["saved"], json!({"outcome": "saved", "seq": 2}));
+    assert_eq!(saved["secrets_unsent"], json!(false));
     assert_eq!(
         saved["page"],
         json!({"ssid": "studio", "auth_mode": "stored", "wifi_psk_set": true, "obs_password_set": true})
@@ -94,6 +99,47 @@ fn a_refused_document_sends_no_secret_and_still_empties_the_form() {
     assert!(form.is_empty());
     let info = connection.info().expect("INFO");
     assert!(!info.wifi_psk_set && !info.obs_password_set, "nothing was sent");
+    pad.finish();
+}
+
+/// A stale write keeps the pad's SSID, so a new passphrase would break its Wi-Fi: no secret is
+/// sent, the form is still emptied, and the answer says the secrets were not sent.
+#[test]
+fn a_stale_network_write_sends_no_secret() {
+    let scratch = Scratch::new("pages-stale");
+    let pad = Padsim::start(&scratch.path("pad.nor"));
+    let port = pad.port();
+    // Other writers on the same pad (the pty opens once), each used while `mine` is idle.
+    let second = port.try_clone_native().expect("a second handle on the pty");
+    let third = port.try_clone_native().expect("a third handle on the pty");
+    let capture = Rc::new(RefCell::new(Capture::default()));
+    let mut mine = Connection::new();
+    mine.attach(Tap { port, capture: Rc::clone(&capture) }).expect("INFO");
+    mine.read().expect("read");
+    assert_eq!(mine.write(minimal_document()).expect("seed"), Saved::Saved { seq: 1 });
+
+    let mut other = Connection::new();
+    other.attach(second).expect("INFO");
+    let mut theirs = other.read().expect("read").document;
+    theirs["ui"]["brightness"] = json!(5);
+    assert_eq!(other.write(theirs).expect("write"), Saved::Saved { seq: 2 });
+    drop(other);
+
+    capture.borrow_mut().to_pad.clear();
+    let network = Network { ssid: "studio".into(), auth_mode: "stored".into() };
+    let mut form = secrets(PASSPHRASE, PASSWORD);
+    let answer = mine.write_network(&network, &mut form).expect("write");
+    assert!(form.is_empty(), "the form is empty after the write");
+    assert!(matches!(answer.saved, Saved::Stale { .. }), "a write on seq 1 after seq 2 is stale");
+    assert!(answer.secrets_unsent, "the answer says the secrets were not sent");
+    assert!(!holds_a_secret(&serde_json::to_value(&answer).expect("answer serialises")));
+    let sent = frames(&capture.borrow().to_pad);
+    assert!(sent.iter().all(|frame| frame.kind != SET_CREDENTIAL), "no SET_CREDENTIAL after a stale write");
+    drop(mine);
+
+    let mut later = Connection::new();
+    let info = later.attach(third).expect("INFO");
+    assert!(!info.wifi_psk_set && !info.obs_password_set, "the pad holds no secret");
     pad.finish();
 }
 

@@ -4,13 +4,17 @@
 // Each test binary uses its own part of this module.
 #![allow(dead_code)]
 
+use std::cell::RefCell;
 use std::fs;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
+use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use obs_core::protocol::{self, Frame, Pulled};
+use obs_core::LinkRx;
 use serde_json::Value;
 use serialport::TTYPort;
 
@@ -25,6 +29,53 @@ pub fn repo_root() -> PathBuf {
 pub fn minimal_document() -> Value {
     let path = repo_root().join("firmware/test/config_vectors/valid_minimal.json");
     serde_json::from_slice(&fs::read(&path).expect("valid_minimal.json reads")).expect("valid_minimal.json is JSON")
+}
+
+/// Both directions of the link as raw bytes.
+#[derive(Default)]
+pub struct Capture {
+    pub to_pad: Vec<u8>,
+    pub to_app: Vec<u8>,
+}
+
+/// The pad's port with every byte copied into a shared `Capture`.
+pub struct Tap<P> {
+    pub port: P,
+    pub capture: Rc<RefCell<Capture>>,
+}
+
+impl<P: Write> Write for Tap<P> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let sent = self.port.write(buf)?;
+        self.capture.borrow_mut().to_pad.extend_from_slice(&buf[..sent]);
+        Ok(sent)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.port.flush()
+    }
+}
+
+impl<P: Read> Read for Tap<P> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let got = self.port.read(buf)?;
+        self.capture.borrow_mut().to_app.extend_from_slice(&buf[..got]);
+        Ok(got)
+    }
+}
+
+/// The frames of one direction. Every byte belongs to a frame that passed its CRC.
+pub fn frames(raw: &[u8]) -> Vec<Frame> {
+    let mut rx = LinkRx::default();
+    rx.push(raw);
+    let mut frames = Vec::new();
+    while let Some(pulled) = rx.pull() {
+        let Pulled::Frame(frame) = pulled else { panic!("a damaged frame on the link: {pulled:?}") };
+        frames.push(frame);
+    }
+    let rebuilt: Vec<u8> = frames.iter().flat_map(|frame| protocol::encode(frame).expect("frame fits")).collect();
+    assert_eq!(rebuilt, raw, "the capture is frames and nothing else");
+    frames
 }
 
 /// A fresh directory under the system temp dir, removed on drop.
