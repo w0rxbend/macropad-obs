@@ -1,6 +1,6 @@
 # Build plan: macropad-obs v2
 
-Next action: Checkpoint 1 owner review, then 2.11b (device link: OBS lists, status and input) and 2.14b (strip goldens, R14 mock-ups, retire st7789).
+Next action: Checkpoint 1 owner review, then 2.14b (strip goldens, R14 mock-ups, retire st7789).
 
 Source of truth, in this order: `docs/spec/decisions-v2.md` (owner, final), `docs/spec/spec-v2.md`
 (approved 2026-11-18), `docs/spec/layout-v2.toml` rev 2c (rev 3 in 1.4a), `docs/research/`. Task

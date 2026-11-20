@@ -7,6 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+// The fixed fields of OBS_ITEM, before the name (docs/protocol.md).
+#define OBS_ITEM_FIXED (5 + LINK_UUID_LEN)
+#define UUID_TEXT_LEN 36
+// The id of a frame no request asked for (docs/protocol.md, STATUS).
+#define UNASKED_ID 0
+
+_Static_assert(OBS_NAME_MAX <= LINK_MAX_PAYLOAD - OBS_ITEM_FIXED,
+               "an obs_state name fits OBS_ITEM whole, so the handler never cuts one");
+
 static uint32_t stored_seq(const device_t *dev) {
 	return dev->store.state == STORE_NONE ? 0 : dev->store.doc.seq;
 }
@@ -36,6 +45,8 @@ static link_msg_t cred_status_of(bool done) {
 void device_init(device_t *dev, const device_port_t *port) {
 	dev->identity = port->identity;
 	dev->cred = port->cred;
+	dev->obs_state = port->obs_state;
+	dev->status_sent = false;
 	dev->write.open = false;
 	dev->trying = false;
 	dev->try_until_ms = 0;
@@ -198,11 +209,84 @@ static link_msg_t bootloader(device_t *dev) {
 	return cred_status_of(dev->bootloader_asked);
 }
 
-// The OBS session's lists are task 2.11b. Until then the pad holds none: total 0, no item.
-static link_msg_t no_obs_item(const link_msg_t *request) {
+static int hex_value(char c) {
+	if (c >= '0' && c <= '9') {
+		return c - '0';
+	}
+	if (c >= 'a' && c <= 'f') {
+		return c - 'a' + 10;
+	}
+	if (c >= 'A' && c <= 'F') {
+		return c - 'A' + 10;
+	}
+	return -1;
+}
+
+static bool is_dash_place(size_t at) {
+	return at == 8 || at == 13 || at == 18 || at == 23;
+}
+
+// False, and `out` unspecified, for text not in the 8-4-4-4-12 form.
+static bool uuid_from_text(const char *text, uint8_t out[LINK_UUID_LEN]) {
+	if (strlen(text) != UUID_TEXT_LEN) {
+		return false;
+	}
+	size_t nibble = 0;
+	for (size_t at = 0; at < UUID_TEXT_LEN; at++) {
+		if (is_dash_place(at)) {
+			if (text[at] != '-') {
+				return false;
+			}
+			continue;
+		}
+		int digit = hex_value(text[at]);
+		if (digit < 0) {
+			return false;
+		}
+		uint8_t *byte = &out[nibble / 2];
+		*byte = nibble % 2 == 0 ? (uint8_t)(digit << 4) : (uint8_t)(*byte | digit);
+		nibble++;
+	}
+	return true;
+}
+
+static const obs_item_t *obs_list_items(const obs_state_t *state, uint8_t list, uint16_t *count) {
+	*count = 0;
+	if (state == NULL) {
+		return NULL;
+	}
+	switch (list) {
+	case LINK_LIST_SCENES:
+		*count = state->scene_count;
+		return state->scenes;
+	case LINK_LIST_INPUTS:
+		*count = state->input_count;
+		return state->inputs;
+	default: // LINK_LIST_TRANSITIONS: obs_state reads none
+		return NULL;
+	}
+}
+
+// The name span points into obs_state, which device_handle encodes before it returns.
+static link_msg_t obs_item(const device_t *dev, const link_msg_t *request) {
 	link_msg_t msg = {.type = LINK_OBS_ITEM};
-	msg.as.obs_item.list = request->as.obs_list.list;
-	msg.as.obs_item.index = request->as.obs_list.index;
+	uint8_t list = request->as.obs_list.list;
+	uint16_t index = request->as.obs_list.index;
+	uint16_t total;
+	const obs_item_t *items = obs_list_items(dev->obs_state, list, &total);
+	msg.as.obs_item.list = list;
+	msg.as.obs_item.index = index;
+	msg.as.obs_item.total = total;
+	if (index >= total) {
+		return msg;
+	}
+	const obs_item_t *item = &items[index];
+	uint8_t uuid[LINK_UUID_LEN];
+	if (uuid_from_text(item->uuid, uuid)) {
+		memcpy(msg.as.obs_item.uuid, uuid, LINK_UUID_LEN);
+	}
+	msg.as.obs_item.name =
+	    (link_span_t){.bytes = (const uint8_t *)item->name, .len = strlen(item->name)};
 	return msg;
 }
 
@@ -237,7 +321,7 @@ static link_msg_t reply_to(device_t *dev, uint32_t now_ms, const link_frame_t *f
 	case LINK_BOOTLOADER:
 		return bootloader(dev);
 	case LINK_OBS_LIST:
-		return no_obs_item(&request);
+		return obs_item(dev, &request);
 	default: // a pad-to-app type: it decodes, but the pad takes no such request
 		return result(dev, LINK_RESULT_INVALID);
 	}
@@ -256,6 +340,42 @@ void device_tick(device_t *dev, uint32_t now_ms) {
 
 bool device_input(device_t *dev, const input_event_t *event) {
 	return event->source != INPUT_SOURCE_CLEAR || wipe(dev);
+}
+
+bool device_input_frame(const input_event_t *event, link_frame_t *frame) {
+	if (event->source == INPUT_SOURCE_CLEAR) {
+		return false;
+	}
+	link_msg_t msg = {.type = LINK_INPUT};
+	msg.as.input.source = event->source;
+	msg.as.input.index = event->index;
+	msg.as.input.value = event->value;
+	return link_msg_encode(&msg, UNASKED_ID, frame);
+}
+
+static bool same_status(const link_msg_t *a, const link_msg_t *b) {
+	return a->as.status.obs_state == b->as.status.obs_state &&
+	       a->as.status.wifi_state == b->as.status.wifi_state &&
+	       a->as.status.rssi_dbm == b->as.status.rssi_dbm &&
+	       memcmp(a->as.status.ip, b->as.status.ip, sizeof a->as.status.ip) == 0;
+}
+
+bool device_status(device_t *dev, enum link_obs_state obs, const wifi_status_t *wifi,
+                   link_frame_t *frame) {
+	link_msg_t msg = {.type = LINK_STATUS};
+	msg.as.status.obs_state = (uint8_t)obs;
+	msg.as.status.wifi_state = (uint8_t)wifi->state;
+	msg.as.status.rssi_dbm = wifi->rssi_dbm;
+	memcpy(msg.as.status.ip, wifi->ip, sizeof msg.as.status.ip);
+	if (dev->status_sent && same_status(&msg, &dev->status)) {
+		return false;
+	}
+	if (!link_msg_encode(&msg, UNASKED_ID, frame)) {
+		return false;
+	}
+	dev->status = msg;
+	dev->status_sent = true;
+	return true;
 }
 
 link_span_t device_draft(const device_t *dev) {
