@@ -179,6 +179,8 @@ inner = "lens_opening"         # never over the active area
 # (narrow 2.1 +/- 0.1 per the drawing): MEASURE.
 clearance = 0.15               # design: carrier outer = pocket - 0.15 a side
 wall = 2.0                     # design: 5 perimeters at 0.4
+skirt = 1.0                    # design: pocket walls, this thick outside each pocket (the pocket skirt below)
+wall_corner_gap = 2.0          # design: pocket walls stop this short of each pocket corner (no dog-bone in a 1.0 wall)
 big = { outer = [3.30, 79.15, 54.70, 83.20], inner = [5.30, 81.15, 50.70, 79.20], height = 3.45, tail_gap = [19.9, 79.15, 21.5, 2.0] }   # height MEASURE: 5.6 - calipered panel
 narrow = { outer = [63.66, 91.69, 24.68, 69.73], inner = [65.66, 93.69, 20.68, 65.73], height = 3.50, tail_gap = [72.75, 91.69, 6.5, 2.0] }   # height MEASURE; tail_gap x MEASURE, as the tail offset
 # Top-face keep-out = each carrier outer rectangle, z 0 to its height: no part, no THT lead,

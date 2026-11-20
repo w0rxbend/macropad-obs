@@ -12,6 +12,7 @@ from operator import add
 from build123d import Box, Cylinder, Pos
 
 from obs_case import body
+from obs_case.carriers import block
 from obs_case.spec import LAYOUT
 
 OVERRUN = 0.5  # mm a through-cut tool runs past the faces it opens, so no face is left coplanar
@@ -80,9 +81,52 @@ def _wall_fillet(wall_x, face_y, side, z_low, z_high):
     return piece - Pos(wall_x + radius, centre_y, z_mid) * Cylinder(radius, z_high - z_low + 2 * OVERRUN)
 
 
+def pocket_wall_rects(panel):
+    """The pocket walls of one display as [x, y, width, depth] bars, [display_carrier] skirt thick,
+    one along each pocket side. They locate the carrier sideways. Each bar stops wall_corner_gap
+    short of the pocket corners: the panel and carrier corners stand free, and the wall has no
+    inside corner, whose dog-bone would mill most of the way through it. Bars are cut at the tail
+    notch, so the tail can fold, and none stands within one skirt of the antenna board cut, where
+    it would be metal next to the antenna (D7)."""
+    table = LAYOUT.display_carrier
+    skirt, gap = table.skirt, table.wall_corner_gap
+    x, y, width, depth = panel.pocket
+    sides = ([x - skirt, y + gap, skirt, depth - 2 * gap], [x + width, y + gap, skirt, depth - 2 * gap],
+             [x + gap, y - skirt, width - 2 * gap, skirt], [x + gap, y + depth, width - 2 * gap, skirt])
+    keep_out = grown(LAYOUT.antenna.board_cut, skirt)
+    bars = []
+    for side in sides:
+        bars += _split_at(side, panel.pocket_tail_notch)
+    return [bar for bar in bars if not _overlap(bar, keep_out)]
+
+
+def _split_at(bar, notch):
+    """A horizontal bar [x, y, width, depth] less the x span of `notch` where the two overlap."""
+    if not _overlap(bar, notch):
+        return [bar]
+    x, y, width, depth = bar
+    notch_left, notch_right = notch[0], notch[0] + notch[2]
+    pieces = [[x, y, notch_left - x, depth], [notch_right, y, x + width - notch_right, depth]]
+    return [piece for piece in pieces if piece[2] > 0]
+
+
+def _overlap(first, second):
+    """True if two [x, y, width, depth] rectangles share area; touching edges do not count."""
+    return (first[0] < second[0] + second[2] and second[0] < first[0] + first[2]
+            and first[1] < second[1] + second[3] and second[1] < first[1] + first[3])
+
+
+def pocket_walls():
+    """Every pocket wall bar, from stack.pocket_skirt_bottom to the deck underside, where it joins
+    the deck."""
+    stack = LAYOUT.stack
+    return _union(block(bar, stack.pocket_skirt_bottom, stack.deck_underside)
+                  for panel in panels() for bar in pocket_wall_rects(panel))
+
+
 def top_shell():
     """The finished top shell: the slab, its cavity and every deck cut."""
-    part = body.shell(plate_block())
+    part = body.shell(plate_block() + pocket_walls())
     for name, tool in _cuts():
         part = body.cut(part, tool, name)
     return part

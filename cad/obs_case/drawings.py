@@ -209,7 +209,7 @@ def _plate_tolerances():
 def _shell_notes():
     marks = LAYOUT.knobs.index_marks
     return (
-        "3-axis, two setups: underside up (cavity, insert pocket, plate cut-outs), then top up (key well, lens "
+        "3-axis, two setups: underside up (cavity, display pocket walls, insert pocket, plate cut-outs), then top up (key well, lens "
         "recesses, holes, chamfers).",
         "Style A: the top chamfer is machined after the bead blast (setup 2) so it shows bright, then the part is "
         "anodised. Order as \"chamfer machined after blast\".",

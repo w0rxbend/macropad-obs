@@ -50,7 +50,8 @@ def problems(part):
 
 def probes():
     """(name, point, expected inside) for each feature of the shell."""
-    return _deck_probes() + _key_probes() + _display_probes() + _hole_probes() + _chamfer_probes()
+    return (_deck_probes() + _key_probes() + _display_probes() + _pocket_wall_probes() + _hole_probes()
+            + _chamfer_probes())
 
 
 def _word(inside):
@@ -158,6 +159,27 @@ def _display_probes():
     return found
 
 
+def _pocket_wall_probes():
+    """Mid skirt, half a skirt outside each long pocket side: the wall. Just inside it: the pocket.
+    And the tail notch open, so the tail can fold."""
+    stack, skirt = LAYOUT.stack, LAYOUT.display_carrier.skirt
+    z = _mid(stack.pocket_skirt_bottom, stack.deck_underside)
+    found = []
+    for name in carriers.NAMES:
+        panel = carriers.panel(name)
+        x, y, width, depth = panel.pocket
+        centre_y = _mid(y, y + depth)
+        for side, face, outward in (("left", x, -1), ("right", x + width, 1)):
+            found += [
+                (f"{name} pocket wall {side}", (face + outward * skirt / 2, centre_y, z), True),
+                (f"{name} pocket open {side}", (face - outward * PAST_EDGE, centre_y, z), False),
+            ]
+        notch_x, notch_y, notch_width, notch_depth = panel.pocket_tail_notch
+        found.append((f"{name} pocket tail notch open",
+                      (_mid(notch_x, notch_x + notch_width), _mid(notch_y, notch_y + notch_depth), z), False))
+    return found
+
+
 def _hole_probes():
     buttons, knobs = LAYOUT.buttons, LAYOUT.knobs
     found = [(f"button hole {x:g}", (x, buttons.y, _deck_mid()), False) for x in buttons.x]
@@ -204,6 +226,7 @@ def carrier_problems(shell):
         found += [f"{name} foam frame: {problem}" for problem in NUMBERS.stack_problems(_measured(parts, name))]
         found += [f"{name} {problem}" for problem in NUMBERS.squeeze_problems(_measured_foam(parts[name][1]))]
         found += _seat_problems(name, *parts[name]) + _footprint_problems(name, *parts[name])
+        found += location_problems(name, parts[name][0], shell)
         found += [f"{name} {kind} cuts into the top shell" for kind, part in zip(("carrier", "foam"), parts[name])
                   if _shared_volume(part, shell) > TOLERANCE]
     return found + [f"probe {name}: expected {_word(inside)}" for name, part, point, inside
@@ -252,7 +275,7 @@ def _seat_problems(name, carrier, foam):
 
 
 def _footprint_problems(name, carrier, foam):
-    """Carrier = pocket less clearance a side (the pocket walls locate it), foam = module outline,
+    """Carrier = pocket less clearance a side (location_problems checks the walls hold it), foam = module outline,
     and the panel rests on the carrier ring: inside its outer edge, over its hollow."""
     ring, display = getattr(LAYOUT.display_carrier, name), carriers.panel(name)
     want = {"carrier": (_rect(carrier), deck.grown(display.pocket, -LAYOUT.display_carrier.clearance)),
@@ -263,6 +286,16 @@ def _footprint_problems(name, carrier, foam):
     if not (_contains(ring.outer, display.outline) and _contains(display.outline, ring.inner)):
         found.append(f"{name} panel outline {display.outline} does not rest on the carrier ring")
     return found
+
+
+def location_problems(name, carrier, shell):
+    """The pocket walls locate the carrier: its nearest approach to the shell is the
+    [display_carrier] clearance. More lets the carrier and its panel slide under the lens ledge."""
+    clearance = LAYOUT.display_carrier.clearance
+    gap = carrier.distance_to(shell)
+    if abs(gap - clearance) <= TOLERANCE:
+        return []
+    return [f"{name} carrier sits {gap:.3f} off the shell, the pocket walls locate it at {clearance:g}"]
 
 
 def _same_rect(got, need):

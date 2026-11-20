@@ -63,5 +63,6 @@ def cavity():
 
 
 def shell(keep):
-    """The slab hollowed by the cavity, except the solid `keep` (the MX plate block) stays."""
+    """The slab hollowed by the cavity, except the solid `keep` (the MX plate block and the pocket
+    walls) stays."""
     return cut(slab(), cavity() - keep, "cavity")

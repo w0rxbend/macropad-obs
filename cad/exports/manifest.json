@@ -286,14 +286,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22984,
+            "triangles": 23128,
             "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 474026,
+        "bytes": 475469,
         "format": "3MF",
-        "sha256": "22fd2bb5e49a22f204f097617ab5863f47b5f6835692de9423e92b8efad6b4bc"
+        "sha256": "164a9db53b8439b91620c747b650b40002062314368872db7fc151ef80dde3e2"
       },
       "cnc/assembly.glb": {
         "bodies": {
@@ -308,14 +308,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22984,
-            "volume_error": "1.1e-05",
+            "triangles": 23128,
+            "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 1567864,
+        "bytes": 1598444,
         "format": "GLB",
-        "sha256": "3ea18426e780cc5df81e37a621805f4d7d5ba86c8062ff2eb59873b00ff38bc3",
+        "sha256": "2bdfb855504c722ccf6a276e064565be155d600857e5cc2cd7bb5352dd541967",
         "zero_area_dropped": {
           "OBS-CASE-INSERT-CNC": 0,
           "OBS-CASE-PLATE-CNC": 0,
@@ -323,13 +323,13 @@
         }
       },
       "cnc/assembly.step": {
-        "bytes": 1187121,
+        "bytes": 1323374,
         "format": "STEP AP214",
-        "sha256": "40befeb4519d723cc68ee2b0dac63bb8a77c20b06d3b1cd60ef26a3f7837c4f4",
+        "sha256": "4d9e4c0a5ff5f53a14c68c42bd60b54a2b02d30cfa4723e9bd3580083537c031",
         "solids": 3,
         "valid": true,
-        "volume_error": "4.4e-15",
-        "volume_mm3": 76308.886
+        "volume_error": "3.4e-15",
+        "volume_mm3": 77853.046
       },
       "cnc/insert.3mf": {
         "bodies": {
@@ -454,62 +454,62 @@
       "cnc/shell.3mf": {
         "bodies": {
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22984,
+            "triangles": 23128,
             "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 298107,
+        "bytes": 299599,
         "format": "3MF",
-        "sha256": "a6dddb572068db56d7cf8ab042b918985c813600970f4659c712356171cf7be2"
+        "sha256": "6ef878ed91e1a0308e28a822e8370e98c11af692b616043fc0ab4ab08d33a20a"
       },
       "cnc/shell.ap242.step": {
-        "bytes": 873882,
+        "bytes": 1010135,
         "format": "STEP AP242",
-        "sha256": "2bb9bd977d2a67b13ccc4e97445b15a73f3322cd499001a330d3b19b701d9425",
+        "sha256": "7244634f69ed4bb7a4668939e4fa18dcbcb11aeae8d06e9e1b9ce705e24a1d06",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.3e-14",
-        "volume_mm3": 32022.197
+        "volume_error": "2.0e-14",
+        "volume_mm3": 33566.357
       },
       "cnc/shell.brep": {
-        "bytes": 299839,
+        "bytes": 330794,
         "format": "BREP",
-        "sha256": "f1b5cc0effbadec9a220c4d4276900112c16f3cf504fad7458351aa4879f457d",
+        "sha256": "87e6e5ce0dd2c74d5dc9543a8b199d1801760c09314834444ec371765214c20e",
         "solids": 1,
         "valid": true,
-        "volume_error": "0.0e+00",
-        "volume_mm3": 32022.197
+        "volume_error": "2.2e-16",
+        "volume_mm3": 33566.357
       },
       "cnc/shell.igs": {
-        "bytes": 694737,
+        "bytes": 793152,
         "format": "IGES",
-        "sha256": "db132f17fc2d4ed49041debbdd0314bb22b509c4aca96fb032a66f31e6fda93a",
+        "sha256": "d60b942feea7a99bde9669d058fa783a54106bdb42e8e04bcf319c636586222a",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.4e-12",
-        "volume_mm3": 32022.197
+        "volume_error": "2.1e-12",
+        "volume_mm3": 33566.357
       },
       "cnc/shell.step": {
-        "bytes": 873847,
+        "bytes": 1010100,
         "format": "STEP AP214",
-        "sha256": "5e79bd34f9fc8db97eaff706d0a444b78569b749a1692d5f4dc84b9c023fdf4a",
+        "sha256": "6cb7f3cb1a246186f22976cae0cd98b3cb15fbbb0e34a9f1d013584845f2bc45",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.3e-14",
-        "volume_mm3": 32022.197
+        "volume_error": "2.0e-14",
+        "volume_mm3": 33566.357
       },
       "cnc/shell.stl": {
         "bodies": {
           "OBS-CASE-SHELL-CNC": {
-            "triangles": 22984,
+            "triangles": 23128,
             "volume_error": "1.0e-05",
             "watertight": true
           }
         },
-        "bytes": 1149284,
+        "bytes": 1156484,
         "format": "STL",
-        "sha256": "21d911dc04c39091591cc6e2a436ad43d5bc01cac6ec45e9423cc03a86074f41"
+        "sha256": "0fc711659876d15dc4b3f0b81b9d6b15fd27daf34de1f001c7f25e55d90d079d"
       },
       "print/assembly.3mf": {
         "bodies": {
@@ -524,14 +524,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11426,
+            "triangles": 11570,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 279735,
+        "bytes": 281026,
         "format": "3MF",
-        "sha256": "388b50192c5fece0fafbea6e4bc7d25ccfe87d2aa535c1e274031e57c1b2d2d1"
+        "sha256": "768e820e44f58bb8bdb985d06432b2d6b74c9d777ebced162b42a3f3604af5b4"
       },
       "print/assembly.glb": {
         "bodies": {
@@ -546,14 +546,14 @@
             "watertight": true
           },
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11426,
-            "volume_error": "1.2e-05",
+            "triangles": 11570,
+            "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 958368,
+        "bytes": 988856,
         "format": "GLB",
-        "sha256": "623711017914bf5775d4ddc2e39db382a43f92e39c961fb4344eda4b9a989857",
+        "sha256": "8384232221a21898f21f177117002e0d6d6c9c3f0f35742e9d537400a8574ff5",
         "zero_area_dropped": {
           "OBS-CASE-INSERT-PRINT": 0,
           "OBS-CASE-PLATE-PRINT": 0,
@@ -561,13 +561,13 @@
         }
       },
       "print/assembly.step": {
-        "bytes": 919292,
+        "bytes": 1055548,
         "format": "STEP AP214",
-        "sha256": "a49d70a79ce7b0ab95a39330477190c5504b9d1ac123255fb8b9e085e5bf0c7b",
+        "sha256": "bead4e2d1b5bb1ef2ff5852451c733b0176d5638c0b7542874ce5e20df8d4f2d",
         "solids": 3,
         "valid": true,
-        "volume_error": "1.9e-15",
-        "volume_mm3": 76272.229
+        "volume_error": "9.4e-16",
+        "volume_mm3": 77816.389
       },
       "print/insert.3mf": {
         "bodies": {
@@ -692,62 +692,62 @@
       "print/shell.3mf": {
         "bodies": {
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11426,
+            "triangles": 11570,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 147622,
+        "bytes": 149136,
         "format": "3MF",
-        "sha256": "8f7a0f9abfe027e0500d11e4f3217698479eb59ee980a8df6de81232aef87584"
+        "sha256": "5c3fa375daee2528ceda4de531df4eeb49f7af189ae633c9e3e71731fc4a3042"
       },
       "print/shell.ap242.step": {
-        "bytes": 684934,
+        "bytes": 821193,
         "format": "STEP AP242",
-        "sha256": "1d7887e0448fd6ab6fedd76fa7857ff5032f0b0cec9ded5cf5b4553712311169",
+        "sha256": "495f14232702599c0b4dc81e6facf61b67530a3a268bc0c952f636421ff879f7",
         "solids": 1,
         "valid": true,
-        "volume_error": "1.8e-15",
-        "volume_mm3": 31985.378
+        "volume_error": "3.7e-15",
+        "volume_mm3": 33529.538
       },
       "print/shell.brep": {
-        "bytes": 211784,
+        "bytes": 242680,
         "format": "BREP",
-        "sha256": "89bb532ac67dac53a676d1628dffe3c78964a153ea8ad98d3a0852f63eab457f",
+        "sha256": "08eb798a90969720fd3de8a5a0a00455ac22eea80251cc448a1a9ddc2d30fb8d",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.3e-16",
-        "volume_mm3": 31985.378
+        "volume_error": "2.2e-16",
+        "volume_mm3": 33529.538
       },
       "print/shell.igs": {
-        "bytes": 526743,
+        "bytes": 625239,
         "format": "IGES",
-        "sha256": "3cf4e88d89cb6884ae21d803672b56a4adc70470f78f9ccb536ba6f44fd37d33",
+        "sha256": "6c289a83f8731cbd8c2c1c39950bdf12ac3cedad9854c71ec572c0bada659e76",
         "solids": 1,
         "valid": true,
-        "volume_error": "2.1e-12",
-        "volume_mm3": 31985.378
+        "volume_error": "2.0e-12",
+        "volume_mm3": 33529.538
       },
       "print/shell.step": {
-        "bytes": 684899,
+        "bytes": 821158,
         "format": "STEP AP214",
-        "sha256": "16041dcb1ac508631c132aece1bf8fea566a11a3fd6d8e5c64142aff2794d244",
+        "sha256": "ac2065297134ced8bff1b64c7638e14c802217394377efe6b7cba92fc63b821d",
         "solids": 1,
         "valid": true,
-        "volume_error": "1.8e-15",
-        "volume_mm3": 31985.378
+        "volume_error": "3.7e-15",
+        "volume_mm3": 33529.538
       },
       "print/shell.stl": {
         "bodies": {
           "OBS-CASE-SHELL-PRINT": {
-            "triangles": 11426,
+            "triangles": 11570,
             "volume_error": "1.1e-05",
             "watertight": true
           }
         },
-        "bytes": 571384,
+        "bytes": 578584,
         "format": "STL",
-        "sha256": "f825980d723f73ea2bd77481ed293866fcd3bc9efa4a726b4a049855936e0452"
+        "sha256": "5ee8be7bb8651a360d68a905f88d0b06787e0752c1ebb16f04476258e09f9d88"
       }
     },
     "tools": {
