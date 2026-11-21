@@ -7,12 +7,12 @@ you print, laser-cut or mill, and how it goes together.
 pad. Values marked MEASURE are unchecked until a part is in hand (README "MEASURE and UNVERIFIED").
 Read "Before you order anything" first.
 
-The release assets carry the files (GitHub release `v0.1.0`):
+The release assets carry the files (the latest GitHub release):
 
 | Asset | Holds |
 | --- | --- |
 | `macropad-obs-pcb-<tag>.zip` | KiCad project, footprint library, JLCPCB Gerber/drill/BOM/CPL set, board STEP |
-| `macropad-obs-case-<tag>.zip` | every case export (`cad/exports/`) and the renders |
+| `macropad-obs-case-<tag>.zip` | every case export (`cad/exports/`), the CNC drawing pack (`cnc-pack/`) and the renders |
 | `macropad-obs-firmware-<tag>.zip` | the ESP32-S3 image |
 | `macropad-obs-app-<tag>-linux-x86_64.tar.gz` | the Linux app and the udev rule |
 
@@ -23,12 +23,7 @@ These gaps block a complete pad today. Each one is open in the tree, not just in
 1. **The PCB is provisional.** The two FPC connectors (J3, J4) are placeholder footprints until the
    panels are calipered (task 5.12). `just gate` exits 1 with 18 open MEASURE tags. Do not order
    boards until it exits 0.
-2. **The display carriers are not exported.** `just cad` builds and checks them
-   (`cad/obs_case/carriers.py`), but no printable file for them is in `cad/exports/`.
-3. **The CNC drawing pack is not in the release.** `just cad` writes a STEP, an A3 PDF drawing and a
-   DXF per milled part to the ignored `.build/cad/cnc/`. A CNC shop needs the PDF for tolerances.
-   Rebuild it locally (section 9) before a CNC order.
-4. **LCSC numbers are UNVERIFIED.** Every BOM cell must be matched to a real part at order time.
+2. **LCSC numbers are UNVERIFIED.** Every BOM cell must be matched to a real part at order time.
 
 Order of work that the design expects:
 
@@ -157,7 +152,7 @@ Write each result into the hardware record (`docs/bringup.md`).
 | Antenna insert | `print/insert.3mf` | 1 | the back-wall window for the Wi-Fi antenna; no metal |
 | Knob dial | `knob/dial.3mf` | 3 | resin prints the flutes cleaner than FDM |
 | Button cap | `b3f-cap/print.3mf` | 4 | press-on cap on the B3F plunger |
-| Display carriers | not exported | 2 | gap 2 |
+| Display carriers | `carriers/big.3mf`, `carriers/narrow.3mf` | 1 + 1 | stand on the PCB and hold each panel up; height MEASURE from the calipered panel |
 
 Print notes (`docs/research/11-case-cad.md` section 4):
 
@@ -197,8 +192,8 @@ the CNC recess; in the print case the recess is 0.05 mm wider a side. The narrow
 Order notes (report 12):
 
 - Send each part as its own file and order line. A multi-body STEP waits for manual review.
-- Add the A3 PDF drawing from the CNC pack (gap 3). It tolerances the MX holes at 14.0 ± 0.05 mm;
-  the default ISO 2768-m is too loose for them.
+- Add the A3 PDF drawing from the CNC pack (`cnc-pack/shell.pdf`, `cnc-pack/plate.pdf` in the case
+  zip). It tolerances the MX holes at 14.0 ± 0.05 mm; the default ISO 2768-m is too loose for them.
 - Threads: the shell has 6 blind M2 holes, 4.0 deep thread on a 1.6 x 5.0 drill (row T1). Tick
   "Threads-YES". Tap after anodise, or mask the holes. The plate's 6 holes are countersunk 90 x 4.0
   on the outer face, which needs a second setup.

@@ -28,6 +28,9 @@ Steps:
             cad/exports/knob and the "knob" section. Tests: obs_case/test_knob_caps.py.
   b3f       check the B3F caps, press-on (print) and floating (cnc) (task 6.10), write their 3D
             exports, read each back, into cad/exports/b3f-cap and the "b3f-cap" section.
+  carrier-export
+            check the display carriers against the shell, write their 3D exports, read each back,
+            into cad/exports/carriers and the "carriers" section.
   coupons   cut the print coupons (task 6.9) from the print parts, check each, write their 3D
             exports, read each back, into cad/exports/coupons and the "coupons" section.
             Tests: obs_case/test_coupons.py.
@@ -135,6 +138,11 @@ def b3f_step() -> int:
     return _fresh_process("obs_case.b3f_cap")
 
 
+def carrier_export_step() -> int:
+    """In a fresh process with a fixed hash seed, as export."""
+    return _fresh_process("obs_case.carrier_export")
+
+
 def coupons_step() -> int:
     """In a fresh process with a fixed hash seed, as export."""
     return _fresh_process("obs_case.coupons")
@@ -174,7 +182,7 @@ def fcstd_step() -> int:
 
 STEPS = {"body": body_step, "carriers": carriers_step, "insert": insert_step, "variants": variants_step,
          "cnc": cnc_step, "export": export_step, "export2d": export2d_step, "envelopes": envelopes_step,
-         "fcstd": fcstd_step, "laser": laser_step, "knob": knob_step, "b3f": b3f_step,
+         "fcstd": fcstd_step, "laser": laser_step, "knob": knob_step, "b3f": b3f_step, "carrier-export": carrier_export_step,
          "coupons": coupons_step, "render": render_step, "fit": fit_step}
 
 

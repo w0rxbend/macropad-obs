@@ -271,6 +271,136 @@
       "trimesh": "5.2.1"
     }
   },
+  "carriers": {
+    "files": {
+      "carriers/big.3mf": {
+        "bodies": {
+          "OBS-CARRIER-BIG": {
+            "triangles": 44,
+            "volume_error": "8.2e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 2046,
+        "format": "3MF",
+        "sha256": "29493be1678c00325595c06bccd9d2e9abdf52ac639eb5742855120be549a031"
+      },
+      "carriers/big.ap242.step": {
+        "bytes": 45098,
+        "format": "STEP AP242",
+        "sha256": "9305c9f9862fe41c5aa783ac7699512ba90c8fe5454f8a6afbb43f0a634d55bb",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.9e-15",
+        "volume_mm3": 1699.47
+      },
+      "carriers/big.brep": {
+        "bytes": 10991,
+        "format": "BREP",
+        "sha256": "1db6c8b845762bf3f5e934d941e391921d280c21fc36a4c042849d2b9d7ac6b9",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "8.0e-16",
+        "volume_mm3": 1699.47
+      },
+      "carriers/big.igs": {
+        "bytes": 32319,
+        "format": "IGES",
+        "sha256": "a80383e4b06413fd42a13166ecd7058f6c6c7f0d69f47139de081332ceb0a616",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.9e-15",
+        "volume_mm3": 1699.47
+      },
+      "carriers/big.step": {
+        "bytes": 45063,
+        "format": "STEP AP214",
+        "sha256": "27059448bfbb4ac95465f845c40e6da1ab8c9f44be04c17f781f7cb56e4035ba",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "1.9e-15",
+        "volume_mm3": 1699.47
+      },
+      "carriers/big.stl": {
+        "bodies": {
+          "OBS-CARRIER-BIG": {
+            "triangles": 44,
+            "volume_error": "8.2e-08",
+            "watertight": true
+          }
+        },
+        "bytes": 2284,
+        "format": "STL",
+        "sha256": "3c4f398749b27a3c3b6cd076d3073f445d0b532d1e16554c17c261cb48681ef1"
+      },
+      "carriers/narrow.3mf": {
+        "bodies": {
+          "OBS-CARRIER-NARROW": {
+            "triangles": 44,
+            "volume_error": "6.3e-07",
+            "watertight": true
+          }
+        },
+        "bytes": 2086,
+        "format": "3MF",
+        "sha256": "529eadea490a63d7726f7577a4d377100a965d959d008967aa2bbd2691e3636f"
+      },
+      "carriers/narrow.ap242.step": {
+        "bytes": 45233,
+        "format": "STEP AP242",
+        "sha256": "3945e1eeef60a28ab7399e1bd222beb83543bffe4c24b9a7025f3d2dcf59770b",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "9.3e-16",
+        "volume_mm3": 1220.24
+      },
+      "carriers/narrow.brep": {
+        "bytes": 10205,
+        "format": "BREP",
+        "sha256": "3adbe4e400bc12d6774f190540a5a5edd1582138712f21d04537e3c0256a7927",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "0.0e+00",
+        "volume_mm3": 1220.24
+      },
+      "carriers/narrow.igs": {
+        "bytes": 32400,
+        "format": "IGES",
+        "sha256": "aa0d705cc178b5d254b7f34a4547bc5bfb6805c57413bde8af58f9f6badd727d",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "9.3e-16",
+        "volume_mm3": 1220.24
+      },
+      "carriers/narrow.step": {
+        "bytes": 45198,
+        "format": "STEP AP214",
+        "sha256": "10a6adc1ad8dad829d58fe54fa7aeee4fc21c093a87cc806b45fe74923dc6af6",
+        "solids": 1,
+        "valid": true,
+        "volume_error": "9.3e-16",
+        "volume_mm3": 1220.24
+      },
+      "carriers/narrow.stl": {
+        "bodies": {
+          "OBS-CARRIER-NARROW": {
+            "triangles": 44,
+            "volume_error": "6.3e-07",
+            "watertight": true
+          }
+        },
+        "bytes": 2284,
+        "format": "STL",
+        "sha256": "c1c345cb6fdf5d11ee1ca37367be7b9625024e2ac85b6201474c144680986c80"
+      }
+    },
+    "tools": {
+      "build123d": "0.13.0",
+      "cadquery-ocp-novtk": "8.0.1.1.0",
+      "lib3mf": "2.5.0",
+      "trimesh": "5.2.1"
+    }
+  },
   "case": {
     "files": {
       "cnc/assembly.3mf": {
