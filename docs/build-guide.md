@@ -20,18 +20,15 @@ The release assets carry the files (GitHub release `v0.1.0`):
 
 These gaps block a complete pad today. Each one is open in the tree, not just in this guide.
 
-1. **The case has no fastening.** The plate and the PCB have six 2.2 mm holes (M2 clearance,
-   `board.toml` `[pcb] holes`), but the shell has no screw bosses, threads or insert pockets. Screw
-   size, count and insert type are open question 3 in `docs/spec/spec-v2.md` section 15.
-2. **The PCB is provisional.** The two FPC connectors (J3, J4) are placeholder footprints until the
+1. **The PCB is provisional.** The two FPC connectors (J3, J4) are placeholder footprints until the
    panels are calipered (task 5.12). `just gate` exits 1 with 18 open MEASURE tags. Do not order
    boards until it exits 0.
-3. **The display carriers are not exported.** `just cad` builds and checks them
+2. **The display carriers are not exported.** `just cad` builds and checks them
    (`cad/obs_case/carriers.py`), but no printable file for them is in `cad/exports/`.
-4. **The CNC drawing pack is not in the release.** `just cad` writes a STEP, an A3 PDF drawing and a
+3. **The CNC drawing pack is not in the release.** `just cad` writes a STEP, an A3 PDF drawing and a
    DXF per milled part to the ignored `.build/cad/cnc/`. A CNC shop needs the PDF for tolerances.
    Rebuild it locally (section 9) before a CNC order.
-5. **LCSC numbers are UNVERIFIED.** Every BOM cell must be matched to a real part at order time.
+4. **LCSC numbers are UNVERIFIED.** Every BOM cell must be matched to a real part at order time.
 
 Order of work that the design expects:
 
@@ -115,12 +112,14 @@ boards, report 12).
 | Acrylic sheet, 1.0 mm, clear or tinted | 1 small sheet | laser-cut into two lenses (section 4.3) |
 | Double-sided tape, 0.13 mm | a strip | holds each lens on its ledge |
 | M3 set screws | 3 | one per knob, on the shaft flat. Length MEASURE |
-| Case screws and heat-set inserts | 6 | **not chosen** (gap 1). The holes are M2 clearance |
+| ISO 10642 M2 x 12 countersunk hex socket screws, A2 stainless | 6 | close the case from below (`board.toml` `[screws]`) |
+| M2 x 3.0 heat-set inserts, brass, knurled | 6 | printed case only; the CNC case is tapped M2. Pocket 3.2 x 4.0, check it on the `insert-boss` coupon |
 | USB-C cable, data | 1 | power and configuration |
 
 **Tools for the build and bring-up**
 
-- Soldering iron for the 7 through-hole parts.
+- Soldering iron for the 7 through-hole parts, and a heat-set insert tip for the printed case.
+- 1.25 mm hex key for the ISO 10642 M2 screws.
 - Calipers, for the panels and the coupons.
 - Multimeter; bench supply with a current limit; USB power meter (bring-up steps 1, 2, 9).
 - A 3.3 V USB-UART adapter for the debug JST (optional; UART0 on IO43/IO44).
@@ -145,6 +144,7 @@ Print `cad/exports/coupons/` before the case. Each coupon checks one fit that is
 | `fpc-big`, `fpc-narrow` | each panel tail folds through its board slot |
 | `usb-base`, `usb-top` | the USB4216 and a cable plug fit the opening |
 | `module-stack` | the module stack clears the plate (0.9 mm) |
+| `insert-boss` | a bought M2 heat-set insert presses into its pocket, and an M2 screw holds in it |
 
 Write each result into the hardware record (`docs/bringup.md`).
 
@@ -157,7 +157,7 @@ Write each result into the hardware record (`docs/bringup.md`).
 | Antenna insert | `print/insert.3mf` | 1 | the back-wall window for the Wi-Fi antenna; no metal |
 | Knob dial | `knob/dial.3mf` | 3 | resin prints the flutes cleaner than FDM |
 | Button cap | `b3f-cap/print.3mf` | 4 | press-on cap on the B3F plunger |
-| Display carriers | not exported | 2 | gap 3 |
+| Display carriers | not exported | 2 | gap 2 |
 
 Print notes (`docs/research/11-case-cad.md` section 4):
 
@@ -166,6 +166,8 @@ Print notes (`docs/research/11-case-cad.md` section 4):
 - Printed face down, the MX plate is a 60 mm roof. The orientation is not settled; the earlier
   `macropad` project printed its top shell on its side.
 - The longest part is 173.5 mm. Check the bed size (open question 5).
+- Press the 6 M2 heat-set inserts into the shell's boss pockets with a soldering iron, flush with
+  the boss foot, before assembly.
 - A print service such as JLC3DP takes STL, STEP and 3MF: 48 to 120 hours plus shipping, about 15 to
   50 USD (report 12, unverified).
 
@@ -195,8 +197,11 @@ the CNC recess; in the print case the recess is 0.05 mm wider a side. The narrow
 Order notes (report 12):
 
 - Send each part as its own file and order line. A multi-body STEP waits for manual review.
-- Add the A3 PDF drawing from the CNC pack (gap 4). It tolerances the MX holes at 14.0 ± 0.05 mm;
+- Add the A3 PDF drawing from the CNC pack (gap 3). It tolerances the MX holes at 14.0 ± 0.05 mm;
   the default ISO 2768-m is too loose for them.
+- Threads: the shell has 6 blind M2 holes, 4.0 deep thread on a 1.6 x 5.0 drill (row T1). Tick
+  "Threads-YES". Tap after anodise, or mask the holes. The plate's 6 holes are countersunk 90 x 4.0
+  on the outer face, which needs a second setup.
 - Finish: bead blast, then black Type II anodise. Order all anodised parts in one batch, since the
   colour shifts between batches. Name the rack-mark faces.
 - Shops: JLCCNC (from 3 business days) or PCBWay. About 130 to 380 USD for one machined case with
@@ -228,7 +233,9 @@ unchecked on real parts.
 8. **Antenna insert.** Fit it in the back wall at x 56.0 to 87.6. Its tongue fills the plate cut
    under the antenna. The insert's fixing is MEASURE.
 9. **Bottom plate.** Close the case with the plate. Its standoffs sit under the board's 6 holes, and
-   its ribs and posts back the key sockets and encoders. The fastening is gap 1.
+   its ribs and posts back the key sockets and encoders. Drive the 6 M2 x 12 countersunk screws up
+   through plate, standoffs and board into the bosses (tapped in the CNC case, inserts in the
+   printed one). Snug only: the bosses clamp the board, and over-tightening strips a printed boss.
 10. **Switches.** Press the 9 MX switches into the plate from the top. Their pins go into the
     hot-swap sockets.
 11. **Caps and knobs.** Fit the 9 DSA keycaps. Print case: press the 4 button caps onto the
@@ -276,7 +283,7 @@ quote.
 | 5 assembled boards, JLCPCB Standard, express shipping | 230 to 340 |
 | Big display | about 40 |
 | Strip display | by quote |
-| 9 switches, 9 keycaps, 7 hand parts, foam, acrylic, screws | not priced |
+| 9 switches, 9 keycaps, 7 hand parts, foam, acrylic, 6 screws, 6 inserts | not priced |
 | Printed case, at home | under 5 |
 | Printed case, service | 15 to 50 |
 | Machined case, anodised, laser marked, shipped | 130 to 380 |

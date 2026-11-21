@@ -165,6 +165,13 @@ Source: `cad/build.py`, `cad/obs_case/`, tasks 6.1 to 6.10.
   keycap seat not checked (MEASURE).
 - Display stack: panel face at z 5.6, foam 0.5 mm squeezed to 0.4, carrier heights from a calipered
   panel (spec 7 revision 3; `board.toml` `[stack]`, `[display_carrier]`, MEASURE).
+- Fastening (`board.toml` `[screws]`, `cad/obs_case/screws.py`; open question 3 answered M2): six
+  ISO 10642 M2 x 12 countersunk screws from below, through the plate, the standoffs and the PCB,
+  into 5.0 mm bosses that hang from the deck and clamp the board. Each boss joins its nearest walls
+  with R 1.2 fillets. The cnc shell is tapped M2 x 4.0 (drill 1.6 x 5.0); the print shell takes an
+  M2 x 3.0 heat-set insert in a 3.2 x 4.0 pocket (MEASURE on the `insert-boss` coupon). The boss
+  wall round the tap drill is 1.7 mm, a named thin wall: the boss cannot grow past the PCB hole
+  keep-out it lands on.
 
 ## Not proven until hardware
 

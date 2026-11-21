@@ -149,7 +149,7 @@ replacement. Tests are deleted only with the code they test.
 | 1 | 2.4 GHz coverage where the pad sits? | H.10, H.11 test spot |
 | 1 | Insert colour against the black anodise (default black)? | 6.3 |
 | 2 | Plunger: B3F-1060 (default), -1020 or -1050? | 6.10 cap, 6.2a deck holes |
-| 3 | Screws M2 or M2.5, how many, which heat-set insert? | hole table in 1.4a, 6.3 |
+| 3 | Screws M2 or M2.5, how many, which heat-set insert? Answered 2026-11-21: M2, `[screws]` | hole table in 1.4a, 6.3 |
 | 4 | Is 350 cd/m2 enough? | panel choice; H.9 by eye |
 | 4 | Meters or fader dB; REC/LIVE time or clock? | 2.14a, 2.14b goldens |
 | 4 | Cyrillic, 9 keys or key pages (button 4)? | [later] unless asked; 2.14a fonts, 2.12 |

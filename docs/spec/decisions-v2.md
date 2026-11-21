@@ -30,3 +30,9 @@ D1 = W changes the spec: the MCU moves from RP2350B to an ESP32-S3 module, and t
 | G-docker | Pull `espressif/idf:v6.1.1` (4.2 GB); build the `app-check` image from the local `kicad/kicad:10.0.7` with apt packages | **Approved, both.** |
 | G-git | How is the work committed? | **Always commit and push to `main`.** |
 | G-parallel | How many agents at once? | **8.** |
+
+## Fourth round, 2026-11-21
+
+| Id | Question | Answer |
+|---|---|---|
+| Q3 | Case screws: M2 or M2.5, how many, which heat-set insert? | **M2.** Defaults taken with it: one screw per `[pcb]` hole (6), ISO 10642 M2 x 12 countersunk from below; tapped M2 in the cnc shell, an M2 x 3.0 heat-set insert in the print shell (`board.toml` `[screws]`). |

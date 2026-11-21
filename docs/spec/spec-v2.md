@@ -501,7 +501,8 @@ settle, buck heat, case air, laser, MEASUREs.
    where the pad sits? Insert colour against the black anodise (default black)?
 2. Plunger: round black B3F-1060 (7.0 mm, default), -1020 (5.0 mm) or square -1050? Sets cap and
    deck (R08).
-3. Screws: M2 or M2.5, how many, which heat-set insert (R11)? Blocks the hole table.
+3. ~~Screws: M2 or M2.5, how many, which heat-set insert (R11)?~~ Answered 2026-11-21: M2, six,
+   `board.toml` `[screws]` (`docs/spec/decisions-v2.md`, fourth round).
 4. Display: 350 cd/m2 enough; meters or fader dB; REC/LIVE time or clock; Cyrillic; 9 keys or key
    pages (button 4)? In-app firmware update (row 11b) wanted? If not, criterion 14 drops.
 5. Printer bed (longest part about 170 mm); country (import tax); logo to engrave; keycap colour;
