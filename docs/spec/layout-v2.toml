@@ -58,7 +58,7 @@ holes = [
 # Rev 2c: the back-right hole (88.3, 166.0) sat inside [antenna] board_cut and is dropped (6 holes).
 # Back-corner drills sit 0.6 from the back edge and 0.5 from the R 4.0 arc. Every boss
 # is merged into the wall with an R 1.0 fillet, so no slot narrower than a cutter is left.
-boss_merge_fillet = 1.0               # design
+boss_merge_fillet = 1.2               # design: >= the JLCCNC R 1.1 for a 6 deep corner (2026-11-21, M2 bosses)
 top_keepout = "every [display_carrier] outer rectangle"   # top face; rule text in [display_carrier]
 board_slots = [                       # FPC tails pass through to connectors on the bottom face
   [19.9, 76.1, 21.5, 1.5],            # big tail (20.50 wide): 1.68 in front of the panel edge

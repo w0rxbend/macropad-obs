@@ -90,7 +90,7 @@ holes = [
 # Rev 2c: the back-right hole (88.3, 166.0) sat inside [antenna] board_cut and is dropped (6 holes).
 # Back-corner drills sit 0.6 from the back edge and 0.5 from the R 4.0 arc. Every boss
 # is merged into the wall with an R 1.0 fillet, so no slot narrower than a cutter is left.
-boss_merge_fillet = 1.0               # design
+boss_merge_fillet = 1.2               # design: >= the JLCCNC R 1.1 for a 6 deep corner (shop.py)
 top_keepout = "every [display_carrier] outer rectangle"   # top face; rule text in [display_carrier]
 board_slots = [                       # FPC tails pass through to connectors on the bottom face
   [19.9, 76.1, 21.5, 1.5],            # big tail (20.50 wide): 1.68 in front of the panel edge
@@ -112,6 +112,23 @@ pinholes = { diameter = 2.0, at = [[40.0, 155.3], [52.0, 155.3]] }   # reach BOO
 # No metal under the antenna: the plate is cut here and the [antenna] insert's tongue fills it.
 antenna_relief = [58.6, 161.7, 33.4, 6.4]   # design: board_cut to the wall inside faces (y 168.1, x 92.0)
 usb_notch = { width = 12.6, depth = 1.1 }   # see [usb]; listed in the plate drawing
+
+[screws]
+# Owner 2026-11-21: M2 (open question 3). One screw per [pcb] hole, from below: countersunk in the
+# plate's outer face, through the standoff and the PCB, into a boss that hangs from the deck
+# underside to the PCB top face and clamps the board. Each boss joins the cavity walls it nears
+# with boss_merge_fillet ([pcb]), so no slot narrower than a cutter is left.
+size = "M2"
+screw = "ISO 10642 M2 x 12, countersunk hex socket, A2 stainless"   # bought; tip at z 3.9
+length = 12.0                  # under the plate outer face, countersunk head included
+countersink = { diameter = 4.0, angle = 90.0 }   # ISO 10642 M2 head dk 3.8 max: the head sits flush
+boss_diameter = 5.0            # = [pcb] hole_keepout_diameter, where the boss meets the PCB top face
+merge_reach = 2.0              # design: a boss joins every cavity wall within boss radius + this
+# cnc: blind tapped hole from the boss foot. Thread depth at most 3 x diameter, half a diameter
+# plain below the deck (report 11 [J1]); the deck stays whole above it.
+cnc = { tap_drill = 1.6, thread_depth = 4.0, drill_depth = 5.0 }
+# print: a heat-set insert pocket in the same boss, 1.0 deeper than the insert (report 11 [K1]).
+print = { insert = "M2 x 3.0 heat-set insert, brass, knurled", insert_length = 3.0, pocket = [1.6, 4.0] }   # pocket radius (a 3.2 hole), depth; MEASURE on the insert coupon against the insert bought
 
 [big_display]
 part = "Focus LCDs E35GH-I-RW300-N"   # 3.5 in, 320x480 IPS, ST7796U, 4-wire SPI
@@ -224,7 +241,7 @@ index_marks = { height = 2.5, at = [[64.0, 67.6], [64.0, 41.1], [64.0, 14.6]], t
 
 [variants]
 # Report 11 s4: one build123d source, a `print` and a `cnc` case (spec 9). The tables above draw the
-# cnc case. A variant changes fits only; screw holes wait on open question 3. The lens sheet is the
+# cnc case. A variant changes fits and the [screws] seat. The lens sheet is the
 # cnc recess less cnc.lens_fit a side. CNC inside corners get reliefs in cad/obs_case/variants.py.
 cnc = { lens_fit = 0.1, hole_clearance = 0.1 }      # report 11; hole_clearance = [buttons] hole_clearance
 print = { lens_fit = 0.15, hole_clearance = 0.3 }   # report 11: FDM moving parts need 0.3 (Prusa)

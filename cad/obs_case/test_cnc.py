@@ -115,7 +115,7 @@ class MinimumWall(unittest.TestCase):
 
     def test_the_accepted_thin_walls_are_the_ones_board_toml_draws(self):
         names = {name: {wall.source for wall in checks.thin_walls(name)} for name in MILLED}
-        self.assertEqual(names, {"shell": {"[usb] back_wall_thinned.to", "[display_carrier] skirt"},
+        self.assertEqual(names, {"shell": {"[usb] back_wall_thinned.to", "[display_carrier] skirt", "[screws] boss_diameter"},
                                  "plate": {"[bottom_plate] key_ribs.width", "[pcb] holes 3.3,166"}})
 
     def test_the_back_left_standoff_web_is_the_hole_to_the_bay_arc(self):

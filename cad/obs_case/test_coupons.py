@@ -18,7 +18,7 @@ from obs_case.spec import LAYOUT  # noqa: E402
 
 NUDGE = 0.04  # mm a probe sits inside the pocket corner it tests
 WANT = {"module-stack", "usb-top", "usb-base", "mx-cutout", "cap-hole", "knob-hole", "knob-bore", "fpc-big",
-        "fpc-narrow"}
+        "fpc-narrow", "insert-boss"}
 
 
 class Coupons(unittest.TestCase):

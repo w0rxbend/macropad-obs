@@ -535,7 +535,19 @@ def thin_walls(name):
                  (_box(usb_rect, mouth_z - area_height / 2, mouth_z + area_height / 2),)),
         ThinWall("display pocket walls", "[display_carrier] skirt", LAYOUT.display_carrier.skirt,
                  tuple(_box(bar, stack.pocket_skirt_bottom, stack.deck_underside) for bar in bars)),
+        _boss_walls(),
     )
+
+
+def _boss_walls():
+    """The wall of each screw boss between its tap drill and its free side: the boss can grow no
+    wider than the [pcb] hole keep-out it lands on, so the wall is that radius less the drill's."""
+    screws, stack = LAYOUT.screws, LAYOUT.stack
+    radius = screws.boss_diameter / 2
+    rects = [[x - radius, y - radius, screws.boss_diameter, screws.boss_diameter] for x, y in LAYOUT.pcb.holes]
+    return ThinWall("M2 bosses", "[screws] boss_diameter",
+                    radius - screws.cnc.tap_drill / 2,
+                    tuple(_box(rect, stack.pcb_top, stack.deck_underside) for rect in rects))
 
 
 def _clipped_standoffs():

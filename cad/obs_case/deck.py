@@ -11,7 +11,7 @@ from operator import add
 
 from build123d import Box, Cylinder, Pos
 
-from obs_case import body
+from obs_case import body, screws
 from obs_case.carriers import block
 from obs_case.spec import LAYOUT
 
@@ -126,7 +126,7 @@ def pocket_walls():
 
 def top_shell():
     """The finished top shell: the slab, its cavity and every deck cut."""
-    part = body.shell(plate_block() + pocket_walls())
+    part = body.shell(plate_block() + pocket_walls() + screws.bosses())
     for name, tool in _cuts():
         part = body.cut(part, tool, name)
     return part
@@ -140,6 +140,7 @@ def _cuts():
         ("windows", _union(_window_tool(panel) for panel in panels())),
         ("button holes", button_hole_tools()),
         ("knob holes", _knob_hole_tools()),
+        ("screw tap drills", screws.tap_drills()),
     ]
 
 

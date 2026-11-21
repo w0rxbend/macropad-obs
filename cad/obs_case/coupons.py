@@ -18,6 +18,8 @@ light-channel coupons are gone with the parts they tested.
   hole and the dial's bore, the fits board.toml leaves MEASURE on a coupon.
 - fpc-big, fpc-narrow: the front of each carrier with its tail gap, on a stand-in board 1.6 thick
   with the [pcb] board slot, to fold the bought panel's tail through.
+- insert-boss: the screw boss beside E2 with its heat-set insert pocket ([screws] print) and the
+  deck over it, to press the bought M2 insert in and drive a screw.
 
 Two kinds add what their parent does not have: the stand-in posts and the stand-in boards. They
 are kept apart in the checks. Frame: board.toml's PCB frame (the dial's is on its shaft axis).
@@ -34,7 +36,7 @@ from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Fuse
 from OCP.collections import List_TopoDS_Shape
 from OCP.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
 
-from obs_case import bottom, carriers, insert, knob, variants
+from obs_case import bottom, carriers, insert, knob, screws, variants
 from obs_case.carriers import block
 from obs_case.deck import OVERRUN, button_hole
 from obs_case.export import EXPORTS, STAGE, fresh, part_files, publish
@@ -46,7 +48,8 @@ POSES = {"shell": FLIP, "plate": Location(), "dial": FLIP, "carrier-big": Locati
 STAND_IN_GAP = 0.5  # mm between a stand-in post and the module outline
 TOLERANCE = 1e-6  # mm, the bed and the volume noise allowed
 MEASURE = ("module stack 0.9 to the plate", "USB4216 and cable in the opening", "MX plate hole",
-           "B3F cap hole", "EC11 bushing hole", "shaft fit on the knob bore", "FPC tail fold through the slot")
+           "B3F cap hole", "EC11 bushing hole", "shaft fit on the knob bore", "FPC tail fold through the slot",
+           "M2 heat-set insert in its pocket")
 
 
 @dataclass(frozen=True)
@@ -85,7 +88,7 @@ def _deck_z():
 
 def coupons() -> list[Coupon]:
     return [_module_stack(), *_usb_pair(), _mx_cutout(), _cap_hole(), _knob_hole(), _knob_bore(),
-            *(_fpc_tail(name, index) for index, name in enumerate(carriers.NAMES))]
+            *(_fpc_tail(name, index) for index, name in enumerate(carriers.NAMES)), _insert_boss()]
 
 
 def _module_stack() -> Coupon:
@@ -165,6 +168,22 @@ def _fpc_tail(name: str, index: int) -> Coupon:
                     (stack.pcb_bottom, stack.pcb_top))
     board = board - block(slot, stack.pcb_bottom - OVERRUN, stack.pcb_top + OVERRUN)
     return Coupon(f"fpc-{name}", f"carrier-{name}", window, board)
+
+
+def _boss_hole() -> tuple[float, float]:
+    """The [pcb] hole beside E2: its boss joins one wall only, the plainest boss to test."""
+    return next(hole for hole in LAYOUT.pcb.holes if len(screws.walls(hole)) == 1 and hole[1] < LAYOUT.knobs.y[0])
+
+
+def _insert_boss() -> Coupon:
+    """One screw boss with its insert pocket, its webs and fillets, the deck over it, out through
+    the side wall."""
+    x, y = _boss_hole()
+    reach = screws.radius() + LAYOUT.pcb.boss_merge_fillet + _rim()
+    outline = LAYOUT.body.outline
+    window = _window((x - reach, _right(outline) + OVERRUN), (y - reach, y + reach),
+                     (LAYOUT.stack.pcb_top - OVERRUN, LAYOUT.stack.deck_top + OVERRUN))
+    return Coupon("insert-boss", "shell", window)
 
 
 @cache
@@ -297,6 +316,9 @@ def _feature_probe(name: str) -> tuple[tuple[float, float, float], bool]:
         "cap-hole": ((LAYOUT.buttons.x[0], LAYOUT.buttons.y, deck_mid), False),
         "knob-hole": ((knobs.x, knobs.y[0], deck_mid), False),
         "knob-bore": ((0.0, 0.0, knob.seat().d_start), False),
+        # Between the cnc tap drill and the pocket wall: air only where the print pocket is cut.
+        "insert-boss": ((_boss_hole()[0] + (LAYOUT.screws.print.pocket[0] + LAYOUT.screws.cnc.tap_drill / 2) / 2,
+                         _boss_hole()[1], stack.pcb_top + LAYOUT.screws.print.pocket[1] / 2), False),
     }
     for index, carrier in enumerate(carriers.NAMES):
         x, y, width, depth = LAYOUT.pcb.board_slots[index]

@@ -4,13 +4,15 @@ its inside face at stack.bottom_plate_inside. Standoffs, encoder posts and key r
 to the PCB bottom face. It is cut for the 6 screw holes, the two pinholes, the USB notch, and the
 antenna: `antenna_relief` plus the insert's footprint, which the insert (insert.py) fills.
 
-Sizes come from board.toml [bottom_plate], [pcb], [usb], [antenna] and [stack]. Counterbores wait
-on open question 3 (screw size); the holes here are the [pcb] clearance holes."""
+Sizes come from board.toml [bottom_plate], [pcb], [usb], [antenna], [stack] and [screws]: each [pcb]
+clearance hole gets a countersink on the outer face for the M2 countersunk screw (screws.py has the
+shell side)."""
 
 from functools import reduce
+from math import radians, tan
 from operator import add
 
-from build123d import Cylinder, Pos
+from build123d import Cone, Cylinder, Pos
 
 from obs_case import body
 from obs_case.carriers import block
@@ -112,7 +114,24 @@ def _cuts():
     z_low, z_high = outer_face() - OVERRUN, LAYOUT.stack.bottom_plate_inside + OVERRUN
     return [
         ("screw holes", _through(LAYOUT.pcb.hole_diameter, LAYOUT.pcb.holes)),
+        ("countersinks", countersinks()),
         ("pinholes", _through(pinholes.diameter, pinholes.at)),
         ("USB notch", _usb_notch()),
         ("antenna relief and insert footprint", antenna_opening(z_low, z_high)),
     ]
+
+
+def countersink_depth():
+    """How far each countersink cone reaches into the plate: from its face diameter to the hole."""
+    sink = LAYOUT.screws.countersink
+    return (sink.diameter - LAYOUT.pcb.hole_diameter) / 2 / tan(radians(sink.angle / 2))
+
+
+def countersinks():
+    """A countersink cone on the outer face at each [pcb] hole, run OVERRUN out below the face."""
+    sink = LAYOUT.screws.countersink
+    slope = tan(radians(sink.angle / 2))
+    height = countersink_depth() + OVERRUN
+    wide, narrow = sink.diameter / 2 + OVERRUN * slope, LAYOUT.pcb.hole_diameter / 2
+    z_low = outer_face() - OVERRUN
+    return _union(Pos(x, y, z_low + height / 2) * Cone(wide, narrow, height) for x, y in LAYOUT.pcb.holes)

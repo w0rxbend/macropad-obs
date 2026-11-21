@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 """The `print` and `cnc` variants of the case (spec 9; report 11 section 4). One source: the shell,
 the bottom plate and the back-wall insert as board.toml draws them are the cnc case. A variant
-changes fits only:
+changes fits and the screw seat:
 
-- print: each lens recess grows by print.lens_fit - cnc.lens_fit a side, and each cap hole takes
-  print.hole_clearance a side ([variants]).
+- print: each lens recess grows by print.lens_fit - cnc.lens_fit a side, each cap hole takes
+  print.hole_clearance a side ([variants]), and each boss's tap drill widens to a heat-set insert
+  pocket ([screws] print).
 - cnc: every square inside vertical corner a round cutter cannot reach gets a dog-bone relief
   (report 11: MX cut-outs, as macropad did), sized by the JLCCNC rule R = depth / 10 + 0.5 [J1] on
   the depth from the face the cutter comes in from. Each corner carries the setup that cuts it,
@@ -22,7 +23,7 @@ from operator import add
 
 from build123d import Cylinder, GeomType, Pos, Vector
 
-from obs_case import body, bottom, deck, insert
+from obs_case import body, bottom, deck, insert, screws
 from obs_case.shop import shop_radius
 from obs_case.spec import LAYOUT
 
@@ -89,6 +90,7 @@ def _print_parts():
     shell = body.cut(insert.shell(), _union(deck.recess_tool(panel, grow) for panel in deck.panels()),
                      "print lens recesses")
     shell = body.cut(shell, deck.button_hole_tools(fits(PRINT).hole_clearance), "print cap holes")
+    shell = body.cut(shell, screws.insert_pockets(), "print insert pockets")
     return {"shell": shell, "plate": bottom.plate(), "insert": insert.insert()}
 
 

@@ -9,7 +9,8 @@ Steps:
             and check that no metal sits in the antenna board cut.
   variants  build the print and cnc variants (task 6.4) and check each: its fits, and for cnc the
             shop rules (no sharp inside corner, JLCCNC corner radius, cutter reach, wall thickness;
-            the thin walls board.toml draws on purpose are named).
+            the thin walls board.toml draws on purpose are named), and the M2 screw against its
+            tapped thread and its insert pocket ([screws]).
   cnc       write the CNC pack (task 6.4): STEP, PDF drawing and DXF of each milled part, read
             back, under .build/cad/cnc.
   export    write the 3D exports of both variants (task 6.5): STEP AP214 and AP242, BREP, IGES,
@@ -78,11 +79,12 @@ def insert_step() -> int:
 
 
 def variants_step() -> int:
-    from obs_case import checks, variants
+    from obs_case import checks, screws, variants
 
     found = []
     for variant in variants.VARIANTS:
         found += checks.variant_problems(variants.parts(variant), variant)
+    found += screws.problems()
     for problem in found:
         print(problem)
     reliefs = len(variants.inside_corners(variants.parts(variants.CNC)["shell"], variants.SETUPS["shell"]))

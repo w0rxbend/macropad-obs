@@ -39,7 +39,7 @@ FINISH_NOTES = (
     f"{FINISH} (dyed black), 8 to 12 um. Bead blast all over, then anodise.",
     "Shell and plate in one anodise batch: colour varies between batches. Rack marks inside the cavity or on "
     "the plate's inside face only. About half the coat builds on each face: the tolerances hold after anodise.",
-    "Break unmarked edges 0.1. No thread on this part: screws wait on open question 3.",
+    "Break unmarked edges 0.1. M2 threads (shell, T1): Threads-YES, tap after anodise or mask them.",
 )
 TABLE_LINE = 3.6
 LABEL_LIFT = 1.3  # sheet mm between a dimension line, or a box edge, and its text
@@ -151,6 +151,10 @@ def _shell_features():
     outline = LAYOUT.antenna.insert.outline
     rows.append(("IP", _centre(outline), f"insert pocket {_size(outline)} through the back wall, "
                  f"±{_mm(POSITION_TOLERANCE)}; insert fit MEASURE"))
+    cnc = LAYOUT.screws.cnc
+    rows.append(("T1", tuple(LAYOUT.pcb.holes[0]), f"M2 x {_mm(cnc.thread_depth)} deep, tap drill ⌀{_mm(cnc.tap_drill)} "
+                 f"x {_mm(cnc.drill_depth)} from the boss foot, ±{_mm(POSITION_TOLERANCE)}; first of "
+                 f"{len(LAYOUT.pcb.holes)}, one over each plate hole S1 to S{len(LAYOUT.pcb.holes)}"))
     usb = LAYOUT.usb
     rows.append(("UO", (usb.x, LAYOUT.pcb.depth), f"USB opening {_mm(usb.opening[0])} x {_mm(usb.opening[1])} "
                  f"through the back wall from the bottom face; wall thinned to {_mm(usb.back_wall_thinned.to)} "
@@ -160,8 +164,10 @@ def _shell_features():
 
 def _plate_features():
     plate, pcb = LAYOUT.bottom_plate, LAYOUT.pcb
+    sink = LAYOUT.screws.countersink
     rows = [(f"S{index + 1}", tuple(at), f"⌀{_mm(pcb.hole_diameter)} through plate and standoff, position "
-             f"±{_mm(POSITION_TOLERANCE)}") for index, at in enumerate(pcb.holes)]
+             f"±{_mm(POSITION_TOLERANCE)}; countersink {_mm(sink.angle)}° x ⌀{_mm(sink.diameter)} on the outer "
+             "face (second op, plate flipped)") for index, at in enumerate(pcb.holes)]
     rows += [(f"P{index + 1}", tuple(at), f"pinhole ⌀{_mm(plate.pinholes.diameter)} through")
              for index, at in enumerate(plate.pinholes.at)]
     relief = plate.antenna_relief
